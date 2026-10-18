@@ -1,24 +1,14 @@
-import datetime
 import math
 import os
-import warnings
 import numpy as np
 import pandas as pd
 import streamlit as st
-
-warnings.filterwarnings("ignore")
 
 try:
     import plotly.graph_objects as go
     PLOTLY_AVAILABLE = True
 except ImportError:
     PLOTLY_AVAILABLE = False
-
-try:
-    import nfl_data_py as nfl
-    NFL_DATA_PY_AVAILABLE = True
-except ImportError:
-    NFL_DATA_PY_AVAILABLE = False
 
 # ==============================================================================
 # CONFIGURACIÓN DE PÁGINA Y ARQUITECTURA CYBER-QUANT / BLOOMBERG SPORTSBOOK
@@ -369,466 +359,34 @@ st.markdown(CYBER_QUANT_CSS, unsafe_allow_html=True)
 
 
 # ==============================================================================
-# 1. CATÁLOGO OFICIAL DE LAS 32 FRANQUICIAS Y RESPALDO BASE (FALLBACK)
+# 1. CARGA DIRECTA DESDE CSV LOCAL (nfl_stats_completo.csv) CON @st.cache_data
 # ==============================================================================
-NFL_TEAMS_META = {
-    "KC":  {"Equipo": "Kansas City Chiefs",    "Dome": 0, "Cold_Base": 0.015, "HFA_Mod": 0.35},
-    "SF":  {"Equipo": "San Francisco 49ers",   "Dome": 0, "Cold_Base": 0.048, "HFA_Mod": 0.20},
-    "BUF": {"Equipo": "Buffalo Bills",         "Dome": 0, "Cold_Base": 0.010, "HFA_Mod": 0.30},
-    "BAL": {"Equipo": "Baltimore Ravens",      "Dome": 0, "Cold_Base": 0.018, "HFA_Mod": 0.28},
-    "DET": {"Equipo": "Detroit Lions",         "Dome": 1, "Cold_Base": 0.055, "HFA_Mod": 0.32},
-    "DAL": {"Equipo": "Dallas Cowboys",        "Dome": 1, "Cold_Base": 0.052, "HFA_Mod": 0.22},
-    "PHI": {"Equipo": "Philadelphia Eagles",   "Dome": 0, "Cold_Base": 0.022, "HFA_Mod": 0.30},
-    "NE":  {"Equipo": "New England Patriots",  "Dome": 0, "Cold_Base": 0.014, "HFA_Mod": 0.12},
-    "HOU": {"Equipo": "Houston Texans",        "Dome": 1, "Cold_Base": 0.050, "HFA_Mod": 0.20},
-    "GB":  {"Equipo": "Green Bay Packers",     "Dome": 0, "Cold_Base": 0.012, "HFA_Mod": 0.28},
-    "CIN": {"Equipo": "Cincinnati Bengals",    "Dome": 0, "Cold_Base": 0.020, "HFA_Mod": 0.22},
-    "MIA": {"Equipo": "Miami Dolphins",        "Dome": 0, "Cold_Base": 0.082, "HFA_Mod": 0.24},
-    "LAR": {"Equipo": "Los Angeles Rams",      "Dome": 1, "Cold_Base": 0.056, "HFA_Mod": 0.15},
-    "MIN": {"Equipo": "Minnesota Vikings",     "Dome": 1, "Cold_Base": 0.045, "HFA_Mod": 0.28},
-    "NYJ": {"Equipo": "New York Jets",         "Dome": 0, "Cold_Base": 0.025, "HFA_Mod": 0.16},
-    "CLE": {"Equipo": "Cleveland Browns",      "Dome": 0, "Cold_Base": 0.018, "HFA_Mod": 0.22},
-    "PIT": {"Equipo": "Pittsburgh Steelers",   "Dome": 0, "Cold_Base": 0.015, "HFA_Mod": 0.26},
-    "ATL": {"Equipo": "Atlanta Falcons",       "Dome": 1, "Cold_Base": 0.054, "HFA_Mod": 0.18},
-    "CHI": {"Equipo": "Chicago Bears",         "Dome": 0, "Cold_Base": 0.016, "HFA_Mod": 0.20},
-    "JAX": {"Equipo": "Jacksonville Jaguars",  "Dome": 0, "Cold_Base": 0.058, "HFA_Mod": 0.15},
-    "IND": {"Equipo": "Indianapolis Colts",    "Dome": 1, "Cold_Base": 0.048, "HFA_Mod": 0.18},
-    "SEA": {"Equipo": "Seattle Seahawks",      "Dome": 0, "Cold_Base": 0.024, "HFA_Mod": 0.32},
-    "TB":  {"Equipo": "Tampa Bay Buccaneers",  "Dome": 0, "Cold_Base": 0.055, "HFA_Mod": 0.18},
-    "WAS": {"Equipo": "Washington Commanders", "Dome": 0, "Cold_Base": 0.025, "HFA_Mod": 0.16},
-    "ARI": {"Equipo": "Arizona Cardinals",     "Dome": 1, "Cold_Base": 0.056, "HFA_Mod": 0.16},
-    "LAC": {"Equipo": "Los Angeles Chargers",  "Dome": 1, "Cold_Base": 0.048, "HFA_Mod": 0.12},
-    "NO":  {"Equipo": "New Orleans Saints",    "Dome": 1, "Cold_Base": 0.058, "HFA_Mod": 0.25},
-    "LV":  {"Equipo": "Las Vegas Raiders",     "Dome": 1, "Cold_Base": 0.046, "HFA_Mod": 0.16},
-    "DEN": {"Equipo": "Denver Broncos",        "Dome": 0, "Cold_Base": 0.016, "HFA_Mod": 0.32},
-    "TEN": {"Equipo": "Tennessee Titans",      "Dome": 0, "Cold_Base": 0.032, "HFA_Mod": 0.18},
-    "NYG": {"Equipo": "New York Giants",       "Dome": 0, "Cold_Base": 0.022, "HFA_Mod": 0.14},
-    "CAR": {"Equipo": "Carolina Panthers",     "Dome": 0, "Cold_Base": 0.038, "HFA_Mod": 0.14},
-}
-
-TEAM_ABBR_NORMALIZE = {
-    "LA": "LAR", "STL": "LAR", "SD": "LAC", "OAK": "LV",
-    "WSH": "WAS", "JAC": "JAX", "ARZ": "ARI", "BLT": "BAL",
-    "CLV": "CLE", "HST": "HOU",
-}
-
-DEFAULT_TEAMS_DATA = [
-    {"Equipo": "Kansas City Chiefs", "Abrev": "KC", "Pass_EPA": 0.195, "Rush_EPA": 0.015, "Pass_Success_Rate": 0.518, "Pace_Sec": 27.6, "RedZone_TD_Pct": 0.615, "Def_Pass_EPA": -0.065, "Def_Rush_EPA": -0.035, "Pressure_Pct": 0.258, "Def_RZ_Stop_Pct": 0.515, "Dome": 0, "Cold_Weather_Drop": 0.015, "RB1_TD_Rate": 0.310, "WR1_TD_Rate": 0.275, "TE1_TD_Rate": 0.295, "QB_Rush_TD_Rate": 0.115, "Pass_Rate": 0.615, "HFA_Mod": 0.35, "QB_Nombre": "P. Mahomes", "RB1_Nombre": "I. Pacheco", "WR1_Nombre": "R. Rice", "TE1_Nombre": "T. Kelce"},
-    {"Equipo": "San Francisco 49ers", "Abrev": "SF", "Pass_EPA": 0.235, "Rush_EPA": 0.095, "Pass_Success_Rate": 0.532, "Pace_Sec": 28.9, "RedZone_TD_Pct": 0.655, "Def_Pass_EPA": -0.078, "Def_Rush_EPA": -0.062, "Pressure_Pct": 0.264, "Def_RZ_Stop_Pct": 0.505, "Dome": 0, "Cold_Weather_Drop": 0.048, "RB1_TD_Rate": 0.435, "WR1_TD_Rate": 0.265, "TE1_TD_Rate": 0.215, "QB_Rush_TD_Rate": 0.095, "Pass_Rate": 0.535, "HFA_Mod": 0.20, "QB_Nombre": "B. Purdy", "RB1_Nombre": "C. McCaffrey", "WR1_Nombre": "B. Aiyuk", "TE1_Nombre": "G. Kittle"},
-    {"Equipo": "Buffalo Bills", "Abrev": "BUF", "Pass_EPA": 0.182, "Rush_EPA": 0.052, "Pass_Success_Rate": 0.504, "Pace_Sec": 26.8, "RedZone_TD_Pct": 0.638, "Def_Pass_EPA": -0.048, "Def_Rush_EPA": -0.022, "Pressure_Pct": 0.249, "Def_RZ_Stop_Pct": 0.488, "Dome": 0, "Cold_Weather_Drop": 0.010, "RB1_TD_Rate": 0.275, "WR1_TD_Rate": 0.255, "TE1_TD_Rate": 0.195, "QB_Rush_TD_Rate": 0.265, "Pass_Rate": 0.565, "HFA_Mod": 0.30, "QB_Nombre": "J. Allen", "RB1_Nombre": "J. Cook", "WR1_Nombre": "K. Shakir", "TE1_Nombre": "D. Kincaid"},
-    {"Equipo": "Baltimore Ravens", "Abrev": "BAL", "Pass_EPA": 0.168, "Rush_EPA": 0.118, "Pass_Success_Rate": 0.498, "Pace_Sec": 28.4, "RedZone_TD_Pct": 0.628, "Def_Pass_EPA": -0.092, "Def_Rush_EPA": -0.075, "Pressure_Pct": 0.272, "Def_RZ_Stop_Pct": 0.545, "Dome": 0, "Cold_Weather_Drop": 0.018, "RB1_TD_Rate": 0.385, "WR1_TD_Rate": 0.240, "TE1_TD_Rate": 0.225, "QB_Rush_TD_Rate": 0.195, "Pass_Rate": 0.505, "HFA_Mod": 0.28, "QB_Nombre": "L. Jackson", "RB1_Nombre": "D. Henry", "WR1_Nombre": "Z. Flowers", "TE1_Nombre": "M. Andrews"},
-    {"Equipo": "Detroit Lions", "Abrev": "DET", "Pass_EPA": 0.188, "Rush_EPA": 0.088, "Pass_Success_Rate": 0.524, "Pace_Sec": 26.5, "RedZone_TD_Pct": 0.648, "Def_Pass_EPA": -0.025, "Def_Rush_EPA": -0.068, "Pressure_Pct": 0.252, "Def_RZ_Stop_Pct": 0.465, "Dome": 1, "Cold_Weather_Drop": 0.055, "RB1_TD_Rate": 0.395, "WR1_TD_Rate": 0.310, "TE1_TD_Rate": 0.220, "QB_Rush_TD_Rate": 0.045, "Pass_Rate": 0.545, "HFA_Mod": 0.32, "QB_Nombre": "J. Goff", "RB1_Nombre": "J. Gibbs", "WR1_Nombre": "A. St. Brown", "TE1_Nombre": "S. LaPorta"},
-    {"Equipo": "Dallas Cowboys", "Abrev": "DAL", "Pass_EPA": 0.145, "Rush_EPA": -0.018, "Pass_Success_Rate": 0.495, "Pace_Sec": 26.1, "RedZone_TD_Pct": 0.575, "Def_Pass_EPA": -0.042, "Def_Rush_EPA": 0.015, "Pressure_Pct": 0.278, "Def_RZ_Stop_Pct": 0.455, "Dome": 1, "Cold_Weather_Drop": 0.052, "RB1_TD_Rate": 0.245, "WR1_TD_Rate": 0.355, "TE1_TD_Rate": 0.205, "QB_Rush_TD_Rate": 0.085, "Pass_Rate": 0.595, "HFA_Mod": 0.22, "QB_Nombre": "D. Prescott", "RB1_Nombre": "R. Dowdle", "WR1_Nombre": "C. Lamb", "TE1_Nombre": "J. Ferguson"},
-    {"Equipo": "Philadelphia Eagles", "Abrev": "PHI", "Pass_EPA": 0.152, "Rush_EPA": 0.082, "Pass_Success_Rate": 0.502, "Pace_Sec": 26.9, "RedZone_TD_Pct": 0.622, "Def_Pass_EPA": -0.038, "Def_Rush_EPA": -0.055, "Pressure_Pct": 0.262, "Def_RZ_Stop_Pct": 0.492, "Dome": 0, "Cold_Weather_Drop": 0.022, "RB1_TD_Rate": 0.335, "WR1_TD_Rate": 0.295, "TE1_TD_Rate": 0.165, "QB_Rush_TD_Rate": 0.255, "Pass_Rate": 0.530, "HFA_Mod": 0.30, "QB_Nombre": "J. Hurts", "RB1_Nombre": "S. Barkley", "WR1_Nombre": "A.J. Brown", "TE1_Nombre": "D. Goedert"},
-    {"Equipo": "New England Patriots", "Abrev": "NE", "Pass_EPA": -0.095, "Rush_EPA": -0.045, "Pass_Success_Rate": 0.428, "Pace_Sec": 28.2, "RedZone_TD_Pct": 0.495, "Def_Pass_EPA": -0.032, "Def_Rush_EPA": -0.058, "Pressure_Pct": 0.228, "Def_RZ_Stop_Pct": 0.510, "Dome": 0, "Cold_Weather_Drop": 0.014, "RB1_TD_Rate": 0.325, "WR1_TD_Rate": 0.220, "TE1_TD_Rate": 0.215, "QB_Rush_TD_Rate": 0.125, "Pass_Rate": 0.540, "HFA_Mod": 0.12, "QB_Nombre": "D. Maye", "RB1_Nombre": "R. Stevenson", "WR1_Nombre": "D. Douglas", "TE1_Nombre": "H. Henry"},
-    {"Equipo": "Houston Texans", "Abrev": "HOU", "Pass_EPA": 0.148, "Rush_EPA": -0.012, "Pass_Success_Rate": 0.492, "Pace_Sec": 27.1, "RedZone_TD_Pct": 0.585, "Def_Pass_EPA": -0.035, "Def_Rush_EPA": -0.048, "Pressure_Pct": 0.260, "Def_RZ_Stop_Pct": 0.485, "Dome": 1, "Cold_Weather_Drop": 0.050, "RB1_TD_Rate": 0.330, "WR1_TD_Rate": 0.315, "TE1_TD_Rate": 0.185, "QB_Rush_TD_Rate": 0.075, "Pass_Rate": 0.580, "HFA_Mod": 0.20, "QB_Nombre": "C.J. Stroud", "RB1_Nombre": "J. Mixon", "WR1_Nombre": "N. Collins", "TE1_Nombre": "D. Schultz"},
-    {"Equipo": "Green Bay Packers", "Abrev": "GB", "Pass_EPA": 0.158, "Rush_EPA": 0.038, "Pass_Success_Rate": 0.506, "Pace_Sec": 27.5, "RedZone_TD_Pct": 0.605, "Def_Pass_EPA": -0.022, "Def_Rush_EPA": 0.012, "Pressure_Pct": 0.244, "Def_RZ_Stop_Pct": 0.478, "Dome": 0, "Cold_Weather_Drop": 0.012, "RB1_TD_Rate": 0.330, "WR1_TD_Rate": 0.285, "TE1_TD_Rate": 0.190, "QB_Rush_TD_Rate": 0.090, "Pass_Rate": 0.555, "HFA_Mod": 0.28, "QB_Nombre": "J. Love", "RB1_Nombre": "J. Jacobs", "WR1_Nombre": "J. Reed", "TE1_Nombre": "T. Kraft"},
-    {"Equipo": "Cincinnati Bengals", "Abrev": "CIN", "Pass_EPA": 0.172, "Rush_EPA": -0.015, "Pass_Success_Rate": 0.508, "Pace_Sec": 26.7, "RedZone_TD_Pct": 0.610, "Def_Pass_EPA": 0.018, "Def_Rush_EPA": 0.025, "Pressure_Pct": 0.235, "Def_RZ_Stop_Pct": 0.460, "Dome": 0, "Cold_Weather_Drop": 0.020, "RB1_TD_Rate": 0.285, "WR1_TD_Rate": 0.345, "TE1_TD_Rate": 0.175, "QB_Rush_TD_Rate": 0.085, "Pass_Rate": 0.625, "HFA_Mod": 0.22, "QB_Nombre": "J. Burrow", "RB1_Nombre": "C. Brown", "WR1_Nombre": "J. Chase", "TE1_Nombre": "M. Gesicki"},
-    {"Equipo": "Miami Dolphins", "Abrev": "MIA", "Pass_EPA": 0.162, "Rush_EPA": 0.065, "Pass_Success_Rate": 0.505, "Pace_Sec": 27.3, "RedZone_TD_Pct": 0.598, "Def_Pass_EPA": -0.015, "Def_Rush_EPA": -0.020, "Pressure_Pct": 0.246, "Def_RZ_Stop_Pct": 0.452, "Dome": 0, "Cold_Weather_Drop": 0.082, "RB1_TD_Rate": 0.365, "WR1_TD_Rate": 0.350, "TE1_TD_Rate": 0.155, "QB_Rush_TD_Rate": 0.045, "Pass_Rate": 0.560, "HFA_Mod": 0.24, "QB_Nombre": "T. Tagovailoa", "RB1_Nombre": "D. Achane", "WR1_Nombre": "T. Hill", "TE1_Nombre": "J. Smith"},
-    {"Equipo": "Los Angeles Rams", "Abrev": "LAR", "Pass_EPA": 0.142, "Rush_EPA": 0.028, "Pass_Success_Rate": 0.496, "Pace_Sec": 27.4, "RedZone_TD_Pct": 0.592, "Def_Pass_EPA": 0.022, "Def_Rush_EPA": 0.008, "Pressure_Pct": 0.232, "Def_RZ_Stop_Pct": 0.448, "Dome": 1, "Cold_Weather_Drop": 0.056, "RB1_TD_Rate": 0.380, "WR1_TD_Rate": 0.310, "TE1_TD_Rate": 0.160, "QB_Rush_TD_Rate": 0.035, "Pass_Rate": 0.575, "HFA_Mod": 0.15, "QB_Nombre": "M. Stafford", "RB1_Nombre": "K. Williams", "WR1_Nombre": "P. Nacua", "TE1_Nombre": "T. Higbee"},
-    {"Equipo": "Minnesota Vikings", "Abrev": "MIN", "Pass_EPA": 0.125, "Rush_EPA": -0.010, "Pass_Success_Rate": 0.488, "Pace_Sec": 27.0, "RedZone_TD_Pct": 0.580, "Def_Pass_EPA": -0.068, "Def_Rush_EPA": -0.042, "Pressure_Pct": 0.275, "Def_RZ_Stop_Pct": 0.512, "Dome": 1, "Cold_Weather_Drop": 0.045, "RB1_TD_Rate": 0.295, "WR1_TD_Rate": 0.365, "TE1_TD_Rate": 0.205, "QB_Rush_TD_Rate": 0.065, "Pass_Rate": 0.590, "HFA_Mod": 0.28, "QB_Nombre": "S. Darnold", "RB1_Nombre": "A. Jones", "WR1_Nombre": "J. Jefferson", "TE1_Nombre": "T.J. Hockenson"},
-    {"Equipo": "New York Jets", "Abrev": "NYJ", "Pass_EPA": 0.045, "Rush_EPA": -0.025, "Pass_Success_Rate": 0.462, "Pace_Sec": 28.8, "RedZone_TD_Pct": 0.535, "Def_Pass_EPA": -0.085, "Def_Rush_EPA": -0.045, "Pressure_Pct": 0.268, "Def_RZ_Stop_Pct": 0.525, "Dome": 0, "Cold_Weather_Drop": 0.025, "RB1_TD_Rate": 0.355, "WR1_TD_Rate": 0.315, "TE1_TD_Rate": 0.165, "QB_Rush_TD_Rate": 0.040, "Pass_Rate": 0.575, "HFA_Mod": 0.16, "QB_Nombre": "A. Rodgers", "RB1_Nombre": "B. Hall", "WR1_Nombre": "G. Wilson", "TE1_Nombre": "T. Conklin"},
-    {"Equipo": "Cleveland Browns", "Abrev": "CLE", "Pass_EPA": -0.035, "Rush_EPA": -0.020, "Pass_Success_Rate": 0.442, "Pace_Sec": 26.6, "RedZone_TD_Pct": 0.525, "Def_Pass_EPA": -0.088, "Def_Rush_EPA": -0.052, "Pressure_Pct": 0.276, "Def_RZ_Stop_Pct": 0.532, "Dome": 0, "Cold_Weather_Drop": 0.018, "RB1_TD_Rate": 0.340, "WR1_TD_Rate": 0.275, "TE1_TD_Rate": 0.225, "QB_Rush_TD_Rate": 0.095, "Pass_Rate": 0.555, "HFA_Mod": 0.22, "QB_Nombre": "J. Winston", "RB1_Nombre": "N. Chubb", "WR1_Nombre": "J. Jeudy", "TE1_Nombre": "D. Njoku"},
-    {"Equipo": "Pittsburgh Steelers", "Abrev": "PIT", "Pass_EPA": 0.038, "Rush_EPA": 0.018, "Pass_Success_Rate": 0.465, "Pace_Sec": 28.5, "RedZone_TD_Pct": 0.520, "Def_Pass_EPA": -0.058, "Def_Rush_EPA": -0.038, "Pressure_Pct": 0.266, "Def_RZ_Stop_Pct": 0.538, "Dome": 0, "Cold_Weather_Drop": 0.015, "RB1_TD_Rate": 0.335, "WR1_TD_Rate": 0.270, "TE1_TD_Rate": 0.195, "QB_Rush_TD_Rate": 0.110, "Pass_Rate": 0.520, "HFA_Mod": 0.26, "QB_Nombre": "R. Wilson", "RB1_Nombre": "N. Harris", "WR1_Nombre": "G. Pickens", "TE1_Nombre": "P. Freiermuth"},
-    {"Equipo": "Atlanta Falcons", "Abrev": "ATL", "Pass_EPA": 0.088, "Rush_EPA": 0.035, "Pass_Success_Rate": 0.484, "Pace_Sec": 26.8, "RedZone_TD_Pct": 0.565, "Def_Pass_EPA": 0.012, "Def_Rush_EPA": -0.015, "Pressure_Pct": 0.218, "Def_RZ_Stop_Pct": 0.472, "Dome": 1, "Cold_Weather_Drop": 0.054, "RB1_TD_Rate": 0.375, "WR1_TD_Rate": 0.285, "TE1_TD_Rate": 0.200, "QB_Rush_TD_Rate": 0.035, "Pass_Rate": 0.550, "HFA_Mod": 0.18, "QB_Nombre": "K. Cousins", "RB1_Nombre": "B. Robinson", "WR1_Nombre": "D. London", "TE1_Nombre": "K. Pitts"},
-    {"Equipo": "Chicago Bears", "Abrev": "CHI", "Pass_EPA": 0.032, "Rush_EPA": 0.010, "Pass_Success_Rate": 0.458, "Pace_Sec": 27.7, "RedZone_TD_Pct": 0.548, "Def_Pass_EPA": -0.045, "Def_Rush_EPA": -0.048, "Pressure_Pct": 0.238, "Def_RZ_Stop_Pct": 0.495, "Dome": 0, "Cold_Weather_Drop": 0.016, "RB1_TD_Rate": 0.305, "WR1_TD_Rate": 0.295, "TE1_TD_Rate": 0.210, "QB_Rush_TD_Rate": 0.115, "Pass_Rate": 0.555, "HFA_Mod": 0.20, "QB_Nombre": "C. Williams", "RB1_Nombre": "D. Swift", "WR1_Nombre": "D.J. Moore", "TE1_Nombre": "C. Kmet"},
-    {"Equipo": "Jacksonville Jaguars", "Abrev": "JAX", "Pass_EPA": 0.068, "Rush_EPA": -0.022, "Pass_Success_Rate": 0.475, "Pace_Sec": 26.9, "RedZone_TD_Pct": 0.542, "Def_Pass_EPA": 0.025, "Def_Rush_EPA": -0.018, "Pressure_Pct": 0.236, "Def_RZ_Stop_Pct": 0.462, "Dome": 0, "Cold_Weather_Drop": 0.058, "RB1_TD_Rate": 0.335, "WR1_TD_Rate": 0.290, "TE1_TD_Rate": 0.205, "QB_Rush_TD_Rate": 0.095, "Pass_Rate": 0.580, "HFA_Mod": 0.15, "QB_Nombre": "T. Lawrence", "RB1_Nombre": "T. Etienne", "WR1_Nombre": "B. Thomas Jr.", "TE1_Nombre": "E. Engram"},
-    {"Equipo": "Indianapolis Colts", "Abrev": "IND", "Pass_EPA": 0.042, "Rush_EPA": 0.055, "Pass_Success_Rate": 0.464, "Pace_Sec": 25.9, "RedZone_TD_Pct": 0.578, "Def_Pass_EPA": 0.018, "Def_Rush_EPA": 0.010, "Pressure_Pct": 0.242, "Def_RZ_Stop_Pct": 0.458, "Dome": 1, "Cold_Weather_Drop": 0.048, "RB1_TD_Rate": 0.385, "WR1_TD_Rate": 0.255, "TE1_TD_Rate": 0.150, "QB_Rush_TD_Rate": 0.215, "Pass_Rate": 0.525, "HFA_Mod": 0.18, "QB_Nombre": "A. Richardson", "RB1_Nombre": "J. Taylor", "WR1_Nombre": "M. Pittman", "TE1_Nombre": "K. Granson"},
-    {"Equipo": "Seattle Seahawks", "Abrev": "SEA", "Pass_EPA": 0.095, "Rush_EPA": 0.008, "Pass_Success_Rate": 0.486, "Pace_Sec": 26.8, "RedZone_TD_Pct": 0.558, "Def_Pass_EPA": -0.012, "Def_Rush_EPA": 0.018, "Pressure_Pct": 0.245, "Def_RZ_Stop_Pct": 0.475, "Dome": 0, "Cold_Weather_Drop": 0.024, "RB1_TD_Rate": 0.360, "WR1_TD_Rate": 0.310, "TE1_TD_Rate": 0.165, "QB_Rush_TD_Rate": 0.065, "Pass_Rate": 0.585, "HFA_Mod": 0.32, "QB_Nombre": "G. Smith", "RB1_Nombre": "K. Walker III", "WR1_Nombre": "D.K. Metcalf", "TE1_Nombre": "N. Fant"},
-    {"Equipo": "Tampa Bay Buccaneers", "Abrev": "TB", "Pass_EPA": 0.118, "Rush_EPA": -0.018, "Pass_Success_Rate": 0.489, "Pace_Sec": 27.2, "RedZone_TD_Pct": 0.572, "Def_Pass_EPA": 0.015, "Def_Rush_EPA": -0.042, "Pressure_Pct": 0.250, "Def_RZ_Stop_Pct": 0.510, "Dome": 0, "Cold_Weather_Drop": 0.055, "RB1_TD_Rate": 0.315, "WR1_TD_Rate": 0.345, "TE1_TD_Rate": 0.180, "QB_Rush_TD_Rate": 0.065, "Pass_Rate": 0.585, "HFA_Mod": 0.18, "QB_Nombre": "B. Mayfield", "RB1_Nombre": "B. Irving", "WR1_Nombre": "M. Evans", "TE1_Nombre": "C. Otton"},
-    {"Equipo": "Washington Commanders", "Abrev": "WAS", "Pass_EPA": 0.135, "Rush_EPA": 0.072, "Pass_Success_Rate": 0.498, "Pace_Sec": 26.2, "RedZone_TD_Pct": 0.595, "Def_Pass_EPA": 0.048, "Def_Rush_EPA": 0.022, "Pressure_Pct": 0.225, "Def_RZ_Stop_Pct": 0.435, "Dome": 0, "Cold_Weather_Drop": 0.025, "RB1_TD_Rate": 0.345, "WR1_TD_Rate": 0.285, "TE1_TD_Rate": 0.165, "QB_Rush_TD_Rate": 0.195, "Pass_Rate": 0.535, "HFA_Mod": 0.16, "QB_Nombre": "J. Daniels", "RB1_Nombre": "B. Robinson Jr.", "WR1_Nombre": "T. McLaurin", "TE1_Nombre": "Z. Ertz"},
-    {"Equipo": "Arizona Cardinals", "Abrev": "ARI", "Pass_EPA": 0.065, "Rush_EPA": 0.058, "Pass_Success_Rate": 0.478, "Pace_Sec": 27.1, "RedZone_TD_Pct": 0.568, "Def_Pass_EPA": 0.062, "Def_Rush_EPA": 0.038, "Pressure_Pct": 0.215, "Def_RZ_Stop_Pct": 0.428, "Dome": 1, "Cold_Weather_Drop": 0.056, "RB1_TD_Rate": 0.350, "WR1_TD_Rate": 0.295, "TE1_TD_Rate": 0.215, "QB_Rush_TD_Rate": 0.145, "Pass_Rate": 0.545, "HFA_Mod": 0.16, "QB_Nombre": "K. Murray", "RB1_Nombre": "J. Conner", "WR1_Nombre": "M. Harrison Jr.", "TE1_Nombre": "T. McBride"},
-    {"Equipo": "Los Angeles Chargers", "Abrev": "LAC", "Pass_EPA": 0.105, "Rush_EPA": 0.025, "Pass_Success_Rate": 0.482, "Pace_Sec": 28.6, "RedZone_TD_Pct": 0.562, "Def_Pass_EPA": -0.042, "Def_Rush_EPA": -0.028, "Pressure_Pct": 0.248, "Def_RZ_Stop_Pct": 0.508, "Dome": 1, "Cold_Weather_Drop": 0.048, "RB1_TD_Rate": 0.340, "WR1_TD_Rate": 0.285, "TE1_TD_Rate": 0.175, "QB_Rush_TD_Rate": 0.085, "Pass_Rate": 0.535, "HFA_Mod": 0.12, "QB_Nombre": "J. Herbert", "RB1_Nombre": "J.K. Dobbins", "WR1_Nombre": "L. McConkey", "TE1_Nombre": "W. Dissly"},
-    {"Equipo": "New Orleans Saints", "Abrev": "NO", "Pass_EPA": 0.052, "Rush_EPA": -0.008, "Pass_Success_Rate": 0.472, "Pace_Sec": 27.3, "RedZone_TD_Pct": 0.545, "Def_Pass_EPA": -0.038, "Def_Rush_EPA": -0.012, "Pressure_Pct": 0.226, "Def_RZ_Stop_Pct": 0.498, "Dome": 1, "Cold_Weather_Drop": 0.058, "RB1_TD_Rate": 0.370, "WR1_TD_Rate": 0.275, "TE1_TD_Rate": 0.195, "QB_Rush_TD_Rate": 0.055, "Pass_Rate": 0.565, "HFA_Mod": 0.25, "QB_Nombre": "D. Carr", "RB1_Nombre": "A. Kamara", "WR1_Nombre": "C. Olave", "TE1_Nombre": "J. Johnson"},
-    {"Equipo": "Las Vegas Raiders", "Abrev": "LV", "Pass_EPA": -0.045, "Rush_EPA": -0.038, "Pass_Success_Rate": 0.448, "Pace_Sec": 27.8, "RedZone_TD_Pct": 0.515, "Def_Pass_EPA": -0.018, "Def_Rush_EPA": -0.008, "Pressure_Pct": 0.254, "Def_RZ_Stop_Pct": 0.482, "Dome": 1, "Cold_Weather_Drop": 0.046, "RB1_TD_Rate": 0.310, "WR1_TD_Rate": 0.275, "TE1_TD_Rate": 0.265, "QB_Rush_TD_Rate": 0.055, "Pass_Rate": 0.580, "HFA_Mod": 0.16, "QB_Nombre": "A. O'Connell", "RB1_Nombre": "A. Mattison", "WR1_Nombre": "J. Meyers", "TE1_Nombre": "B. Bowers"},
-    {"Equipo": "Denver Broncos", "Abrev": "DEN", "Pass_EPA": 0.015, "Rush_EPA": -0.005, "Pass_Success_Rate": 0.460, "Pace_Sec": 27.6, "RedZone_TD_Pct": 0.540, "Def_Pass_EPA": -0.055, "Def_Rush_EPA": -0.025, "Pressure_Pct": 0.258, "Def_RZ_Stop_Pct": 0.515, "Dome": 0, "Cold_Weather_Drop": 0.016, "RB1_TD_Rate": 0.315, "WR1_TD_Rate": 0.305, "TE1_TD_Rate": 0.160, "QB_Rush_TD_Rate": 0.125, "Pass_Rate": 0.560, "HFA_Mod": 0.32, "QB_Nombre": "B. Nix", "RB1_Nombre": "J. Williams", "WR1_Nombre": "C. Sutton", "TE1_Nombre": "A. Trautman"},
-    {"Equipo": "Tennessee Titans", "Abrev": "TEN", "Pass_EPA": -0.055, "Rush_EPA": -0.015, "Pass_Success_Rate": 0.440, "Pace_Sec": 28.1, "RedZone_TD_Pct": 0.518, "Def_Pass_EPA": -0.022, "Def_Rush_EPA": -0.035, "Pressure_Pct": 0.234, "Def_RZ_Stop_Pct": 0.502, "Dome": 0, "Cold_Weather_Drop": 0.032, "RB1_TD_Rate": 0.345, "WR1_TD_Rate": 0.295, "TE1_TD_Rate": 0.175, "QB_Rush_TD_Rate": 0.085, "Pass_Rate": 0.555, "HFA_Mod": 0.18, "QB_Nombre": "W. Levis", "RB1_Nombre": "T. Pollard", "WR1_Nombre": "C. Ridley", "TE1_Nombre": "C. Okonkwo"},
-    {"Equipo": "New York Giants", "Abrev": "NYG", "Pass_EPA": -0.068, "Rush_EPA": -0.022, "Pass_Success_Rate": 0.438, "Pace_Sec": 27.9, "RedZone_TD_Pct": 0.502, "Def_Pass_EPA": 0.020, "Def_Rush_EPA": 0.028, "Pressure_Pct": 0.248, "Def_RZ_Stop_Pct": 0.468, "Dome": 0, "Cold_Weather_Drop": 0.022, "RB1_TD_Rate": 0.320, "WR1_TD_Rate": 0.335, "TE1_TD_Rate": 0.160, "QB_Rush_TD_Rate": 0.115, "Pass_Rate": 0.570, "HFA_Mod": 0.14, "QB_Nombre": "D. Jones", "RB1_Nombre": "T. Tracy Jr.", "WR1_Nombre": "M. Nabers", "TE1_Nombre": "T. Johnson"},
-    {"Equipo": "Carolina Panthers", "Abrev": "CAR", "Pass_EPA": -0.105, "Rush_EPA": -0.032, "Pass_Success_Rate": 0.422, "Pace_Sec": 27.5, "RedZone_TD_Pct": 0.492, "Def_Pass_EPA": 0.055, "Def_Rush_EPA": 0.048, "Pressure_Pct": 0.205, "Def_RZ_Stop_Pct": 0.420, "Dome": 0, "Cold_Weather_Drop": 0.038, "RB1_TD_Rate": 0.355, "WR1_TD_Rate": 0.275, "TE1_TD_Rate": 0.170, "QB_Rush_TD_Rate": 0.085, "Pass_Rate": 0.565, "HFA_Mod": 0.14, "QB_Nombre": "B. Young", "RB1_Nombre": "C. Hubbard", "WR1_Nombre": "D. Johnson", "TE1_Nombre": "J. Sanders"},
-]
-
-
-# ==============================================================================
-# 2. MOTOR CLOUD INTEGRADO: SINCRONIZACIÓN AUTOMÁTICA CON NFLVERSE (nfl_data_py)
-# ==============================================================================
-def normalizar_abrev(series: pd.Series) -> pd.Series:
-    return series.astype(str).str.strip().replace(TEAM_ABBR_NORMALIZE)
-
-
-def abreviar_nombre_jugador(nombre: str) -> str:
-    if not isinstance(nombre, str) or not nombre.strip():
-        return "N/A"
-    nombre = nombre.strip()
-    if "." in nombre.split()[0]:
-        return nombre
-    partes = nombre.split()
-    if len(partes) >= 2:
-        return f"{partes[0][0]}. {' '.join(partes[1:])}"
-    return nombre
-
-
-def _calcular_metricas_equipos_pbp(pbp: pd.DataFrame) -> pd.DataFrame:
-    df = pbp.copy()
-    if "season_type" in df.columns:
-        df = df[df["season_type"].isin(["REG", "POST"])]
-
-    df["posteam"] = normalizar_abrev(df["posteam"])
-    df["defteam"] = normalizar_abrev(df["defteam"])
-    df = df[df["posteam"].isin(NFL_TEAMS_META.keys()) & df["defteam"].isin(NFL_TEAMS_META.keys())]
-
-    for col_flag in ["qb_spike", "qb_kneel", "two_point_attempt"]:
-        if col_flag in df.columns:
-            df = df[df[col_flag].fillna(0) == 0]
-
-    if "pass_attempt" in df.columns and "rush_attempt" in df.columns:
-        df["is_pass"] = (df["pass_attempt"].fillna(0) == 1) | (df.get("play_type", "") == "pass")
-        df["is_rush"] = (df["rush_attempt"].fillna(0) == 1) | (df.get("play_type", "") == "run")
-    else:
-        df["is_pass"] = df["play_type"] == "pass"
-        df["is_rush"] = df["play_type"] == "run"
-
-    scrimmage = df[(df["is_pass"] | df["is_rush"]) & df["epa"].notna()].copy()
-    pass_plays = scrimmage[scrimmage["is_pass"]].copy()
-    rush_plays = scrimmage[scrimmage["is_rush"]].copy()
-
-    if "success" not in pass_plays.columns:
-        pass_plays["success"] = (pass_plays["epa"] > 0).astype(float)
-
-    off_pass = pass_plays.groupby("posteam").agg(
-        Pass_EPA=("epa", "mean"),
-        Pass_Success_Rate=("success", "mean"),
-        n_pass=("epa", "count"),
-    )
-    off_rush = rush_plays.groupby("posteam").agg(
-        Rush_EPA=("epa", "mean"),
-        n_rush=("epa", "count"),
-    )
-
-    off_summary = off_pass.join(off_rush, how="outer").fillna(0.0)
-    off_summary["Pass_Rate"] = (
-        off_summary["n_pass"] / (off_summary["n_pass"] + off_summary["n_rush"]).replace(0, np.nan)
-    ).fillna(0.565)
-
-    pace_series = {}
-    if {"game_id", "drive", "game_seconds_remaining"}.issubset(scrimmage.columns):
-        scr_sorted = scrimmage.sort_values(["game_id", "drive", "game_seconds_remaining"], ascending=[True, True, False])
-        scr_sorted["sec_diff"] = scr_sorted.groupby(["game_id", "posteam", "drive"])["game_seconds_remaining"].diff(-1)
-        valid_pace = scr_sorted[(scr_sorted["sec_diff"] >= 12) & (scr_sorted["sec_diff"] <= 40)]
-        pace_raw = valid_pace.groupby("posteam")["sec_diff"].mean()
-        if not pace_raw.empty and pace_raw.mean() > 0:
-            scale_factor = 27.4 / pace_raw.mean()
-            for tm, val in pace_raw.items():
-                pace_series[tm] = float(np.clip(val * scale_factor, 25.2, 30.2))
-
-    plays_per_game = scrimmage.groupby(["posteam", "game_id"]).size().groupby("posteam").mean()
-    for tm in NFL_TEAMS_META.keys():
-        if tm not in pace_series or np.isnan(pace_series[tm]):
-            ppg = float(plays_per_game.get(tm, 63.5))
-            pace_series[tm] = float(np.clip(1740.0 / max(52.0, ppg), 25.4, 30.0))
-
-    off_summary["Pace_Sec"] = pd.Series(pace_series)
-
-    if {"game_id", "drive", "yardline_100", "touchdown"}.issubset(scrimmage.columns):
-        rz_plays = scrimmage[scrimmage["yardline_100"].fillna(99) <= 20].copy()
-        if "td_team" in rz_plays.columns:
-            rz_plays["off_td"] = ((rz_plays["touchdown"].fillna(0) == 1) & (rz_plays["td_team"] == rz_plays["posteam"])).astype(int)
-        else:
-            rz_plays["off_td"] = (rz_plays["touchdown"].fillna(0) == 1).astype(int)
-
-        rz_drives_off = rz_plays.groupby(["posteam", "game_id", "drive"])["off_td"].max().reset_index()
-        rz_off_pct = rz_drives_off.groupby("posteam")["off_td"].mean()
-
-        rz_drives_def = rz_plays.groupby(["defteam", "game_id", "drive"])["off_td"].max().reset_index()
-        rz_def_stop_pct = 1.0 - rz_drives_def.groupby("defteam")["off_td"].mean()
-    else:
-        rz_off_pct = pd.Series(0.565, index=list(NFL_TEAMS_META.keys()))
-        rz_def_stop_pct = pd.Series(0.485, index=list(NFL_TEAMS_META.keys()))
-
-    off_summary["RedZone_TD_Pct"] = rz_off_pct.reindex(off_summary.index).fillna(0.565).clip(0.420, 0.720)
-
-    def_pass = pass_plays.groupby("defteam").agg(
-        Def_Pass_EPA=("epa", "mean"),
-        sacks=("sack", "sum") if "sack" in pass_plays.columns else ("epa", lambda s: 0),
-        qb_hits=("qb_hit", "sum") if "qb_hit" in pass_plays.columns else ("epa", lambda s: 0),
-        dropbacks=("epa", "count"),
-    )
-    def_rush = rush_plays.groupby("defteam").agg(Def_Rush_EPA=("epa", "mean"))
-    def_summary = def_pass.join(def_rush, how="outer").fillna(0.0)
-
-    if "was_pressure" in pass_plays.columns and pass_plays["was_pressure"].notna().sum() > 100:
-        press_direct = pass_plays.groupby("defteam")["was_pressure"].mean()
-        def_summary["Pressure_Pct"] = press_direct.reindex(def_summary.index).fillna(0.245).clip(0.185, 0.315)
-    else:
-        disruption_rate = (def_summary["sacks"] + 0.85 * def_summary["qb_hits"]) / def_summary["dropbacks"].replace(0, np.nan)
-        mean_disrupt = disruption_rate.mean()
-        scale_press = (0.248 / mean_disrupt) if (mean_disrupt and mean_disrupt > 0) else 1.65
-        def_summary["Pressure_Pct"] = (disruption_rate * scale_press).fillna(0.245).clip(0.190, 0.310)
-
-    def_summary["Def_RZ_Stop_Pct"] = rz_def_stop_pct.reindex(def_summary.index).fillna(0.485).clip(0.380, 0.620)
-
-    return off_summary.join(
-        def_summary[["Def_Pass_EPA", "Def_Rush_EPA", "Pressure_Pct", "Def_RZ_Stop_Pct"]],
-        how="outer",
-    )
-
-
-def _calcular_props_jugadores_pbp(pbp: pd.DataFrame, rosters: pd.DataFrame) -> dict[str, dict]:
-    df = pbp.copy()
-    if "season_type" in df.columns:
-        df = df[df["season_type"].isin(["REG", "POST"])]
-
-    df["posteam"] = normalizar_abrev(df["posteam"])
-    df = df[df["posteam"].isin(NFL_TEAMS_META.keys())]
-
-    pos_map = {}
-    name_map = {}
-    if rosters is not None and not rosters.empty:
-        r_df = rosters.copy()
-        id_col = "gsis_id" if "gsis_id" in r_df.columns else ("player_id" if "player_id" in r_df.columns else None)
-        pos_col = "position" if "position" in r_df.columns else ("depth_chart_position" if "depth_chart_position" in r_df.columns else None)
-        name_col = "short_name" if "short_name" in r_df.columns else ("player_name" if "player_name" in r_df.columns else "full_name")
-
-        if id_col and pos_col:
-            for _, row in r_df.dropna(subset=[id_col, pos_col]).iterrows():
-                pid = str(row[id_col])
-                pos_map[pid] = str(row[pos_col]).upper().strip()
-                if name_col in r_df.columns and pd.notna(row[name_col]):
-                    name_map[pid] = abreviar_nombre_jugador(str(row[name_col]))
-
-    team_games = df.groupby("posteam")["game_id"].nunique().replace(0, 1)
-    pass_tds_team = df.groupby("posteam")["pass_touchdown"].sum() if "pass_touchdown" in df.columns else pd.Series(25, index=NFL_TEAMS_META.keys())
-    rush_tds_team = df.groupby("posteam")["rush_touchdown"].sum() if "rush_touchdown" in df.columns else pd.Series(15, index=NFL_TEAMS_META.keys())
-    total_tds_team = (pass_tds_team.add(rush_tds_team, fill_value=0)).replace(0, 1)
-    tds_per_game_team = (total_tds_team / team_games).clip(1.5, 4.2)
-
-    qb_passes = df[df["passer_player_id"].notna()].groupby(["posteam", "passer_player_id"]).agg(
-        att=("pass_attempt", "sum"),
-        games_qb=("game_id", "nunique"),
-        name=("passer_player_name", "first"),
-    ).reset_index()
-
-    rush_df = df[df["rusher_player_id"].notna()].copy()
-    rush_df["is_rz"] = (rush_df["yardline_100"].fillna(99) <= 20).astype(int)
-    rush_stats = rush_df.groupby(["posteam", "rusher_player_id"]).agg(
-        carries=("rush_attempt", "sum"),
-        rz_carries=("is_rz", "sum"),
-        rush_td=("rush_touchdown", "sum"),
-        games_rush=("game_id", "nunique"),
-        name=("rusher_player_name", "first"),
-    ).reset_index().rename(columns={"rusher_player_id": "player_id", "name": "rush_name"})
-
-    rec_df = df[df["receiver_player_id"].notna()].copy()
-    rec_df["is_rz"] = (rec_df["yardline_100"].fillna(99) <= 20).astype(int)
-    rec_stats = rec_df.groupby(["posteam", "receiver_player_id"]).agg(
-        targets=("pass_attempt", "sum"),
-        rz_targets=("is_rz", "sum"),
-        rec_td=("pass_touchdown", "sum"),
-        games_rec=("game_id", "nunique"),
-        name=("receiver_player_name", "first"),
-    ).reset_index().rename(columns={"receiver_player_id": "player_id", "name": "rec_name"})
-
-    skill = pd.merge(rush_stats, rec_stats, on=["posteam", "player_id"], how="outer").fillna(0)
-    skill["player_name"] = np.where(
-        skill["rec_name"].astype(str) != "0",
-        skill["rec_name"].astype(str),
-        skill["rush_name"].astype(str),
-    )
-    skill["player_name"] = skill.apply(
-        lambda r: name_map.get(str(r["player_id"]), abreviar_nombre_jugador(str(r["player_name"]))),
-        axis=1,
-    )
-    skill["games_active"] = np.maximum(skill["games_rush"], skill["games_rec"]).clip(lower=1)
-    skill["total_td"] = skill["rush_td"] + skill["rec_td"]
-    skill["rz_touches"] = skill["rz_carries"] + skill["rz_targets"]
-    skill["total_opps"] = skill["carries"] + skill["targets"]
-
-    def resolver_posicion(row: pd.Series) -> str:
-        pid = str(row["player_id"])
-        if pid in pos_map and pos_map[pid] in {"QB", "RB", "FB", "WR", "TE"}:
-            return "RB" if pos_map[pid] == "FB" else pos_map[pid]
-        if row["carries"] > row["targets"] * 1.5:
-            return "RB"
-        return "WR"
-
-    skill["pos"] = skill.apply(resolver_posicion, axis=1)
-
-    props_por_equipo = {}
-    for tm in NFL_TEAMS_META.keys():
-        tm_td_pg = float(tds_per_game_team.get(tm, 2.45))
-        tm_skill = skill[skill["posteam"] == tm].copy()
-
-        tm_qbs = qb_passes[qb_passes["posteam"] == tm].sort_values("att", ascending=False)
-        if not tm_qbs.empty:
-            qb_id = str(tm_qbs.iloc[0]["passer_player_id"])
-            qb_games = max(1.0, float(tm_qbs.iloc[0]["games_qb"]))
-            qb_name = name_map.get(qb_id, abreviar_nombre_jugador(str(tm_qbs.iloc[0]["name"])))
-            qb_rush_row = tm_skill[tm_skill["player_id"] == qb_id]
-            qb_r_td_pg = (float(qb_rush_row["rush_td"].sum()) / qb_games) if not qb_rush_row.empty else 0.0
-            qb_rz_c_pg = (float(qb_rush_row["rz_carries"].sum()) / qb_games) if not qb_rush_row.empty else 0.0
-            xtd_qb_pg = 0.65 * qb_r_td_pg + 0.35 * (qb_rz_c_pg * 0.22)
-            raw_qb_rate = xtd_qb_pg / tm_td_pg
-            qb_td_rate = float(np.clip(0.75 * raw_qb_rate + 0.25 * 0.095, 0.035, 0.285))
-        else:
-            qb_name = f"{tm} QB1"
-            qb_td_rate = 0.085
-
-        def seleccionar_playmaker(pos_target: str, prior_rate: float, min_r: float, max_r: float) -> tuple[str, float]:
-            sub = tm_skill[tm_skill["pos"] == pos_target].copy()
-            if sub.empty:
-                return f"{tm} {pos_target}1", prior_rate
-            sub["score_lider"] = sub["total_opps"] + sub["rz_touches"] * 3.5 + sub["total_td"] * 8.0
-            sub = sub.sort_values("score_lider", ascending=False)
-            top = sub.iloc[0]
-            p_name = str(top["player_name"])
-            g_act = max(1.0, float(top["games_active"]))
-            td_pg = float(top["total_td"]) / g_act
-            rz_pg = float(top["rz_touches"]) / g_act
-            xtd_player_pg = 0.62 * td_pg + 0.38 * (rz_pg * 0.21)
-            obs_rate = xtd_player_pg / tm_td_pg
-            blended_rate = 0.72 * obs_rate + 0.28 * prior_rate
-            return p_name, float(np.clip(blended_rate, min_r, max_r))
-
-        rb1_name, rb1_rate = seleccionar_playmaker("RB", 0.335, 0.220, 0.460)
-        wr1_name, wr1_rate = seleccionar_playmaker("WR", 0.295, 0.200, 0.385)
-        te1_name, te1_rate = seleccionar_playmaker("TE", 0.195, 0.135, 0.310)
-
-        props_por_equipo[tm] = {
-            "QB_Nombre": qb_name,
-            "RB1_Nombre": rb1_name,
-            "WR1_Nombre": wr1_name,
-            "TE1_Nombre": te1_name,
-            "RB1_TD_Rate": round(rb1_rate, 3),
-            "WR1_TD_Rate": round(wr1_rate, 3),
-            "TE1_TD_Rate": round(te1_rate, 3),
-            "QB_Rush_TD_Rate": round(qb_td_rate, 3),
-        }
-
-    return props_por_equipo
-
-
-@st.cache_data(ttl=86400, show_spinner=False)
-def obtener_dataset_cloud_nfl(
-    season_target: int | None = None,
-    forzar_remoto: bool = False,
-    csv_path: str = "nfl_stats_completo.csv",
-) -> tuple[pd.DataFrame, dict]:
+@st.cache_data
+def cargar_dataset_nfl(csv_path: str = "nfl_stats_completo.csv") -> pd.DataFrame:
     """
-    Motor de datos Cloud con caché automático de 24 horas (ttl=86400s):
-    1. Si 'forzar_remoto=True' o si no existe el CSV y nfl_data_py está disponible,
-       descarga el Play-by-Play y Rosters vigentes directamente desde nflverse en la nube,
-       procesa las 32 franquicias y guarda nfl_stats_completo.csv.
-    2. Si ya existe nfl_stats_completo.csv y no se forzó recarga, lo lee al instante.
-    3. Si ocurre cualquier fallo de red o falta librería, usa el respaldo base sin caer.
+    Lee directamente el archivo local nfl_stats_completo.csv y lo indexa por 'Equipo'.
     """
-    timestamp_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-
-    # Intento de sincronización en vivo con nflverse (nfl_data_py)
-    if NFL_DATA_PY_AVAILABLE and (forzar_remoto or not os.path.exists(csv_path)):
-        hoy = datetime.date.today()
-        default_season = hoy.year if hoy.month >= 9 else hoy.year - 1
-        candidatos = [season_target] if season_target is not None else [default_season, default_season - 1, default_season - 2]
-
-        pbp_df = pd.DataFrame()
-        season_used = candidatos[0]
-        for yr in candidatos:
-            try:
-                df_temp = nfl.import_pbp_data([int(yr)], downcast=True)
-                if df_temp is not None and len(df_temp) > 1500:
-                    pbp_df = df_temp
-                    season_used = int(yr)
-                    break
-            except Exception:
-                continue
-
-        if not pbp_df.empty:
-            rosters_df = pd.DataFrame()
-            for yr_r in [season_used, season_used - 1]:
-                try:
-                    rosters_df = nfl.import_seasonal_rosters([int(yr_r)])
-                    if rosters_df is not None and not rosters_df.empty:
-                        break
-                except Exception:
-                    try:
-                        rosters_df = nfl.import_players()
-                        if rosters_df is not None and not rosters_df.empty:
-                            break
-                    except Exception:
-                        pass
-
-            team_metrics = _calcular_metricas_equipos_pbp(pbp_df)
-            player_props = _calcular_props_jugadores_pbp(pbp_df, rosters_df)
-
-            filas_salida = []
-            for abrev, meta in NFL_TEAMS_META.items():
-                tm_row = team_metrics.loc[abrev] if abrev in team_metrics.index else pd.Series(dtype=float)
-                p_row = player_props.get(abrev, {})
-
-                filas_salida.append({
-                    "Equipo": meta["Equipo"],
-                    "Abrev": abrev,
-                    "Pass_EPA": round(float(tm_row.get("Pass_EPA", 0.020)), 3),
-                    "Rush_EPA": round(float(tm_row.get("Rush_EPA", -0.010)), 3),
-                    "Pass_Success_Rate": round(float(tm_row.get("Pass_Success_Rate", 0.475)), 3),
-                    "Pace_Sec": round(float(tm_row.get("Pace_Sec", 27.4)), 1),
-                    "RedZone_TD_Pct": round(float(tm_row.get("RedZone_TD_Pct", 0.565)), 3),
-                    "Def_Pass_EPA": round(float(tm_row.get("Def_Pass_EPA", 0.010)), 3),
-                    "Def_Rush_EPA": round(float(tm_row.get("Def_Rush_EPA", -0.015)), 3),
-                    "Pressure_Pct": round(float(tm_row.get("Pressure_Pct", 0.245)), 3),
-                    "Def_RZ_Stop_Pct": round(float(tm_row.get("Def_RZ_Stop_Pct", 0.485)), 3),
-                    "Dome": int(meta["Dome"]),
-                    "Cold_Weather_Drop": round(float(meta["Cold_Base"]), 3),
-                    "RB1_TD_Rate": round(float(p_row.get("RB1_TD_Rate", 0.335)), 3),
-                    "WR1_TD_Rate": round(float(p_row.get("WR1_TD_Rate", 0.295)), 3),
-                    "TE1_TD_Rate": round(float(p_row.get("TE1_TD_Rate", 0.195)), 3),
-                    "QB_Rush_TD_Rate": round(float(p_row.get("QB_Rush_TD_Rate", 0.085)), 3),
-                    "Pass_Rate": round(float(tm_row.get("Pass_Rate", 0.565)), 3),
-                    "HFA_Mod": round(float(meta["HFA_Mod"]), 2),
-                    "QB_Nombre": p_row.get("QB_Nombre", f"{abrev} QB1"),
-                    "RB1_Nombre": p_row.get("RB1_Nombre", f"{abrev} RB1"),
-                    "WR1_Nombre": p_row.get("WR1_Nombre", f"{abrev} WR1"),
-                    "TE1_Nombre": p_row.get("TE1_Nombre", f"{abrev} TE1"),
-                })
-
-            df_live = pd.DataFrame(filas_salida)
-            try:
-                df_live.to_csv(csv_path, index=False, encoding="utf-8")
-            except Exception:
-                pass
-
-            meta_info = {
-                "origen": f"NFLVERSE LIVE ({season_used})",
-                "jugadas": len(pbp_df),
-                "actualizado": timestamp_str,
-                "live": True,
-            }
-            return df_live.set_index("Equipo"), meta_info
-
-    # Lectura desde CSV existente o generación desde respaldo base
     if not os.path.exists(csv_path):
-        df_fallback = pd.DataFrame(DEFAULT_TEAMS_DATA)
-        try:
-            df_fallback.to_csv(csv_path, index=False, encoding="utf-8")
-        except Exception:
-            pass
-    else:
-        df_fallback = pd.read_csv(csv_path)
-
-    if "Equipo" in df_fallback.columns:
-        df_fallback = df_fallback.set_index("Equipo")
-
-    meta_info = {
-        "origen": "CSV CACHÉ / BASE SYNDICATE",
-        "jugadas": 0,
-        "actualizado": timestamp_str,
-        "live": False,
-    }
-    return df_fallback, meta_info
+        st.error(
+            f"⚠️ No se encontró el archivo `{csv_path}` en el directorio del proyecto. "
+            "Asegúrate de subir `nfl_stats_completo.csv` junto a `app.py` en tu repositorio de GitHub."
+        )
+        st.stop()
+    df = pd.read_csv(csv_path)
+    if "Equipo" in df.columns:
+        df = df.set_index("Equipo")
+    return df
 
 
 # ==============================================================================
-# 3. CALCULADORA DE FAIR ODDS (+EV) Y UTILIDADES MATEMÁTICAS
+# 2. CALCULADORA DE FAIR ODDS (+EV) Y UTILIDADES MATEMÁTICAS
 # ==============================================================================
 def prob_to_fair_odds(prob: float) -> tuple[float, str]:
+    """
+    Convierte una probabilidad (0 a 1) en su Momio Justo (+EV):
+    - Formato Decimal (ej. 1.91)
+    - Formato Americano (ej. -110 / +125)
+    """
     p = float(np.clip(prob, 0.005, 0.995))
     decimal_odds = round(1.0 / p, 2)
     if p >= 0.5:
@@ -841,18 +399,20 @@ def prob_to_fair_odds(prob: float) -> tuple[float, str]:
 
 
 def poisson_pmf(k: int, lam: float) -> float:
+    """Probabilidad exacta P(X = k) bajo distribución de Poisson."""
     lam = max(0.05, float(lam))
     return (math.exp(-lam) * (lam ** k)) / math.factorial(k)
 
 
 def poisson_over_prob(threshold: float, lam: float) -> float:
+    """Probabilidad exacta P(X > threshold), ej. Over 2.5 TDs => 1 - P(X <= 2)."""
     max_k = int(math.floor(threshold))
     cdf = sum(poisson_pmf(k, lam) for k in range(max_k + 1))
     return float(np.clip(1.0 - cdf, 0.01, 0.99))
 
 
 # ==============================================================================
-# 4. MOTOR CUANTITATIVO SHARP NFL (EPA + MONTECARLO + KEY NUMBERS + PROPS)
+# 3. MOTOR CUANTITATIVO SHARP NFL (EPA + MONTECARLO + KEY NUMBERS + PROPS)
 # ==============================================================================
 NFL_REALISTIC_SCORES = {
     0: 0.35, 2: 0.05, 3: 0.65, 6: 0.72, 7: 0.85, 9: 0.60, 10: 1.15,
@@ -885,6 +445,13 @@ def simular_partido_nfl(
     linea_total_mercado: float = 45.5,
     n_sims: int = 8000,
 ) -> dict:
+    """
+    Ejecuta el modelo cuantitativo completo para un partido NFL:
+    1. Implied Team Totals vía cruce EPA Ofensivo vs Defensivo + Pace + Trincheras + Zona Roja + HFA.
+    2. Simulación Montecarlo vectorizada (n_sims = 8,000) + Matriz Discretizada con Key Numbers NFL.
+    3. Spread Justo, Moneyline, Total Proyectado y Team Totals.
+    4. Motor Poisson / Bernoulli de Touchdowns de equipo y Anytime TD para RB1, WR1, TE1 y QB Rush.
+    """
     loc = df.loc[equipo_local]
     vis = df.loc[equipo_visita]
 
@@ -895,8 +462,8 @@ def simular_partido_nfl(
     plays_por_equipo = 63.5 * (54.8 / max(46.0, pace_suma))
     plays_totales_juego = plays_por_equipo * 2.0
 
-    pass_rate_loc = float(loc["Pass_Rate"]) if "Pass_Rate" in loc else 0.565
-    pass_rate_vis = float(vis["Pass_Rate"]) if "Pass_Rate" in vis else 0.565
+    pass_rate_loc = float(loc["Pass_Rate"]) if "Pass_Rate" in loc and pd.notna(loc["Pass_Rate"]) else 0.565
+    pass_rate_vis = float(vis["Pass_Rate"]) if "Pass_Rate" in vis and pd.notna(vis["Pass_Rate"]) else 0.565
 
     def norm_pct(val: float) -> float:
         v = float(val)
@@ -914,7 +481,7 @@ def simular_partido_nfl(
     # --- B. FACTORES DE ENTORNO Y VENTAJAS DE LOCALÍA (HFA) ---
     es_domo = int(loc["Dome"]) == 1
     hfa_base = 1.92
-    hfa_mod_estadio = float(loc["HFA_Mod"]) if "HFA_Mod" in loc else 0.18
+    hfa_mod_estadio = float(loc["HFA_Mod"]) if "HFA_Mod" in loc and pd.notna(loc["HFA_Mod"]) else 0.18
     if es_domo:
         hfa_total = np.clip(hfa_base + hfa_mod_estadio * 0.65, 1.85, 2.25)
         dome_total_boost = 0.85
@@ -1220,21 +787,9 @@ def simular_partido_nfl(
 
 
 # ==============================================================================
-# 5. GESTIÓN DE SESSION STATE Y SINCRONIZACIÓN AUTOMÁTICA EN LA NUBE
+# 4. GESTIÓN DE SESSION STATE Y CONFIGURACIÓN INICIAL DE 16 JUEGOS
 # ==============================================================================
-if "forzar_sync_cloud" not in st.session_state:
-    st.session_state.forzar_sync_cloud = False
-
-if "temporada_nfl_sel" not in st.session_state:
-    hoy_init = datetime.date.today()
-    st.session_state.temporada_nfl_sel = hoy_init.year if hoy_init.month >= 9 else hoy_init.year - 1
-
-with st.spinner("🛰️ Sincronizando telemetría oficial NFL (nflfastR / nflverse Cloud)..."):
-    df_nfl, meta_sync = obtener_dataset_cloud_nfl(
-        season_target=st.session_state.temporada_nfl_sel,
-        forzar_remoto=st.session_state.forzar_sync_cloud,
-    )
-
+df_nfl = cargar_dataset_nfl("nfl_stats_completo.csv")
 lista_equipos = list(df_nfl.index)
 
 DEFAULT_16_MATCHUPS = [
@@ -1263,7 +818,7 @@ if "scan_ejecutado" not in st.session_state:
     st.session_state.scan_ejecutado = False
 
 if "num_juegos_activos" not in st.session_state:
-    st.session_state.num_juegos_activos = 8
+    st.session_state.num_juegos_activos = min(8, max(1, len(lista_equipos) // 2))
 
 if "clima_invierno" not in st.session_state:
     st.session_state.clima_invierno = False
@@ -1276,15 +831,15 @@ if "partidos_seleccionados" not in st.session_state:
     for idx in range(16):
         loc_def, vis_def = DEFAULT_16_MATCHUPS[idx % len(DEFAULT_16_MATCHUPS)]
         if loc_def not in lista_equipos:
-            loc_def = lista_equipos[0]
-        if vis_def not in lista_equipos:
-            vis_def = lista_equipos[min(1, len(lista_equipos) - 1)]
+            loc_def = lista_equipos[idx % len(lista_equipos)]
+        if vis_def not in lista_equipos or vis_def == loc_def:
+            vis_def = lista_equipos[(idx + 1) % len(lista_equipos)]
         partidos_init.append({"local": loc_def, "visita": vis_def})
     st.session_state.partidos_seleccionados = partidos_init
 
 
 # ==============================================================================
-# 6. BARRA LATERAL: CENTRO DE SINCRONIZACIÓN CLOUD (STREAMLIT CLOUD + GITHUB)
+# 5. BARRA LATERAL: CONTROLES DEL SINDICATO Y EXPLORADOR DEL CSV LOCAL
 # ==============================================================================
 with st.sidebar:
     st.markdown(
@@ -1293,7 +848,7 @@ with st.sidebar:
             ⚡ SHARP SYNDICATE TERMINAL
         </div>
         <div style='font-family: JetBrains Mono, monospace; font-size: 0.74rem; color: #8A99AD; margin-bottom: 14px;'>
-            CLOUD ENGINE: NFLVERSE + MONTECARLO
+            MOTOR: EPA/PLAY + MONTECARLO 8,000x
         </div>
         """,
         unsafe_allow_html=True,
@@ -1302,59 +857,29 @@ with st.sidebar:
     if st.button("🔓 Abrir Configurador de Semana", use_container_width=True):
         st.session_state.expander_open = True
 
-    st.markdown("### ☁️ Sincronización nflfastR Cloud")
-    anio_actual = datetime.date.today().year
-    opciones_temp = [anio_actual, anio_actual - 1, anio_actual - 2]
-    idx_temp = opciones_temp.index(st.session_state.temporada_nfl_sel) if st.session_state.temporada_nfl_sel in opciones_temp else 0
-    temp_elegida = st.selectbox(
-        "Temporada Oficial nflverse",
-        options=opciones_temp,
-        index=idx_temp,
-    )
+    st.markdown("### 📂 Dataset Local (`nfl_stats_completo.csv`)")
+    ver_tabla_csv = st.checkbox("Mostrar tabla de equipos cargada", value=False)
 
-    if st.button("🔄 Sincronizar Datos en Vivo (nflfastR)", use_container_width=True):
-        st.session_state.temporada_nfl_sel = temp_elegida
-        st.session_state.forzar_sync_cloud = True
-        obtener_dataset_cloud_nfl.clear()
-        st.rerun()
-
-    # Indicador de estado de la fuente en la nube
-    estado_color = "#00E676" if meta_sync["live"] else "#00F0FF"
-    jugadas_str = f" • {meta_sync['jugadas']:,} snaps" if meta_sync["jugadas"] > 0 else ""
+    st.markdown("### 📐 Arquitectura Cuantitativa")
     st.markdown(
-        f"""
-        <div style='background: rgba(12,19,34,0.9); border: 1px solid {estado_color}; border-radius: 8px; padding: 8px 10px; font-family: JetBrains Mono, monospace; font-size: 0.72rem; margin-bottom: 12px;'>
-            <div style='color: {estado_color}; font-weight: 700;'>● FUENTE: {meta_sync['origen']}</div>
-            <div style='color: #8A99AD; margin-top: 3px;'>Sync: {meta_sync['actualizado']}{jugadas_str}</div>
-            <div style='color: #8A99AD;'>Caché Automático Cloud: 24h (TTL)</div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-
-    if not NFL_DATA_PY_AVAILABLE:
-        st.caption("💡 Agrega `nfl_data_py` y `pyarrow` a tu `requirements.txt` en GitHub para habilitar la descarga directa de `nflverse`.")
-
-    ver_tabla_csv = st.checkbox("Mostrar Dataset Activo (`nfl_stats_completo.csv`)", value=False)
-
-    st.download_button(
-        label="⬇️ Descargar CSV Actualizado",
-        data=df_nfl.reset_index().to_csv(index=False).encode("utf-8"),
-        file_name="nfl_stats_completo.csv",
-        mime="text/csv",
-        use_container_width=True,
+        """
+        - **Implied Team Total**: `EPA/Play` ponderado por `Pace_Sec` + `RedZone_TD_Pct` vs `Def_RZ_Stop_Pct`.
+        - **HFA Dinámico**: `1.80` a `2.25` pts según Domo, acústica y penalización climática (`Cold_Weather_Drop`).
+        - **Key Numbers NFL**: Prioriza márgenes `3, 7, 10, 14, 6, 4` y penaliza marcadores muertos.
+        - **Touchdowns & Props**: Motor Poisson / Bernoulli exacto (`1 - e^-λ`).
+        """
     )
 
 
 # ==============================================================================
-# 7. ENCABEZADO DE LA TERMINAL Y VISTA DEL DATASET ACTIVO
+# 6. ENCABEZADO DE LA TERMINAL Y VISTA DEL DATASET BASE
 # ==============================================================================
 st.markdown(
-    f"""
+    """
     <div class="terminal-banner">
         <div class="terminal-title">
             <span>🏈 TERMINAL SHARP: NFL QUANT SCANNER</span>
-            <span class="live-pill">● {meta_sync['origen']}</span>
+            <span class="live-pill">● CSV ENGINE v4.5</span>
         </div>
         <div class="terminal-subtitle">
             BLOOMBERG SPORTSBOOK ANALYTICS // EPA MATCHUP MATRIX • MONTECARLO KEY-NUMBER CLUSTERING • POISSON TD PROPS • FAIR ODDS (+EV)
@@ -1365,14 +890,15 @@ st.markdown(
 )
 
 if ver_tabla_csv:
-    with st.expander("📂 DATASET ACTIVO EN MEMORIA (`nfl_stats_completo.csv`)", expanded=True):
+    with st.expander("📂 BACKEND DATASET: `nfl_stats_completo.csv` (Indexado por Equipo)", expanded=True):
         st.dataframe(df_nfl, use_container_width=True)
 
 
 # ==============================================================================
-# 8. FORMULARIO DE LOS 16 JUEGOS SEMANALES (st.form + st.expander auto-close)
+# 7. FORMULARIO DE LOS 16 JUEGOS SEMANALES (st.form + st.expander auto-close)
 # ==============================================================================
 def callback_cerrar_expander():
+    """Cierra el st.expander automáticamente al enviar el formulario."""
     st.session_state.expander_open = False
     st.session_state.scan_ejecutado = True
 
@@ -1414,16 +940,18 @@ with st.expander(
                     st.markdown(f"**{activo_tag} Juego #{game_i + 1}**")
                     default_vis = st.session_state.partidos_seleccionados[game_i]["visita"]
                     default_loc = st.session_state.partidos_seleccionados[game_i]["local"]
+                    idx_vis = lista_equipos.index(default_vis) if default_vis in lista_equipos else 0
+                    idx_loc = lista_equipos.index(default_loc) if default_loc in lista_equipos else min(1, len(lista_equipos) - 1)
                     vis_sel = st.selectbox(
                         f"Visita #{game_i + 1}",
                         options=lista_equipos,
-                        index=lista_equipos.index(default_vis),
+                        index=idx_vis,
                         key=f"vis_select_{game_i}",
                     )
                     loc_sel = st.selectbox(
                         f"Local #{game_i + 1}",
                         options=lista_equipos,
-                        index=lista_equipos.index(default_loc),
+                        index=idx_loc,
                         key=f"loc_select_{game_i}",
                     )
                     nuevos_partidos.append({"local": loc_sel, "visita": vis_sel})
@@ -1442,7 +970,7 @@ with st.expander(
 
 
 # ==============================================================================
-# 9. VALIDACIÓN DE ERRORES Y EJECUCIÓN DEL ESCANEO SEMANAL
+# 8. VALIDACIÓN DE ERRORES Y EJECUCIÓN DEL ESCANEO SEMANAL
 # ==============================================================================
 juegos_a_procesar = st.session_state.partidos_seleccionados[: st.session_state.num_juegos_activos]
 errores_mismo_equipo = []
@@ -1477,7 +1005,7 @@ resultados_semana = [
 
 
 # ==============================================================================
-# 10. RADAR EJECUTIVO DE LA SEMANA (TOP 4 PICKS DEL SINDICATO)
+# 9. RADAR EJECUTIVO DE LA SEMANA (TOP 4 PICKS DEL SINDICATO)
 # ==============================================================================
 mejor_lock = None
 mejor_lock_score = -1.0
@@ -1630,7 +1158,7 @@ with r_col4:
 
 
 # ==============================================================================
-# 11. DESGLOSE POR JUEGO (SCOREBOARD TV HEADER + 3 FILAS + EXPANDER GRÁFICO)
+# 10. DESGLOSE POR JUEGO (SCOREBOARD TV HEADER + 3 FILAS + EXPANDER GRÁFICO)
 # ==============================================================================
 st.markdown('<div class="radar-section-title">📊 ESCÁNER CUANTITATIVO POR PARTIDO (GAME WEEK BOARD)</div>', unsafe_allow_html=True)
 
