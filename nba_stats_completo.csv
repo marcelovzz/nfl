@@ -1,0 +1,33 @@
+Equipo,Abrev,Pass_EPA,Rush_EPA,Pass_Success_Rate,Pace_Sec,RedZone_TD_Pct,Def_Pass_EPA,Def_Rush_EPA,Pressure_Pct,Def_RZ_Stop_Pct,Dome,Cold_Weather_Drop,RB1_TD_Rate,WR1_TD_Rate,TE1_TD_Rate,QB_Rush_TD_Rate,Pass_Rate,HFA_Mod,QB_Nombre,RB1_Nombre,WR1_Nombre,TE1_Nombre
+Kansas City Chiefs,KC,0.173,0.134,0.493,29.22,0.615,-0.136,-0.05,0.258,0.515,0,0.015,0.31,0.275,0.295,0.115,0.615,0.35,P. Mahomes,K. Walker III,R. Rice,T. Kelce
+San Francisco 49ers,SF,0.316,0.092,0.528,31.25,0.655,-0.073,-0.042,0.264,0.505,0,0.048,0.435,0.265,0.215,0.095,0.535,0.2,B. Purdy,C. McCaffrey,M. Evans,G. Kittle
+Buffalo Bills,BUF,0.247,0.156,0.489,28.66,0.638,0.182,0.058,0.249,0.488,0,0.01,0.275,0.255,0.195,0.265,0.565,0.3,J. Allen,J. Cook III,D.J. Moore,D. Kincaid
+Baltimore Ravens,BAL,0.206,0.019,0.479,31.99,0.628,-0.028,-0.033,0.272,0.545,0,0.018,0.385,0.24,0.225,0.195,0.505,0.28,T. Huntley,D. Henry,Z. Flowers,M. Andrews
+Detroit Lions,DET,0.298,-0.005,0.491,28.86,0.648,0.222,0.051,0.252,0.465,1,0.055,0.395,0.31,0.22,0.045,0.545,0.32,J. Goff,J. Gibbs,A. St. Brown,S. LaPorta
+Dallas Cowboys,DAL,0.125,-0.02,0.468,28.19,0.575,0.215,0.084,0.278,0.455,1,0.052,0.245,0.355,0.205,0.085,0.595,0.22,D. Prescott,J. Williams,C. Lamb,J. Ferguson
+Philadelphia Eagles,PHI,-0.127,-0.147,0.365,29.53,0.622,0.121,0.024,0.262,0.492,0,0.022,0.335,0.295,0.165,0.255,0.53,0.3,T. McKee,S. Barkley,D. Smith,D. Goedert
+New England Patriots,NE,0.151,-0.045,0.452,29.74,0.495,0.038,-0.004,0.228,0.51,0,0.014,0.325,0.22,0.215,0.125,0.54,0.12,D. Maye,R. Stevenson,A.J. Brown,H. Henry
+Houston Texans,HOU,0.125,-0.099,0.432,28.98,0.585,0.007,-0.01,0.26,0.485,1,0.05,0.33,0.315,0.185,0.075,0.58,0.2,C.J. Stroud,D. Montgomery,N. Collins,D. Schultz
+Green Bay Packers,GB,0.115,-0.265,0.402,29.1,0.605,-0.092,-0.016,0.244,0.478,0,0.012,0.33,0.285,0.19,0.09,0.555,0.28,J. Love,J. Jacobs,C. Watson,T. Kraft
+Cincinnati Bengals,CIN,0.139,-0.048,0.471,30.14,0.61,-0.053,0.002,0.235,0.46,0,0.02,0.285,0.345,0.175,0.085,0.625,0.22,J. Burrow,C. Brown,J. Chase,M. Gesicki
+Miami Dolphins,MIA,-0.225,0.005,0.376,29.98,0.598,0.154,0.049,0.246,0.452,0,0.082,0.365,0.35,0.155,0.045,0.56,0.24,M. Willis,O. Gordon II,M. Washington,G. Dulcich
+Los Angeles Rams,LAR,0.074,-0.02,0.473,28.21,0.592,-0.063,-0.008,0.232,0.448,1,0.056,0.38,0.31,0.16,0.035,0.575,0.15,M. Stafford,K. Williams,P. Nacua,C. Parkinson
+Minnesota Vikings,MIN,-0.085,-0.114,0.359,29.93,0.58,-0.288,-0.102,0.275,0.512,1,0.045,0.295,0.365,0.205,0.065,0.59,0.28,K. Murray,A. Jones,J. Jefferson,T.J. Hockenson
+New York Jets,NYJ,0.061,-0.14,0.438,32.06,0.535,-0.063,-0.031,0.268,0.525,0,0.025,0.355,0.315,0.165,0.04,0.575,0.16,G. Smith,B. Hall,G. Wilson,M. Taylor
+Cleveland Browns,CLE,-0.037,-0.153,0.398,29.24,0.525,-0.034,-0.025,0.276,0.532,0,0.018,0.34,0.275,0.225,0.095,0.555,0.22,D. Watson,Q. Judkins,D. Boston,H. Fannin Jr.
+Pittsburgh Steelers,PIT,-0.136,0.048,0.408,30.13,0.52,-0.079,-0.033,0.266,0.538,0,0.015,0.335,0.27,0.195,0.11,0.52,0.26,A. Rodgers,J. Warren,D.K. Metcalf,D. Washington
+Atlanta Falcons,ATL,-0.131,0.023,0.443,32.13,0.565,-0.029,-0.007,0.218,0.472,1,0.054,0.375,0.285,0.2,0.035,0.55,0.18,M. Penix Jr.,B. Robinson,D. London,K. Pitts
+Chicago Bears,CHI,0.106,-0.014,0.467,28.83,0.548,0.007,-0.01,0.238,0.495,0,0.016,0.305,0.295,0.21,0.115,0.555,0.2,C. Williams,D. Swift,R. Odunze,C. Loveland
+Jacksonville Jaguars,JAX,0.275,0.011,0.479,29.67,0.542,-0.056,-0.017,0.236,0.462,0,0.058,0.335,0.29,0.205,0.095,0.58,0.15,T. Lawrence,B. Tuten,P. Washington,B. Strange
+Indianapolis Colts,IND,-0.145,0.056,0.421,29.62,0.578,0.09,0.042,0.242,0.458,1,0.048,0.385,0.255,0.15,0.215,0.525,0.18,D. Jones,J. Taylor,J. Downs,T. Warren
+Seattle Seahawks,SEA,0.007,-0.185,0.411,31.57,0.558,-0.191,-0.045,0.245,0.475,0,0.024,0.36,0.31,0.165,0.065,0.585,0.32,S. Darnold,E. Wilson,J. Smith-Njigba,A. Barner
+Tampa Bay Buccaneers,TB,-0.246,0.028,0.388,31.14,0.572,-0.12,-0.048,0.25,0.51,0,0.055,0.315,0.345,0.18,0.065,0.585,0.18,J. Daniels,B. Irving,E. Egbuka,C. Otton
+Washington Commanders,WAS,0.0,-0.033,0.411,28.45,0.595,0.087,0.046,0.225,0.435,0,0.025,0.345,0.285,0.165,0.195,0.535,0.16,J. Daniels,R. White,S. Diggs,C. Okonkwo
+Arizona Cardinals,ARI,0.005,-0.057,0.464,29.82,0.568,0.097,0.056,0.215,0.428,1,0.056,0.35,0.295,0.215,0.145,0.545,0.16,J. Brissett,J. Love,M. Wilson,T. McBride
+Los Angeles Chargers,LAC,-0.268,-0.174,0.359,28.74,0.562,-0.054,-0.021,0.248,0.508,1,0.048,0.34,0.285,0.175,0.085,0.535,0.12,J. Herbert,O. Hampton,L. McConkey,C. Kolar
+New Orleans Saints,NO,-0.036,-0.074,0.416,27.15,0.545,0.096,0.034,0.226,0.498,1,0.058,0.37,0.275,0.195,0.055,0.565,0.25,T. Shough,A. Kamara,C. Olave,J. Johnson
+Las Vegas Raiders,LV,0.182,-0.233,0.426,28.8,0.515,0.039,0.018,0.254,0.482,1,0.046,0.31,0.275,0.265,0.055,0.58,0.16,K. Cousins,A. Jeanty,T. Tucker,B. Bowers
+Denver Broncos,DEN,-0.075,-0.085,0.38,29.33,0.54,-0.055,-0.02,0.258,0.515,0,0.016,0.315,0.305,0.16,0.125,0.56,0.32,B. Nix,J.K. Dobbins,J. Waddle,E. Engram
+Tennessee Titans,TEN,-0.198,-0.078,0.403,28.4,0.518,0.06,0.013,0.234,0.502,0,0.032,0.345,0.295,0.175,0.085,0.555,0.18,C. Ward,T. Pollard,C. Tate,G. Helm
+New York Giants,NYG,0.033,-0.106,0.423,29.79,0.502,0.016,0.026,0.248,0.468,0,0.022,0.32,0.335,0.16,0.115,0.57,0.14,J.J. McCarthy,C. Skattebo,M. Nabers,I. Likely
+Carolina Panthers,CAR,0.186,-0.005,0.441,25.56,0.492,-0.031,0.019,0.205,0.42,0,0.038,0.355,0.275,0.17,0.085,0.565,0.14,B. Young,C. Hubbard,T. McMillan,T. Tremble
