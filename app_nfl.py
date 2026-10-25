@@ -2,17 +2,10 @@
 # -*- coding: utf-8 -*-
 """
 MÓDULO 3: app_nfl.py
-Orquestador Streamlit con Control de Sesión y Auditoría de Valor Matemático (+EV)
-estrictamente en FORMATO DECIMAL para "TERMINAL SHARP: NFL QUANT".
-Integra:
-  1. Carga de métricas y rosters vía Excel (.xlsx) con persistencia en st.session_state.
-  2. Sincronización de calendario y momios en vivo desde The Odds API (con Fallback
-     automático al consenso de ESPN Scoreboard convertido a cuotas decimales).
-  3. Vista A (Cartelera en Cuadrícula 3x3): Muestra escudos oficiales, QBs titulares,
-     proyección de Monte Carlo y auditoría en vivo de +EV en TOTALES (Over/Under) y
-     HÁNDICAP (Spread) en formato decimal.
-  4. Vista B (Expediente Cuantitativo): Desglose completo de 5,000 simulaciones,
-     comparativa Modelo vs Mercado en cuotas decimales y auditor interactivo de líneas.
+Orquestador Streamlit con Control de Sesión, Simulación Discreta por Series
+Ofensivas (Drive-Based Simulation), Controles de Viento/Estadio y Auditoría
+de Valor Matemático (+EV) estrictamente en FORMATO DECIMAL para
+"TERMINAL SHARP: NFL QUANT".
 """
 
 import hashlib
@@ -32,9 +25,8 @@ from sync_espn_nfl import (
     obtener_calendario_nfl_semana,
 )
 from engine_nfl import (
+    DOME_FRANCHISES,
     REQUIRED_EXCEL_COLUMNS,
-    evaluar_valor_spread,
-    evaluar_valor_totales,
     generar_plantilla_excel_bytes,
     obtener_stats_nfl_default,
     run_simulacion_nfl,
@@ -45,7 +37,7 @@ from engine_nfl import (
 # 1. CONFIGURACIÓN DE PÁGINA Y ESTILOS CSS (CYBER-QUANT + EV DECIMAL UI)
 # ==============================================================================
 st.set_page_config(
-    page_title="TERMINAL SHARP: NFL QUANT (+EV DECIMAL)",
+    page_title="TERMINAL SHARP: NFL QUANT (DRIVE ENGINE)",
     page_icon="🏈",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -184,7 +176,7 @@ CYBER_QUANT_NFL_CSS = """
 
 .badge-hora {
     font-family: 'JetBrains Mono', monospace;
-    font-size: 0.69rem;
+    font-size: 0.68rem;
     color: var(--text-muted);
     font-weight: 600;
 }
@@ -243,7 +235,7 @@ CYBER_QUANT_NFL_CSS = """
 }
 
 .forecast-main-line {
-    font-size: 0.76rem;
+    font-size: 0.75rem;
     font-weight: 700;
     color: #FFFFFF;
     display: flex;
@@ -255,7 +247,7 @@ CYBER_QUANT_NFL_CSS = """
     justify-content: space-between;
     align-items: center;
     margin-top: 3px;
-    font-size: 0.69rem;
+    font-size: 0.68rem;
     color: var(--cyan-neon);
 }
 
@@ -299,12 +291,12 @@ CYBER_QUANT_NFL_CSS = """
     justify-content: space-between;
     align-items: center;
     margin-top: 2px;
-    font-size: 0.67rem;
+    font-size: 0.66rem;
     color: var(--text-muted);
 }
 
 .ev-pill-tag {
-    font-size: 0.66rem;
+    font-size: 0.65rem;
     font-weight: 800;
     padding: 1px 6px;
     border-radius: 4px;
@@ -320,6 +312,11 @@ CYBER_QUANT_NFL_CSS = """
     background: rgba(255, 255, 255, 0.06);
     color: var(--text-muted);
     border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.key-num-chip {
+    color: var(--amber-quant);
+    font-weight: 700;
 }
 
 /* Vista B: Expediente Cuantitativo */
@@ -343,7 +340,7 @@ CYBER_QUANT_NFL_CSS = """
     padding-bottom: 8px;
     margin-bottom: 14px;
     font-family: 'JetBrains Mono', monospace;
-    font-size: 0.75rem;
+    font-size: 0.74rem;
     color: var(--text-muted);
 }
 
@@ -374,7 +371,7 @@ CYBER_QUANT_NFL_CSS = """
 
 .tv-team-sub {
     font-family: 'JetBrains Mono', monospace;
-    font-size: 0.75rem;
+    font-size: 0.74rem;
     color: var(--cyan-neon);
     margin-top: 3px;
 }
@@ -397,7 +394,7 @@ CYBER_QUANT_NFL_CSS = """
 
 .tv-ou-pill {
     font-family: 'JetBrains Mono', monospace;
-    font-size: 0.75rem;
+    font-size: 0.74rem;
     color: var(--amber-quant);
     margin-top: 4px;
     font-weight: 700;
@@ -413,7 +410,7 @@ CYBER_QUANT_NFL_CSS = """
 
 .quant-card-header {
     font-family: 'Orbitron', sans-serif;
-    font-size: 0.78rem;
+    font-size: 0.77rem;
     font-weight: 700;
     color: var(--cyan-neon);
     letter-spacing: 1px;
@@ -430,7 +427,7 @@ CYBER_QUANT_NFL_CSS = """
     padding: 6px 0;
     border-bottom: 1px dashed rgba(255, 255, 255, 0.06);
     font-family: 'JetBrains Mono', monospace;
-    font-size: 0.80rem;
+    font-size: 0.79rem;
 }
 
 .metric-row:last-child {
@@ -453,7 +450,7 @@ CYBER_QUANT_NFL_CSS = """
     padding: 2px 7px;
     border-radius: 5px;
     font-family: 'JetBrains Mono', monospace;
-    font-size: 0.74rem;
+    font-size: 0.73rem;
     font-weight: 600;
 }
 
@@ -510,6 +507,15 @@ if "odds_api_key" not in st.session_state:
 if "semana_seleccionada" not in st.session_state:
     st.session_state.semana_seleccionada = "Actual"
 
+if "viento_mph_global" not in st.session_state:
+    st.session_state.viento_mph_global = 5
+
+if "tipo_estadio_global" not in st.session_state:
+    st.session_state.tipo_estadio_global = "Abierto"
+
+if "hfa_base_global" not in st.session_state:
+    st.session_state.hfa_base_global = 1.8
+
 if "calendario_nfl" not in st.session_state:
     st.session_state.calendario_nfl = obtener_calendario_nfl_semana(
         semana=None, api_key=st.session_state.odds_api_key
@@ -532,7 +538,7 @@ def volver_a_cartelera_nfl():
 
 
 # ==============================================================================
-# 3. BARRA LATERAL: EXCEL (.XLSX), THE ODDS API KEY Y CALENDARIO ESPN
+# 3. BARRA LATERAL: EXCEL (.XLSX), THE ODDS API Y PARÁMETROS DE CLIMA/ESTADIO
 # ==============================================================================
 with st.sidebar:
     st.markdown(
@@ -541,7 +547,7 @@ with st.sidebar:
             ⚡ TERMINAL SHARP: NFL
         </div>
         <div style='font-family: JetBrains Mono, monospace; font-size: 0.72rem; color: #8A99AD; margin-bottom: 12px;'>
-            AUDITOR +EV • 100% CUOTAS DECIMALES
+            DRIVE ENGINE • +EV DECIMAL • KEY NUMBERS
         </div>
         """,
         unsafe_allow_html=True,
@@ -589,12 +595,42 @@ with st.sidebar:
     except Exception:
         pass
 
-    st.markdown("### 📡 2. Servidor de Momios (Decimal)")
+    st.markdown("### 🌦️ 2. Clima, Estadio y HFA (Drive Sim)")
+    st.session_state.viento_mph_global = st.slider(
+        "🌬️ Viento (mph)",
+        min_value=0,
+        max_value=30,
+        value=int(st.session_state.viento_mph_global),
+        step=1,
+        help="Si viento > 14 mph en estadio Abierto: resta 0.35 pts al total por cada mph sobre 14 y reduce 4% la conversión de goles de campo (3 pts).",
+    )
+
+    st.session_state.tipo_estadio_global = st.selectbox(
+        "🏟️ Tipo de Estadio",
+        options=["Abierto", "Domo", "Auto (Según Franquicia Local)"],
+        index=["Abierto", "Domo", "Auto (Según Franquicia Local)"].index(
+            st.session_state.tipo_estadio_global
+        )
+        if st.session_state.tipo_estadio_global in ["Abierto", "Domo", "Auto (Según Franquicia Local)"]
+        else 0,
+        help="Define si el partido se simula en estadio Abierto (afectado por viento >14 mph) o Domo techado.",
+    )
+
+    st.session_state.hfa_base_global = st.slider(
+        "🏠 Ventaja de Localía HFA (pts)",
+        min_value=1.2,
+        max_value=2.2,
+        value=float(st.session_state.hfa_base_global),
+        step=0.1,
+        help="Home Field Advantage calibrado entre 1.2 y 2.2 puntos.",
+    )
+
+    st.markdown("### 📡 3. Servidor de Momios (Decimal)")
     api_key_input = st.text_input(
         "The Odds API Key (Opcional)",
         value=st.session_state.odds_api_key,
         type="password",
-        help="Si se deja vacío, el sistema extrae automáticamente las líneas de consenso de ESPN Scoreboard ('competitions[0].odds') convertidas a formato decimal.",
+        help="Si se deja vacío, extrae las líneas de consenso de ESPN Scoreboard convertidas a formato decimal.",
     )
     if api_key_input != st.session_state.odds_api_key:
         st.session_state.odds_api_key = api_key_input
@@ -648,10 +684,10 @@ st.markdown(
     <div class="terminal-banner">
         <div class="terminal-title">
             <span>🏈 TERMINAL SHARP: NFL QUANT</span>
-            <span class="live-pill">● {etiqueta_sem_header} // {fuente_odds_global}</span>
+            <span class="live-pill">● {etiqueta_sem_header} // DRIVE-BASED SIM // {fuente_odds_global}</span>
         </div>
         <div class="terminal-subtitle">
-            AUDITORÍA DE MERCADO EN VIVO (+EV TOTALES & HÁNDICAP) • FORMATO 100% DECIMAL EUROPEO • 5,000 SIMULACIONES MONTE CARLO
+            SIMULACIÓN DISCRETA POR SERIES OFENSIVAS (~11 DRIVES/EQ) • KEY NUMBERS NFL (3, 7, 6, 10, 4) • VIENTO & HFA • CUOTAS 100% DECIMALES
         </div>
     </div>
     """,
@@ -692,7 +728,7 @@ with st.expander("🛠️ INSPECTOR / EDITOR EN VIVO DE `st.session_state.nfl_st
 
 
 # ==============================================================================
-# 5. SIMULACIÓN DE LA JORNADA Y AUDITORÍA DE VALOR (+EV) EN CUOTAS DECIMALES
+# 5. SIMULACIÓN POR SERIES DISCRETAS (DRIVES) DE LA JORNADA ACTIVA
 # ==============================================================================
 calendario_activo: List[Dict[str, Any]] = st.session_state.calendario_nfl
 if not calendario_activo:
@@ -707,16 +743,18 @@ for game_meta in calendario_activo:
         nfl_stats_dict=st.session_state.nfl_stats,
         n_sims=5000,
         lineas_mercado=game_meta,
+        viento_mph=float(st.session_state.viento_mph_global),
+        tipo_estadio=str(st.session_state.tipo_estadio_global),
+        hfa_override=float(st.session_state.hfa_base_global),
     )
     combinado = {**game_meta, **sim_res}
     cartelera_simulada.append(combinado)
 
 
 # ==============================================================================
-# 6. VISTA A: CARTELERA EN CUADRÍCULA 3x3 CON DETECTOR +EV (TOTALES Y SPREAD)
+# 6. VISTA A: CARTELERA EN CUADRÍCULA 3x3 CON DETECTOR +EV Y NÚMEROS CLAVE
 # ==============================================================================
 if st.session_state.vista_nfl == "cartelera":
-    # Contador rápido de oportunidades +EV detectadas en la jornada
     n_ev_totales = sum(1 for g in cartelera_simulada if g["ev_totales"]["hay_valor"])
     n_ev_spread = sum(1 for g in cartelera_simulada if g["ev_spread"]["hay_valor"])
 
@@ -725,7 +763,7 @@ if st.session_state.vista_nfl == "cartelera":
         <div class="section-header">
             <span>🏟️ CARTELERA NFL EN CUADRÍCULA (3x3) // {etiqueta_sem_header} ({len(cartelera_simulada)} JUEGOS)</span>
             <span style="font-family:'JetBrains Mono',monospace; font-size:0.75rem; color:#00E676;">
-                🔥 Oportunidades +EV Detectadas: {n_ev_totales} en Totales (O/U)  |  {n_ev_spread} en Hándicap (Spread)
+                🔥 +EV Detectados: {n_ev_totales} en Totales (O/U)  |  {n_ev_spread} en Hándicap (Spread)  •  🌬️ Viento: {st.session_state.viento_mph_global} mph ({st.session_state.tipo_estadio_global})
             </span>
         </div>
         """,
@@ -750,7 +788,6 @@ if st.session_state.vista_nfl == "cartelera":
                 tiene_algun_ev = ev_tot["hay_valor"] or ev_sp["hay_valor"]
                 card_ev_class = "nfl-grid-card has-ev" if tiene_algun_ev else "nfl-grid-card"
 
-                # Clases y textos en FORMATO DECIMAL para TOTALES (Over/Under)
                 tot_row_cls = "ev-market-row positive" if ev_tot["hay_valor"] else "ev-market-row neutral"
                 tot_pill_cls = "ev-pill-tag pos" if ev_tot["hay_valor"] else "ev-pill-tag neu"
                 tot_badge_txt = (
@@ -759,7 +796,6 @@ if st.session_state.vista_nfl == "cartelera":
                     else f"⚖️ SIN VALOR ({ev_tot['ev_pct']:+.1f}%)"
                 )
 
-                # Clases y textos en FORMATO DECIMAL para HÁNDICAP (Spread)
                 sp_row_cls = "ev-market-row positive" if ev_sp["hay_valor"] else "ev-market-row neutral"
                 sp_pill_cls = "ev-pill-tag pos" if ev_sp["hay_valor"] else "ev-pill-tag neu"
                 sp_badge_txt = (
@@ -774,12 +810,20 @@ if st.session_state.vista_nfl == "cartelera":
                     else f"{item['away_abbr']} {-item['spread_proyectado']:+.1f}"
                 )
 
+                push_txt = (
+                    f" • Push {ev_sp['prob_push_pct']}%"
+                    if ev_sp["prob_push_pct"] > 0.0
+                    else ""
+                )
+
+                estadio_icon = "🏟️ Domo" if item["tipo_estadio"] == "Domo" else f"🌬️ {item['viento_mph']:.0f}mph"
+
                 st.markdown(
                     f"""
                     <div class="{card_ev_class}">
                         <div class="card-top-meta">
                             <span class="badge-league">NFL · {etiqueta_sem_header}</span>
-                            <span class="badge-hora">🕒 {item['hora']}</span>
+                            <span class="badge-hora">🕒 {item['hora']} • {estadio_icon}</span>
                         </div>
                         <div class="team-row-grid">
                             <div class="team-info-left">
@@ -804,11 +848,11 @@ if st.session_state.vista_nfl == "cartelera":
                         <div class="quick-forecast-box">
                             <div class="forecast-main-line">
                                 <span>Pronóstico: {item['away_abbr']} {item['exact_away']} - {item['exact_home']} {item['home_abbr']}</span>
-                                <span>Total Modelo: <b>{item['total_ou']:.1f}</b></span>
+                                <span>{item['drives_combinados']} Drives ({item['n_drives_equipo']}/eq)</span>
                             </div>
                             <div class="forecast-sub-line">
-                                <span>Spread Modelo: <b>{spread_modelo_str}</b></span>
-                                <span>Línea Mkt: <b>{item['home_abbr']} {item['spread_mercado_home']:+.1f} | O/U {item['total_mercado']:.1f}</b></span>
+                                <span>Modelo: <b>{spread_modelo_str} | Tot {item['total_ou']:.1f}</b></span>
+                                <span>Mkt: <b>{item['home_abbr']} {item['spread_mercado_home']:+.1f} | O/U {item['total_mercado']:.1f}</b></span>
                             </div>
                         </div>
                         <div class="ev-audit-section">
@@ -818,7 +862,7 @@ if st.session_state.vista_nfl == "cartelera":
                                     <span class="{tot_pill_cls}">{tot_badge_txt}</span>
                                 </div>
                                 <div class="ev-row-bottom">
-                                    <span>Modelo: {ev_tot['total_modelo']:.1f} pts (Prob {ev_tot['prob_mejor_pct']}%)</span>
+                                    <span>Prob {ev_tot['lado']}: {ev_tot['prob_mejor_pct']}% (Modelo {ev_tot['total_modelo']:.1f} pts)</span>
                                     <span>Fair Decimal: <b>{ev_tot['fair_decimal']:.2f}</b></span>
                                 </div>
                             </div>
@@ -828,8 +872,8 @@ if st.session_state.vista_nfl == "cartelera":
                                     <span class="{sp_pill_cls}">{sp_badge_txt}</span>
                                 </div>
                                 <div class="ev-row-bottom">
-                                    <span>Cobertura: {ev_sp['prob_mejor_pct']}% (Edge {ev_sp['edge_pts']:+.1f} pts)</span>
-                                    <span>Fair Decimal: <b>{ev_sp['fair_decimal']:.2f}</b></span>
+                                    <span>Cobertura: <b>{ev_sp['prob_mejor_pct']}%</b>{push_txt} | <span class="key-num-chip">{item['key_number_tag']}</span></span>
+                                    <span>Fair: <b>{ev_sp['fair_decimal']:.2f}</b></span>
                                 </div>
                             </div>
                         </div>
@@ -849,7 +893,7 @@ if st.session_state.vista_nfl == "cartelera":
 
 else:
     # ==========================================================================
-    # 7. VISTA B: EXPEDIENTE CUANTITATIVO DEL PARTIDO (100% CUOTAS DECIMALES)
+    # 7. VISTA B: EXPEDIENTE CUANTITATIVO DEL PARTIDO (DRIVE SIMULATION + EV)
     # ==========================================================================
     partido_actual = st.session_state.partido_seleccionado or cartelera_simulada[0]
 
@@ -863,7 +907,11 @@ else:
         )
     with top_c2:
         ids_disponibles = [g["id_partido"] for g in cartelera_simulada]
-        idx_actual = ids_disponibles.index(partido_actual["id_partido"]) if partido_actual["id_partido"] in ids_disponibles else 0
+        idx_actual = (
+            ids_disponibles.index(partido_actual["id_partido"])
+            if partido_actual["id_partido"] in ids_disponibles
+            else 0
+        )
         idx_elegido = st.selectbox(
             "Cambiar de Partido",
             options=range(len(cartelera_simulada)),
@@ -887,8 +935,50 @@ else:
             unsafe_allow_html=True,
         )
 
-    # Panel interactivo para auditar en vivo líneas alternativas y cuotas decimales del partido
-    with st.expander("🎛️ AUDITOR INTERACTIVO DE LÍNEAS Y CUOTAS DECIMALES DEL PARTIDO", expanded=False):
+    # Panel interactivo de clima/estadio y cuotas decimales para este partido específico
+    estadio_default_partido = (
+        "Domo"
+        if (
+            st.session_state.tipo_estadio_global == "Domo"
+            or (
+                "Auto" in st.session_state.tipo_estadio_global
+                and DOME_FRANCHISES.get(partido_actual["home_abbr"], False)
+            )
+        )
+        else "Abierto"
+    )
+
+    with st.expander(
+        "🎛️ SIMULADOR INTERACTIVO DE CLIMA (VIENTO / ESTADIO) Y LÍNEAS DECIMALES DEL PARTIDO",
+        expanded=True,
+    ):
+        cl_c1, cl_c2, cl_c3 = st.columns(3)
+        with cl_c1:
+            viento_partido_in = st.slider(
+                "🌬️ Viento en el Estadio (mph)",
+                min_value=0,
+                max_value=30,
+                value=int(st.session_state.viento_mph_global),
+                step=1,
+                key="slider_viento_detalle",
+            )
+        with cl_c2:
+            estadio_partido_in = st.selectbox(
+                "🏟️ Tipo de Estadio del Partido",
+                options=["Abierto", "Domo"],
+                index=0 if estadio_default_partido == "Abierto" else 1,
+                key="select_estadio_detalle",
+            )
+        with cl_c3:
+            hfa_partido_in = st.slider(
+                "🏠 Ventaja de Localía HFA (pts)",
+                min_value=1.2,
+                max_value=2.2,
+                value=float(st.session_state.hfa_base_global),
+                step=0.1,
+                key="slider_hfa_detalle",
+            )
+
         ac1, ac2, ac3, ac4, ac5, ac6 = st.columns(6)
         with ac1:
             mkt_total_in = st.number_input(
@@ -896,23 +986,46 @@ else:
             )
         with ac2:
             mkt_over_dec_in = st.number_input(
-                "Cuota OVER (Dec)", value=float(partido_actual["cuota_over_decimal"]), min_value=1.05, max_value=10.0, step=0.01, format="%.2f"
+                "Cuota OVER (Dec)",
+                value=float(partido_actual["cuota_over_decimal"]),
+                min_value=1.05,
+                max_value=10.0,
+                step=0.01,
+                format="%.2f",
             )
         with ac3:
             mkt_under_dec_in = st.number_input(
-                "Cuota UNDER (Dec)", value=float(partido_actual["cuota_under_decimal"]), min_value=1.05, max_value=10.0, step=0.01, format="%.2f"
+                "Cuota UNDER (Dec)",
+                value=float(partido_actual["cuota_under_decimal"]),
+                min_value=1.05,
+                max_value=10.0,
+                step=0.01,
+                format="%.2f",
             )
         with ac4:
             mkt_sp_home_in = st.number_input(
-                f"Spread {partido_actual['home_abbr']} (Local)", value=float(partido_actual["spread_mercado_home"]), step=0.5, format="%.1f"
+                f"Spread {partido_actual['home_abbr']} (Local)",
+                value=float(partido_actual["spread_mercado_home"]),
+                step=0.5,
+                format="%.1f",
             )
         with ac5:
             mkt_sp_h_dec_in = st.number_input(
-                f"Cuota {partido_actual['home_abbr']} (Dec)", value=float(partido_actual["cuota_spread_home_decimal"]), min_value=1.05, max_value=10.0, step=0.01, format="%.2f"
+                f"Cuota {partido_actual['home_abbr']} (Dec)",
+                value=float(partido_actual["cuota_spread_home_decimal"]),
+                min_value=1.05,
+                max_value=10.0,
+                step=0.01,
+                format="%.2f",
             )
         with ac6:
             mkt_sp_a_dec_in = st.number_input(
-                f"Cuota {partido_actual['away_abbr']} (Dec)", value=float(partido_actual["cuota_spread_away_decimal"]), min_value=1.05, max_value=10.0, step=0.01, format="%.2f"
+                f"Cuota {partido_actual['away_abbr']} (Dec)",
+                value=float(partido_actual["cuota_spread_away_decimal"]),
+                min_value=1.05,
+                max_value=10.0,
+                step=0.01,
+                format="%.2f",
             )
 
     lineas_custom = {
@@ -930,6 +1043,9 @@ else:
         nfl_stats_dict=st.session_state.nfl_stats,
         n_sims=5000,
         lineas_mercado=lineas_custom,
+        viento_mph=float(viento_partido_in),
+        tipo_estadio=str(estadio_partido_in),
+        hfa_override=float(hfa_partido_in),
     )
     res = {**partido_actual, **sim_detalle}
     ev_tot = res["ev_totales"]
@@ -943,9 +1059,9 @@ else:
         f"""
         <div class="tv-scoreboard">
             <div class="tv-top-bar">
-                <span>EXPEDIENTE CUANTITATIVO // {res['nombre']}</span>
-                <span>VENTAJA LOCALÍA (HFA): +{res['hfa_pts']:.1f} PTS // SNAPS PROY: {res['snaps_por_equipo']}/EQ</span>
-                <span>MONTE CARLO / POISSON: {res['n_sims']:,} SIMULACIONES // CUOTAS DECIMALES</span>
+                <span>EXPEDIENTE DRIVE-BASED // {res['nombre']} ({res['drives_combinados']} POSESIONES: {res['n_drives_equipo']} DRIVES/EQ)</span>
+                <span>ESTADIO: {res['tipo_estadio'].upper()} // VIENTO: {res['viento_mph']} MPH (PENALIZACIÓN: -{res['penalizacion_viento_pts']:.2f} PTS) // HFA: +{res['hfa_pts']:.2f} PTS</span>
+                <span>5,000 ITERACIONES // CUOTAS DECIMALES</span>
             </div>
             <div class="tv-main-grid">
                 <div class="tv-team-side">
@@ -953,14 +1069,14 @@ else:
                     <div>
                         <div class="tv-team-name">{res['away_name']} ({res['away_abbr']})</div>
                         <div class="tv-team-sub">QB Titular: {res['away_qb']} • Win: {res['win_away_pct']}% (Fair Dec: {res['ml_away_decimal']:.2f})</div>
-                        <div style="font-family:'JetBrains Mono',monospace; font-size:0.73rem; color:#8A99AD; margin-top:2px;">
-                            EPA Comp: {res['epa_comp_away']:+.3f} | Success Off: {res['sr_off_away']}% | Pace: {res['pace_away']}s
+                        <div style="font-family:'JetBrains Mono',monospace; font-size:0.72rem; color:#8A99AD; margin-top:2px;">
+                            Drive Probs: TD {res['drive_td_pct_away']}% | FG {res['drive_fg_pct_away']}% | Punt/TO {res['drive_punt_pct_away']}%
                         </div>
                     </div>
                 </div>
                 <div class="tv-center-score">
                     <div style="font-family:'Orbitron',sans-serif; font-size:0.68rem; color:#00F0FF; letter-spacing:1px;">
-                        PROYECCIÓN MEDIA (5,000 SIMS)
+                        PROYECCIÓN POR SERIES (5,000 SIMS)
                     </div>
                     <div class="tv-pts-big">{res['away_pts']:.1f}  —  {res['home_pts']:.1f}</div>
                     <div class="tv-ou-pill">
@@ -971,8 +1087,8 @@ else:
                     <div>
                         <div class="tv-team-name">{res['home_name']} ({res['home_abbr']})</div>
                         <div class="tv-team-sub">QB Titular: {res['home_qb']} • Win: {res['win_home_pct']}% (Fair Dec: {res['ml_home_decimal']:.2f})</div>
-                        <div style="font-family:'JetBrains Mono',monospace; font-size:0.73rem; color:#8A99AD; margin-top:2px;">
-                            EPA Comp: {res['epa_comp_home']:+.3f} | Success Off: {res['sr_off_home']}% | Pace: {res['pace_home']}s
+                        <div style="font-family:'JetBrains Mono',monospace; font-size:0.72rem; color:#8A99AD; margin-top:2px;">
+                            Drive Probs: TD {res['drive_td_pct_home']}% | FG {res['drive_fg_pct_home']}% | Punt/TO {res['drive_punt_pct_home']}%
                         </div>
                     </div>
                     {escudo_home_big}
@@ -983,7 +1099,7 @@ else:
         unsafe_allow_html=True,
     )
 
-    # --- B. FILA 1: AUDITORÍA +EV DE TOTALES, HÁNDICAP (SPREAD) Y MONEYLINE EN DECIMAL ---
+    # --- B. FILA 1: AUDITORÍA +EV DE TOTALES, HÁNDICAP (CON PUSH Y KEY NUMBERS) Y DRIVES ---
     c_m1, c_m2, c_m3 = st.columns(3)
 
     with c_m1:
@@ -1017,15 +1133,14 @@ else:
         )
 
     with c_m2:
-        spread_away_proj = -res["spread_proyectado"]
         spread_away_mkt = -res["spread_mercado_home"]
         st.markdown(
             f"""
             <div class="quant-card">
-                <div class="quant-card-header">📏 2. AUDITORÍA +EV HÁNDICAP (SPREAD DECIMAL)</div>
+                <div class="quant-card-header">📏 2. AUDITORÍA +EV SPREAD (CON PUSH & KEY NUMBERS)</div>
                 <div class="metric-row">
-                    <span class="metric-label">Spread Modelo vs Mercado ({res['home_abbr']})</span>
-                    <span class="metric-val">{res['spread_proyectado']:+.1f} vs {res['spread_mercado_home']:+.1f}</span>
+                    <span class="metric-label">Spread Modelo vs Mkt ({res['key_number_tag']})</span>
+                    <span class="metric-val">{res['spread_proyectado']:+.1f} vs {res['spread_mercado_home']:+.1f} (Push {ev_sp['prob_push_pct']}%)</span>
                 </div>
                 <div class="metric-row">
                     <span class="metric-label">{res['home_abbr']} {res['spread_mercado_home']:+.1f} (Cov {ev_sp['prob_cover_home_pct']}%)</span>
@@ -1052,28 +1167,25 @@ else:
         st.markdown(
             f"""
             <div class="quant-card">
-                <div class="quant-card-header">🏆 3. MONEYLINE Y DESGLOSE MONTE CARLO (DECIMAL)</div>
+                <div class="quant-card-header">🏈 3. SIMULACIÓN POR SERIES (DRIVES) & CLIMA</div>
                 <div class="metric-row">
-                    <span class="metric-label">Victoria {res['home_name']} ({res['home_abbr']})</span>
+                    <span class="metric-label">Victoria Moneyline ({res['home_abbr']} / {res['away_abbr']})</span>
                     <span>
-                        <span class="metric-val">{res['win_home_pct']}%</span>
-                        <span class="odds-chip green">Cuota Justa Dec: {res['ml_home_decimal']:.2f}</span>
+                        <span class="odds-chip green">{res['home_abbr']} {res['win_home_pct']}% (Fair {res['ml_home_decimal']:.2f})</span>
+                        <span class="odds-chip">{res['away_abbr']} {res['win_away_pct']}% (Fair {res['ml_away_decimal']:.2f})</span>
                     </span>
                 </div>
                 <div class="metric-row">
-                    <span class="metric-label">Victoria {res['away_name']} ({res['away_abbr']})</span>
-                    <span>
-                        <span class="metric-val">{res['win_away_pct']}%</span>
-                        <span class="odds-chip">Cuota Justa Dec: {res['ml_away_decimal']:.2f}</span>
-                    </span>
+                    <span class="metric-label">Series Ofensivas Simuladas (Drives)</span>
+                    <span class="metric-val">{res['n_drives_equipo']} Local + {res['n_drives_equipo']} Visita ({res['drives_combinados']} totales)</span>
+                </div>
+                <div class="metric-row">
+                    <span class="metric-label">Impacto Viento ({res['viento_mph']} mph en {res['tipo_estadio']})</span>
+                    <span class="metric-val">-{res['penalizacion_viento_pts']:.2f} pts al Total | FG {'-4%' if (res['tipo_estadio']=='Abierto' and res['viento_mph']>14) else 'Estándar'}</span>
                 </div>
                 <div class="metric-row">
                     <span class="metric-label">Percentiles P10 / P50 / P90 (OT {res['ot_pct']}%)</span>
-                    <span class="metric-val">{res['mc_p10_total']} / {res['mc_p50_total']} / {res['mc_p90_total']} pts</span>
-                </div>
-                <div class="metric-row">
-                    <span class="metric-label">Touchdowns Esperados (λ Poisson)</span>
-                    <span class="odds-chip amber">{res['away_abbr']}: {res['lam_td_away']} TDs | {res['home_abbr']}: {res['lam_td_home']} TDs</span>
+                    <span class="odds-chip amber">{res['mc_p10_total']} / {res['mc_p50_total']} / {res['mc_p90_total']} pts</span>
                 </div>
             </div>
             """,
@@ -1082,9 +1194,9 @@ else:
 
     st.markdown("<div style='height: 14px;'></div>", unsafe_allow_html=True)
 
-    # --- C. GRÁFICOS INTERACTIVOS DE PROBABILIDADES Y TRINCHERAS EPA ---
+    # --- C. GRÁFICOS INTERACTIVOS DE PROBABILIDADES Y PROBABILIDADES POR DRIVE ---
     st.markdown(
-        '<div class="section-header"><span>📈 ANÁLISIS VISUAL DE PROBABILIDADES Y DIFERENCIALES EPA</span></div>',
+        '<div class="section-header"><span>📈 DISTRIBUCIÓN DE PROBABILIDADES Y EFICIENCIA POR DRIVE</span></div>',
         unsafe_allow_html=True,
     )
     g1, g2 = st.columns(2)
@@ -1123,7 +1235,7 @@ else:
                 )
             )
             fig_p.update_layout(
-                title="Distribución de Probabilidad vs Líneas de Mercado (5,000 Sims)",
+                title="Distribución de Probabilidad (5,000 Iteraciones por Series)",
                 barmode="stack",
                 paper_bgcolor="rgba(0,0,0,0)",
                 plot_bgcolor="rgba(12,19,34,0.85)",
@@ -1137,42 +1249,42 @@ else:
 
     with g2:
         if PLOTLY_AVAILABLE:
-            fig_epa = go.Figure()
-            labels_epa = ["Net Pass EPA (x100)", "Net Rush EPA (x100)", "EPA Compuesto (x100)", "Success Rate Off (%)"]
-            vals_home_epa = [
-                res["net_pass_epa_home"] * 100.0,
-                res["net_rush_epa_home"] * 100.0,
-                res["epa_comp_home"] * 100.0,
+            fig_drv = go.Figure()
+            labels_drv = ["Prob. Touchdown / Drive (%)", "Prob. Field Goal / Drive (%)", "Prob. Punt o Turnover (%)", "Success Rate Off (%)"]
+            vals_home_drv = [
+                res["drive_td_pct_home"],
+                res["drive_fg_pct_home"],
+                res["drive_punt_pct_home"],
                 res["sr_off_home"],
             ]
-            vals_away_epa = [
-                res["net_pass_epa_away"] * 100.0,
-                res["net_rush_epa_away"] * 100.0,
-                res["epa_comp_away"] * 100.0,
+            vals_away_drv = [
+                res["drive_td_pct_away"],
+                res["drive_fg_pct_away"],
+                res["drive_punt_pct_away"],
                 res["sr_off_away"],
             ]
-            fig_epa.add_trace(
+            fig_drv.add_trace(
                 go.Bar(
-                    x=labels_epa,
-                    y=vals_home_epa,
+                    x=labels_drv,
+                    y=vals_home_drv,
                     name=f"{res['home_abbr']} (Local)",
                     marker_color="#00E676",
-                    text=[f"{v:.1f}" for v in vals_home_epa],
+                    text=[f"{v:.1f}%" for v in vals_home_drv],
                     textposition="auto",
                 )
             )
-            fig_epa.add_trace(
+            fig_drv.add_trace(
                 go.Bar(
-                    x=labels_epa,
-                    y=vals_away_epa,
+                    x=labels_drv,
+                    y=vals_away_drv,
                     name=f"{res['away_abbr']} (Visita)",
                     marker_color="#FFB300",
-                    text=[f"{v:.1f}" for v in vals_away_epa],
+                    text=[f"{v:.1f}%" for v in vals_away_drv],
                     textposition="auto",
                 )
             )
-            fig_epa.update_layout(
-                title="Comparativa de Eficiencia EPA Neto (x100) y Success Rate",
+            fig_drv.update_layout(
+                title="Probabilidades por Serie Ofensiva (Drive Outcome %)",
                 barmode="group",
                 paper_bgcolor="rgba(0,0,0,0)",
                 plot_bgcolor="rgba(12,19,34,0.85)",
@@ -1181,8 +1293,12 @@ else:
                 margin=dict(l=10, r=10, t=40, b=10),
                 legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
             )
-            st.plotly_chart(fig_epa, use_container_width=True)
+            st.plotly_chart(fig_drv, use_container_width=True)
 
+    st.markdown(
+        '<div class="section-header"><span>🔑 AGRUPACIÓN EN NÚMEROS CLAVE DE LA NFL (MARGEN EXACTO EN 5,000 SIMS)</span></div>',
+        unsafe_allow_html=True,
+    )
     kn_cols = st.columns(6)
     for idx_kn, (kn_label, kn_pct) in enumerate(res["key_numbers_freq"].items()):
         with kn_cols[idx_kn]:
