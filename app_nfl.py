@@ -2,15 +2,17 @@
 # -*- coding: utf-8 -*-
 """
 MÓDULO 3: app_nfl.py
-Orquestador Streamlit con Control de Sesión para "TERMINAL SHARP: NFL QUANT".
+Orquestador Streamlit con Control de Sesión y Auditoría de Valor Matemático (+EV)
+estrictamente en FORMATO DECIMAL para "TERMINAL SHARP: NFL QUANT".
 Integra:
   1. Carga de métricas y rosters vía Excel (.xlsx) con persistencia en st.session_state.
-  2. Sincronización de calendario semanal desde la API pública de ESPN (Scoreboard API)
-     y escudos oficiales vía CDN (sync_espn_nfl.py).
-  3. Vista A: Cartelera en Cuadrícula 3x3 (Glassmorphism) con QBs, Spread, Total y botón
-     "LEER ANÁLISIS →".
-  4. Vista B: Expediente Cuantitativo (5,000 simulaciones Poisson / Monte Carlo,
-     Win %, Spread Cover %, Totales, Fair Odds y gráficos de trincheras).
+  2. Sincronización de calendario y momios en vivo desde The Odds API (con Fallback
+     automático al consenso de ESPN Scoreboard convertido a cuotas decimales).
+  3. Vista A (Cartelera en Cuadrícula 3x3): Muestra escudos oficiales, QBs titulares,
+     proyección de Monte Carlo y auditoría en vivo de +EV en TOTALES (Over/Under) y
+     HÁNDICAP (Spread) en formato decimal.
+  4. Vista B (Expediente Cuantitativo): Desglose completo de 5,000 simulaciones,
+     comparativa Modelo vs Mercado en cuotas decimales y auditor interactivo de líneas.
 """
 
 import hashlib
@@ -25,13 +27,14 @@ except ImportError:
     PLOTLY_AVAILABLE = False
 
 from sync_espn_nfl import (
-    NFL_FRANCHISE_NAMES,
     escudo_nfl_html,
     normalizar_abbr_nfl,
     obtener_calendario_nfl_semana,
 )
 from engine_nfl import (
     REQUIRED_EXCEL_COLUMNS,
+    evaluar_valor_spread,
+    evaluar_valor_totales,
     generar_plantilla_excel_bytes,
     obtener_stats_nfl_default,
     run_simulacion_nfl,
@@ -39,10 +42,10 @@ from engine_nfl import (
 )
 
 # ==============================================================================
-# 1. CONFIGURACIÓN DE PÁGINA Y ESTILOS CSS (CYBER-QUANT / GLASSMORPHISM)
+# 1. CONFIGURACIÓN DE PÁGINA Y ESTILOS CSS (CYBER-QUANT + EV DECIMAL UI)
 # ==============================================================================
 st.set_page_config(
-    page_title="TERMINAL SHARP: NFL QUANT",
+    page_title="TERMINAL SHARP: NFL QUANT (+EV DECIMAL)",
     page_icon="🏈",
     layout="wide",
     initial_sidebar_state="expanded",
@@ -85,7 +88,7 @@ CYBER_QUANT_NFL_CSS = """
 
 .terminal-title {
     font-family: 'Orbitron', sans-serif;
-    font-size: 1.68rem;
+    font-size: 1.65rem;
     font-weight: 800;
     letter-spacing: 1.8px;
     color: #FFFFFF;
@@ -100,9 +103,9 @@ CYBER_QUANT_NFL_CSS = """
 
 .terminal-subtitle {
     font-family: 'JetBrains Mono', monospace;
-    font-size: 0.80rem;
+    font-size: 0.79rem;
     color: var(--cyan-neon);
-    letter-spacing: 0.7px;
+    letter-spacing: 0.6px;
     margin-top: 6px;
 }
 
@@ -120,7 +123,7 @@ CYBER_QUANT_NFL_CSS = """
 
 .section-header {
     font-family: 'Orbitron', sans-serif;
-    font-size: 1.02rem;
+    font-size: 1.00rem;
     font-weight: 700;
     letter-spacing: 1.4px;
     color: var(--cyan-neon);
@@ -131,24 +134,30 @@ CYBER_QUANT_NFL_CSS = """
     display: flex;
     justify-content: space-between;
     align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
 }
 
 /* Tarjetas de Cartelera 3x3 (Glassmorphism) */
 .nfl-grid-card {
-    background: linear-gradient(160deg, rgba(19, 30, 54, 0.80) 0%, rgba(10, 16, 29, 0.90) 100%);
+    background: linear-gradient(160deg, rgba(19, 30, 54, 0.84) 0%, rgba(10, 16, 29, 0.92) 100%);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     border: 1px solid var(--border-subtle);
     border-radius: 14px;
-    padding: 16px 18px 14px 18px;
+    padding: 15px 17px 13px 17px;
     margin-bottom: 6px;
     box-shadow: 0 10px 28px rgba(0, 0, 0, 0.55);
     transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
+.nfl-grid-card.has-ev {
+    border-color: rgba(0, 230, 118, 0.52);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.60), 0 0 16px rgba(0, 230, 118, 0.12);
+}
+
 .nfl-grid-card:hover {
     border-color: var(--cyan-neon);
-    box-shadow: 0 14px 34px rgba(0, 0, 0, 0.68), 0 0 16px rgba(0, 240, 255, 0.14);
     transform: translateY(-2px);
 }
 
@@ -157,25 +166,25 @@ CYBER_QUANT_NFL_CSS = """
     justify-content: space-between;
     align-items: center;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    padding-bottom: 8px;
-    margin-bottom: 11px;
+    padding-bottom: 7px;
+    margin-bottom: 10px;
 }
 
 .badge-league {
     font-family: 'Orbitron', sans-serif;
-    font-size: 0.67rem;
+    font-size: 0.65rem;
     font-weight: 800;
     color: var(--cyan-neon);
     background: rgba(0, 240, 255, 0.12);
     border: 1px solid rgba(0, 240, 255, 0.30);
     padding: 3px 8px;
     border-radius: 999px;
-    letter-spacing: 1px;
+    letter-spacing: 0.8px;
 }
 
 .badge-hora {
     font-family: 'JetBrains Mono', monospace;
-    font-size: 0.71rem;
+    font-size: 0.69rem;
     color: var(--text-muted);
     font-weight: 600;
 }
@@ -184,7 +193,7 @@ CYBER_QUANT_NFL_CSS = """
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 6px 0;
+    padding: 5px 0;
 }
 
 .team-info-left {
@@ -195,20 +204,20 @@ CYBER_QUANT_NFL_CSS = """
 
 .team-abbr-title {
     font-family: 'Orbitron', sans-serif;
-    font-size: 0.92rem;
+    font-size: 0.88rem;
     font-weight: 800;
     color: #FFFFFF;
 }
 
 .qb-sub-label {
     font-family: 'JetBrains Mono', monospace;
-    font-size: 0.70rem;
+    font-size: 0.68rem;
     color: var(--text-muted);
 }
 
 .proj-pts-badge {
     font-family: 'JetBrains Mono', monospace;
-    font-size: 0.96rem;
+    font-size: 0.92rem;
     font-weight: 800;
     color: #FFFFFF;
     background: rgba(255, 255, 255, 0.06);
@@ -224,31 +233,96 @@ CYBER_QUANT_NFL_CSS = """
 }
 
 .quick-forecast-box {
-    margin-top: 10px;
-    padding: 10px 12px;
-    background: rgba(6, 10, 18, 0.78);
-    border: 1px solid rgba(0, 240, 255, 0.22);
-    border-left: 3px solid var(--green-sharp);
-    border-radius: 9px;
+    margin-top: 9px;
+    padding: 8px 11px;
+    background: rgba(6, 10, 18, 0.82);
+    border: 1px solid rgba(0, 240, 255, 0.20);
+    border-left: 3px solid var(--cyan-neon);
+    border-radius: 8px;
     font-family: 'JetBrains Mono', monospace;
 }
 
 .forecast-main-line {
-    font-size: 0.79rem;
+    font-size: 0.76rem;
     font-weight: 700;
     color: #FFFFFF;
+    display: flex;
+    justify-content: space-between;
 }
 
 .forecast-sub-line {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-top: 4px;
-    font-size: 0.71rem;
+    margin-top: 3px;
+    font-size: 0.69rem;
     color: var(--cyan-neon);
 }
 
-/* Vista B: Expediente Cuantitativo (TV Scoreboard + Cards) */
+/* Bloques de Auditoría +EV en cada Tarjeta (Totales y Hándicap en Decimal) */
+.ev-audit-section {
+    margin-top: 9px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.ev-market-row {
+    padding: 7px 10px;
+    border-radius: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    background: rgba(8, 13, 24, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.09);
+}
+
+.ev-market-row.positive {
+    background: linear-gradient(90deg, rgba(0, 230, 118, 0.14) 0%, rgba(8, 13, 24, 0.90) 100%);
+    border: 1px solid rgba(0, 230, 118, 0.48);
+    border-left: 4px solid var(--green-sharp);
+}
+
+.ev-market-row.neutral {
+    border-left: 3px solid rgba(138, 153, 173, 0.38);
+}
+
+.ev-row-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #FFFFFF;
+}
+
+.ev-row-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 2px;
+    font-size: 0.67rem;
+    color: var(--text-muted);
+}
+
+.ev-pill-tag {
+    font-size: 0.66rem;
+    font-weight: 800;
+    padding: 1px 6px;
+    border-radius: 4px;
+}
+
+.ev-pill-tag.pos {
+    background: rgba(0, 230, 118, 0.20);
+    color: var(--green-sharp);
+    border: 1px solid rgba(0, 230, 118, 0.45);
+}
+
+.ev-pill-tag.neu {
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--text-muted);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+/* Vista B: Expediente Cuantitativo */
 .tv-scoreboard {
     background: linear-gradient(90deg, rgba(11, 19, 36, 0.96) 0%, rgba(19, 32, 59, 0.96) 50%, rgba(11, 19, 36, 0.96) 100%);
     border: 1px solid var(--border-strong);
@@ -356,7 +430,7 @@ CYBER_QUANT_NFL_CSS = """
     padding: 6px 0;
     border-bottom: 1px dashed rgba(255, 255, 255, 0.06);
     font-family: 'JetBrains Mono', monospace;
-    font-size: 0.81rem;
+    font-size: 0.80rem;
 }
 
 .metric-row:last-child {
@@ -430,11 +504,16 @@ if "nfl_stats_source" not in st.session_state:
 if "ultimo_excel_hash" not in st.session_state:
     st.session_state.ultimo_excel_hash = ""
 
+if "odds_api_key" not in st.session_state:
+    st.session_state.odds_api_key = ""
+
 if "semana_seleccionada" not in st.session_state:
     st.session_state.semana_seleccionada = "Actual"
 
 if "calendario_nfl" not in st.session_state:
-    st.session_state.calendario_nfl = obtener_calendario_nfl_semana(semana=None)
+    st.session_state.calendario_nfl = obtener_calendario_nfl_semana(
+        semana=None, api_key=st.session_state.odds_api_key
+    )
 
 if "vista_nfl" not in st.session_state:
     st.session_state.vista_nfl = "cartelera"  # "cartelera" | "expediente"
@@ -453,7 +532,7 @@ def volver_a_cartelera_nfl():
 
 
 # ==============================================================================
-# 3. BARRA LATERAL: CARGA DE EXCEL (.XLSX) Y SINCRONIZACIÓN ESPN
+# 3. BARRA LATERAL: EXCEL (.XLSX), THE ODDS API KEY Y CALENDARIO ESPN
 # ==============================================================================
 with st.sidebar:
     st.markdown(
@@ -462,7 +541,7 @@ with st.sidebar:
             ⚡ TERMINAL SHARP: NFL
         </div>
         <div style='font-family: JetBrains Mono, monospace; font-size: 0.72rem; color: #8A99AD; margin-bottom: 12px;'>
-            EXCEL ENGINE • ESPN API • MONTE CARLO
+            AUDITOR +EV • 100% CUOTAS DECIMALES
         </div>
         """,
         unsafe_allow_html=True,
@@ -496,7 +575,7 @@ with st.sidebar:
             except Exception as exc:
                 st.error(f"Error al validar Excel: {exc}")
 
-    st.caption(f"Fuente activa: **{st.session_state.nfl_stats_source}**")
+    st.caption(f"Fuente EPA: **{st.session_state.nfl_stats_source}**")
 
     try:
         bytes_plantilla = generar_plantilla_excel_bytes(st.session_state.nfl_stats)
@@ -510,7 +589,16 @@ with st.sidebar:
     except Exception:
         pass
 
-    st.markdown("### 🗓️ 2. Calendario ESPN Scoreboard")
+    st.markdown("### 📡 2. Servidor de Momios (Decimal)")
+    api_key_input = st.text_input(
+        "The Odds API Key (Opcional)",
+        value=st.session_state.odds_api_key,
+        type="password",
+        help="Si se deja vacío, el sistema extrae automáticamente las líneas de consenso de ESPN Scoreboard ('competitions[0].odds') convertidas a formato decimal.",
+    )
+    if api_key_input != st.session_state.odds_api_key:
+        st.session_state.odds_api_key = api_key_input
+
     opciones_semana = ["Actual"] + [str(w) for w in range(1, 19)]
     semana_ui = st.selectbox(
         "Seleccionar Semana NFL",
@@ -520,24 +608,28 @@ with st.sidebar:
         else 0,
     )
 
-    if st.button("🔄 Actualizar Calendario NFL", use_container_width=True):
+    if st.button("🔄 Actualizar Calendario y Momios", use_container_width=True):
         st.session_state.semana_seleccionada = semana_ui
         sem_param = None if semana_ui == "Actual" else int(semana_ui)
-        with st.spinner("Consultando ESPN NFL Scoreboard API..."):
-            st.session_state.calendario_nfl = obtener_calendario_nfl_semana(semana=sem_param)
+        with st.spinner("Sincronizando calendario ESPN y cuotas decimales..."):
+            st.session_state.calendario_nfl = obtener_calendario_nfl_semana(
+                semana=sem_param, api_key=st.session_state.odds_api_key
+            )
         st.session_state.vista_nfl = "cartelera"
         st.rerun()
 
     if semana_ui != st.session_state.semana_seleccionada:
         st.session_state.semana_seleccionada = semana_ui
         sem_param = None if semana_ui == "Actual" else int(semana_ui)
-        st.session_state.calendario_nfl = obtener_calendario_nfl_semana(semana=sem_param)
+        st.session_state.calendario_nfl = obtener_calendario_nfl_semana(
+            semana=sem_param, api_key=st.session_state.odds_api_key
+        )
         st.session_state.vista_nfl = "cartelera"
         st.rerun()
 
 
 # ==============================================================================
-# 4. ENCABEZADO PRINCIPAL Y EDITOR RÁPIDO DE MÉTRICAS / QBs EN SESIÓN
+# 4. ENCABEZADO PRINCIPAL Y EDITOR EN VIVO DE ROSTERS / EPA
 # ==============================================================================
 etiqueta_sem_header = (
     "SEMANA ACTUAL"
@@ -545,15 +637,21 @@ etiqueta_sem_header = (
     else f"SEMANA {st.session_state.semana_seleccionada}"
 )
 
+fuente_odds_global = (
+    "THE ODDS API (DECIMAL)"
+    if st.session_state.odds_api_key.strip()
+    else "ESPN CONSENSUS FALLBACK (DECIMAL)"
+)
+
 st.markdown(
     f"""
     <div class="terminal-banner">
         <div class="terminal-title">
             <span>🏈 TERMINAL SHARP: NFL QUANT</span>
-            <span class="live-pill">● ESPN SCOREBOARD // {etiqueta_sem_header}</span>
+            <span class="live-pill">● {etiqueta_sem_header} // {fuente_odds_global}</span>
         </div>
         <div class="terminal-subtitle">
-            ARQUITECTURA MODULAR (SYNC + ENGINE + APP) • EXCEL ROSTER & EPA PARSER • 5,000 SIMULACIONES POISSON/MONTE CARLO
+            AUDITORÍA DE MERCADO EN VIVO (+EV TOTALES & HÁNDICAP) • FORMATO 100% DECIMAL EUROPEO • 5,000 SIMULACIONES MONTE CARLO
         </div>
     </div>
     """,
@@ -594,9 +692,9 @@ with st.expander("🛠️ INSPECTOR / EDITOR EN VIVO DE `st.session_state.nfl_st
 
 
 # ==============================================================================
-# 5. PRE-SIMULACIÓN DE LA JORNADA ACTIVA
+# 5. SIMULACIÓN DE LA JORNADA Y AUDITORÍA DE VALOR (+EV) EN CUOTAS DECIMALES
 # ==============================================================================
-calendario_activo: List[Dict[str, str]] = st.session_state.calendario_nfl
+calendario_activo: List[Dict[str, Any]] = st.session_state.calendario_nfl
 if not calendario_activo:
     st.warning("No se encontraron partidos para la semana seleccionada.")
     st.stop()
@@ -608,21 +706,26 @@ for game_meta in calendario_activo:
         home_abbr=game_meta["home_abbr"],
         nfl_stats_dict=st.session_state.nfl_stats,
         n_sims=5000,
+        lineas_mercado=game_meta,
     )
     combinado = {**game_meta, **sim_res}
     cartelera_simulada.append(combinado)
 
 
 # ==============================================================================
-# 6. VISTA A: CARTELERA EN CUADRÍCULA 3x3
+# 6. VISTA A: CARTELERA EN CUADRÍCULA 3x3 CON DETECTOR +EV (TOTALES Y SPREAD)
 # ==============================================================================
 if st.session_state.vista_nfl == "cartelera":
+    # Contador rápido de oportunidades +EV detectadas en la jornada
+    n_ev_totales = sum(1 for g in cartelera_simulada if g["ev_totales"]["hay_valor"])
+    n_ev_spread = sum(1 for g in cartelera_simulada if g["ev_spread"]["hay_valor"])
+
     st.markdown(
         f"""
         <div class="section-header">
             <span>🏟️ CARTELERA NFL EN CUADRÍCULA (3x3) // {etiqueta_sem_header} ({len(cartelera_simulada)} JUEGOS)</span>
-            <span style="font-family:'JetBrains Mono',monospace; font-size:0.75rem; color:#8A99AD;">
-                Selecciona "LEER ANÁLISIS →" para abrir el Expediente Cuantitativo
+            <span style="font-family:'JetBrains Mono',monospace; font-size:0.75rem; color:#00E676;">
+                🔥 Oportunidades +EV Detectadas: {n_ev_totales} en Totales (O/U)  |  {n_ev_spread} en Hándicap (Spread)
             </span>
         </div>
         """,
@@ -635,14 +738,37 @@ if st.session_state.vista_nfl == "cartelera":
 
         for col_idx, item in enumerate(fila_partidos):
             with cols[col_idx]:
-                logo_away_html = escudo_nfl_html(item["away_abbr"], size=38)
-                logo_home_html = escudo_nfl_html(item["home_abbr"], size=38)
+                logo_away_html = escudo_nfl_html(item["away_abbr"], size=36)
+                logo_home_html = escudo_nfl_html(item["home_abbr"], size=36)
 
                 es_home_fav = item["home_pts"] >= item["away_pts"]
                 clase_away_pts = "proj-pts-badge" if es_home_fav else "proj-pts-badge fav"
                 clase_home_pts = "proj-pts-badge fav" if es_home_fav else "proj-pts-badge"
 
-                spread_str = (
+                ev_tot = item["ev_totales"]
+                ev_sp = item["ev_spread"]
+                tiene_algun_ev = ev_tot["hay_valor"] or ev_sp["hay_valor"]
+                card_ev_class = "nfl-grid-card has-ev" if tiene_algun_ev else "nfl-grid-card"
+
+                # Clases y textos en FORMATO DECIMAL para TOTALES (Over/Under)
+                tot_row_cls = "ev-market-row positive" if ev_tot["hay_valor"] else "ev-market-row neutral"
+                tot_pill_cls = "ev-pill-tag pos" if ev_tot["hay_valor"] else "ev-pill-tag neu"
+                tot_badge_txt = (
+                    f"🔥 +EV {ev_tot['lado']} ({ev_tot['ev_pct']:+.1f}%)"
+                    if ev_tot["hay_valor"]
+                    else f"⚖️ SIN VALOR ({ev_tot['ev_pct']:+.1f}%)"
+                )
+
+                # Clases y textos en FORMATO DECIMAL para HÁNDICAP (Spread)
+                sp_row_cls = "ev-market-row positive" if ev_sp["hay_valor"] else "ev-market-row neutral"
+                sp_pill_cls = "ev-pill-tag pos" if ev_sp["hay_valor"] else "ev-pill-tag neu"
+                sp_badge_txt = (
+                    f"🔥 +EV {ev_sp['recomendacion']} ({ev_sp['ev_pct']:+.1f}%)"
+                    if ev_sp["hay_valor"]
+                    else f"⚖️ SIN VALOR ({ev_sp['ev_pct']:+.1f}%)"
+                )
+
+                spread_modelo_str = (
                     f"{item['home_abbr']} {item['spread_proyectado']:+.1f}"
                     if item["spread_proyectado"] <= 0
                     else f"{item['away_abbr']} {-item['spread_proyectado']:+.1f}"
@@ -650,7 +776,7 @@ if st.session_state.vista_nfl == "cartelera":
 
                 st.markdown(
                     f"""
-                    <div class="nfl-grid-card">
+                    <div class="{card_ev_class}">
                         <div class="card-top-meta">
                             <span class="badge-league">NFL · {etiqueta_sem_header}</span>
                             <span class="badge-hora">🕒 {item['hora']}</span>
@@ -660,7 +786,7 @@ if st.session_state.vista_nfl == "cartelera":
                                 {logo_away_html}
                                 <div>
                                     <div class="team-abbr-title">{item['away_name']} ({item['away_abbr']})</div>
-                                    <div class="qb-sub-label">QB: {item['away_qb']} • Win: {item['win_away_pct']}%</div>
+                                    <div class="qb-sub-label">QB: {item['away_qb']} • Win: {item['win_away_pct']}% (Fair {item['ml_away_decimal']:.2f})</div>
                                 </div>
                             </div>
                             <div class="{clase_away_pts}">{item['away_pts']:.1f}</div>
@@ -670,18 +796,41 @@ if st.session_state.vista_nfl == "cartelera":
                                 {logo_home_html}
                                 <div>
                                     <div class="team-abbr-title">{item['home_name']} ({item['home_abbr']})</div>
-                                    <div class="qb-sub-label">QB: {item['home_qb']} • Win: {item['win_home_pct']}%</div>
+                                    <div class="qb-sub-label">QB: {item['home_qb']} • Win: {item['win_home_pct']}% (Fair {item['ml_home_decimal']:.2f})</div>
                                 </div>
                             </div>
                             <div class="{clase_home_pts}">{item['home_pts']:.1f}</div>
                         </div>
                         <div class="quick-forecast-box">
                             <div class="forecast-main-line">
-                                Pronóstico: {item['away_abbr']} {item['exact_away']} - {item['exact_home']} {item['home_abbr']}
+                                <span>Pronóstico: {item['away_abbr']} {item['exact_away']} - {item['exact_home']} {item['home_abbr']}</span>
+                                <span>Total Modelo: <b>{item['total_ou']:.1f}</b></span>
                             </div>
                             <div class="forecast-sub-line">
-                                <span>Spread: <b>{spread_str}</b></span>
-                                <span>Total O/U: <b>{item['total_ou']:.1f} pts</b></span>
+                                <span>Spread Modelo: <b>{spread_modelo_str}</b></span>
+                                <span>Línea Mkt: <b>{item['home_abbr']} {item['spread_mercado_home']:+.1f} | O/U {item['total_mercado']:.1f}</b></span>
+                            </div>
+                        </div>
+                        <div class="ev-audit-section">
+                            <div class="{tot_row_cls}">
+                                <div class="ev-row-top">
+                                    <span>1. TOTAL: {ev_tot['lado']} {ev_tot['total_mercado']:.1f} @ {ev_tot['cuota_mercado_decimal']:.2f}</span>
+                                    <span class="{tot_pill_cls}">{tot_badge_txt}</span>
+                                </div>
+                                <div class="ev-row-bottom">
+                                    <span>Modelo: {ev_tot['total_modelo']:.1f} pts (Prob {ev_tot['prob_mejor_pct']}%)</span>
+                                    <span>Fair Decimal: <b>{ev_tot['fair_decimal']:.2f}</b></span>
+                                </div>
+                            </div>
+                            <div class="{sp_row_cls}">
+                                <div class="ev-row-top">
+                                    <span>2. SPREAD: {ev_sp['recomendacion']} @ {ev_sp['cuota_mercado_decimal']:.2f}</span>
+                                    <span class="{sp_pill_cls}">{sp_badge_txt}</span>
+                                </div>
+                                <div class="ev-row-bottom">
+                                    <span>Cobertura: {ev_sp['prob_mejor_pct']}% (Edge {ev_sp['edge_pts']:+.1f} pts)</span>
+                                    <span>Fair Decimal: <b>{ev_sp['fair_decimal']:.2f}</b></span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -700,17 +849,9 @@ if st.session_state.vista_nfl == "cartelera":
 
 else:
     # ==========================================================================
-    # 7. VISTA B: EXPEDIENTE CUANTITATIVO DEL PARTIDO SELECCIONADO
+    # 7. VISTA B: EXPEDIENTE CUANTITATIVO DEL PARTIDO (100% CUOTAS DECIMALES)
     # ==========================================================================
     partido_actual = st.session_state.partido_seleccionado or cartelera_simulada[0]
-    # Re-ejecutar simulación en vivo con el diccionario actualizado de st.session_state.nfl_stats
-    sim_detalle = run_simulacion_nfl(
-        away_abbr=partido_actual["away_abbr"],
-        home_abbr=partido_actual["home_abbr"],
-        nfl_stats_dict=st.session_state.nfl_stats,
-        n_sims=5000,
-    )
-    res = {**partido_actual, **sim_detalle}
 
     top_c1, top_c2, top_c3 = st.columns([1.15, 1.85, 1.0])
     with top_c1:
@@ -722,7 +863,7 @@ else:
         )
     with top_c2:
         ids_disponibles = [g["id_partido"] for g in cartelera_simulada]
-        idx_actual = ids_disponibles.index(res["id_partido"]) if res["id_partido"] in ids_disponibles else 0
+        idx_actual = ids_disponibles.index(partido_actual["id_partido"]) if partido_actual["id_partido"] in ids_disponibles else 0
         idx_elegido = st.selectbox(
             "Cambiar de Partido",
             options=range(len(cartelera_simulada)),
@@ -739,12 +880,60 @@ else:
     with top_c3:
         st.markdown(
             f"""
-            <div style="text-align:right; font-family:'JetBrains Mono',monospace; font-size:0.77rem; color:#00F0FF; padding-top:6px;">
-                {res['hora']} • {res['estado']}
+            <div style="text-align:right; font-family:'JetBrains Mono',monospace; font-size:0.76rem; color:#00F0FF; padding-top:6px;">
+                {partido_actual['hora']} • {partido_actual.get('fuente_odds', 'Consenso Decimal')}
             </div>
             """,
             unsafe_allow_html=True,
         )
+
+    # Panel interactivo para auditar en vivo líneas alternativas y cuotas decimales del partido
+    with st.expander("🎛️ AUDITOR INTERACTIVO DE LÍNEAS Y CUOTAS DECIMALES DEL PARTIDO", expanded=False):
+        ac1, ac2, ac3, ac4, ac5, ac6 = st.columns(6)
+        with ac1:
+            mkt_total_in = st.number_input(
+                "Línea Total (O/U)", value=float(partido_actual["total_mercado"]), step=0.5, format="%.1f"
+            )
+        with ac2:
+            mkt_over_dec_in = st.number_input(
+                "Cuota OVER (Dec)", value=float(partido_actual["cuota_over_decimal"]), min_value=1.05, max_value=10.0, step=0.01, format="%.2f"
+            )
+        with ac3:
+            mkt_under_dec_in = st.number_input(
+                "Cuota UNDER (Dec)", value=float(partido_actual["cuota_under_decimal"]), min_value=1.05, max_value=10.0, step=0.01, format="%.2f"
+            )
+        with ac4:
+            mkt_sp_home_in = st.number_input(
+                f"Spread {partido_actual['home_abbr']} (Local)", value=float(partido_actual["spread_mercado_home"]), step=0.5, format="%.1f"
+            )
+        with ac5:
+            mkt_sp_h_dec_in = st.number_input(
+                f"Cuota {partido_actual['home_abbr']} (Dec)", value=float(partido_actual["cuota_spread_home_decimal"]), min_value=1.05, max_value=10.0, step=0.01, format="%.2f"
+            )
+        with ac6:
+            mkt_sp_a_dec_in = st.number_input(
+                f"Cuota {partido_actual['away_abbr']} (Dec)", value=float(partido_actual["cuota_spread_away_decimal"]), min_value=1.05, max_value=10.0, step=0.01, format="%.2f"
+            )
+
+    lineas_custom = {
+        "total_mercado": mkt_total_in,
+        "cuota_over_decimal": mkt_over_dec_in,
+        "cuota_under_decimal": mkt_under_dec_in,
+        "spread_mercado_home": mkt_sp_home_in,
+        "cuota_spread_home_decimal": mkt_sp_h_dec_in,
+        "cuota_spread_away_decimal": mkt_sp_a_dec_in,
+    }
+
+    sim_detalle = run_simulacion_nfl(
+        away_abbr=partido_actual["away_abbr"],
+        home_abbr=partido_actual["home_abbr"],
+        nfl_stats_dict=st.session_state.nfl_stats,
+        n_sims=5000,
+        lineas_mercado=lineas_custom,
+    )
+    res = {**partido_actual, **sim_detalle}
+    ev_tot = res["ev_totales"]
+    ev_sp = res["ev_spread"]
 
     escudo_away_big = escudo_nfl_html(res["away_abbr"], size=68)
     escudo_home_big = escudo_nfl_html(res["home_abbr"], size=68)
@@ -756,14 +945,14 @@ else:
             <div class="tv-top-bar">
                 <span>EXPEDIENTE CUANTITATIVO // {res['nombre']}</span>
                 <span>VENTAJA LOCALÍA (HFA): +{res['hfa_pts']:.1f} PTS // SNAPS PROY: {res['snaps_por_equipo']}/EQ</span>
-                <span>MONTE CARLO / POISSON: {res['n_sims']:,} SIMULACIONES</span>
+                <span>MONTE CARLO / POISSON: {res['n_sims']:,} SIMULACIONES // CUOTAS DECIMALES</span>
             </div>
             <div class="tv-main-grid">
                 <div class="tv-team-side">
                     {escudo_away_big}
                     <div>
                         <div class="tv-team-name">{res['away_name']} ({res['away_abbr']})</div>
-                        <div class="tv-team-sub">QB Titular: {res['away_qb']}</div>
+                        <div class="tv-team-sub">QB Titular: {res['away_qb']} • Win: {res['win_away_pct']}% (Fair Dec: {res['ml_away_decimal']:.2f})</div>
                         <div style="font-family:'JetBrains Mono',monospace; font-size:0.73rem; color:#8A99AD; margin-top:2px;">
                             EPA Comp: {res['epa_comp_away']:+.3f} | Success Off: {res['sr_off_away']}% | Pace: {res['pace_away']}s
                         </div>
@@ -775,13 +964,13 @@ else:
                     </div>
                     <div class="tv-pts-big">{res['away_pts']:.1f}  —  {res['home_pts']:.1f}</div>
                     <div class="tv-ou-pill">
-                        MARCADOR CLAVE: {res['away_abbr']} {res['exact_away']} - {res['exact_home']} {res['home_abbr']}  |  TOTAL O/U: {res['total_ou']:.1f}
+                        MARCADOR CLAVE: {res['away_abbr']} {res['exact_away']} - {res['exact_home']} {res['home_abbr']}  |  TOTAL MODELO: {res['total_ou']:.1f}
                     </div>
                 </div>
                 <div class="tv-team-side right">
                     <div>
                         <div class="tv-team-name">{res['home_name']} ({res['home_abbr']})</div>
-                        <div class="tv-team-sub">QB Titular: {res['home_qb']}</div>
+                        <div class="tv-team-sub">QB Titular: {res['home_qb']} • Win: {res['win_home_pct']}% (Fair Dec: {res['ml_home_decimal']:.2f})</div>
                         <div style="font-family:'JetBrains Mono',monospace; font-size:0.73rem; color:#8A99AD; margin-top:2px;">
                             EPA Comp: {res['epa_comp_home']:+.3f} | Success Off: {res['sr_off_home']}% | Pace: {res['pace_home']}s
                         </div>
@@ -794,31 +983,33 @@ else:
         unsafe_allow_html=True,
     )
 
-    # --- B. FILA 1: WIN %, SPREAD PROYECTADO / COBERTURA Y TOTALES ---
+    # --- B. FILA 1: AUDITORÍA +EV DE TOTALES, HÁNDICAP (SPREAD) Y MONEYLINE EN DECIMAL ---
     c_m1, c_m2, c_m3 = st.columns(3)
 
     with c_m1:
         st.markdown(
             f"""
             <div class="quant-card">
-                <div class="quant-card-header">🏆 PROBABILIDAD DE VICTORIA (WIN % & FAIR ODDS)</div>
+                <div class="quant-card-header">⚡ 1. AUDITORÍA +EV TOTALES (OVER / UNDER DECIMAL)</div>
                 <div class="metric-row">
-                    <span class="metric-label">{res['home_name']} ({res['home_abbr']} · Local)</span>
+                    <span class="metric-label">Total Modelo vs Línea Mercado</span>
+                    <span class="metric-val">{ev_tot['total_modelo']:.1f} pts vs {ev_tot['total_mercado']:.1f} pts (Edge {ev_tot['edge_pts']:+.1f})</span>
+                </div>
+                <div class="metric-row">
+                    <span class="metric-label">OVER {ev_tot['total_mercado']:.1f} (Prob {ev_tot['prob_over_pct']}%)</span>
                     <span>
-                        <span class="metric-val">{res['win_home_pct']}%</span>
-                        <span class="odds-chip green">Fair: {res['ml_home_dec']} ({res['ml_home_am']})</span>
+                        <span class="odds-chip green">Mkt: {ev_tot['cuota_over_decimal']:.2f} | Fair: {ev_tot['fair_over_decimal']:.2f} (EV {ev_tot['ev_over_pct']:+.1f}%)</span>
                     </span>
                 </div>
                 <div class="metric-row">
-                    <span class="metric-label">{res['away_name']} ({res['away_abbr']} · Visita)</span>
+                    <span class="metric-label">UNDER {ev_tot['total_mercado']:.1f} (Prob {ev_tot['prob_under_pct']}%)</span>
                     <span>
-                        <span class="metric-val">{res['win_away_pct']}%</span>
-                        <span class="odds-chip">Fair: {res['ml_away_dec']} ({res['ml_away_am']})</span>
+                        <span class="odds-chip">Mkt: {ev_tot['cuota_under_decimal']:.2f} | Fair: {ev_tot['fair_under_decimal']:.2f} (EV {ev_tot['ev_under_pct']:+.1f}%)</span>
                     </span>
                 </div>
                 <div class="metric-row">
-                    <span class="metric-label">Duelo de QBs Titulares</span>
-                    <span class="odds-chip amber">{res['away_qb']} vs {res['home_qb']}</span>
+                    <span class="metric-label">Dictamen Cuantitativo Totales</span>
+                    <span class="odds-chip {'green' if ev_tot['hay_valor'] else 'amber'}">{ev_tot['etiqueta_ev']}</span>
                 </div>
             </div>
             """,
@@ -827,28 +1018,30 @@ else:
 
     with c_m2:
         spread_away_proj = -res["spread_proyectado"]
-        spread_away_ref = -res["spread_ref_line"]
+        spread_away_mkt = -res["spread_mercado_home"]
         st.markdown(
             f"""
             <div class="quant-card">
-                <div class="quant-card-header">📏 SPREAD PROYECTADO Y COBERTURA DE LÍNEA</div>
+                <div class="quant-card-header">📏 2. AUDITORÍA +EV HÁNDICAP (SPREAD DECIMAL)</div>
                 <div class="metric-row">
-                    <span class="metric-label">Spread Justo Proyectado</span>
-                    <span class="metric-val">{res['home_abbr']} {res['spread_proyectado']:+.1f} ({res['away_abbr']} {spread_away_proj:+.1f})</span>
+                    <span class="metric-label">Spread Modelo vs Mercado ({res['home_abbr']})</span>
+                    <span class="metric-val">{res['spread_proyectado']:+.1f} vs {res['spread_mercado_home']:+.1f}</span>
                 </div>
                 <div class="metric-row">
-                    <span class="metric-label">{res['home_abbr']} cubre ({res['spread_ref_line']:+.1f})</span>
+                    <span class="metric-label">{res['home_abbr']} {res['spread_mercado_home']:+.1f} (Cov {ev_sp['prob_cover_home_pct']}%)</span>
                     <span>
-                        <span class="metric-val">{res['cover_home_pct']}%</span>
-                        <span class="odds-chip green">Fair: {res['sp_home_dec']} ({res['sp_home_am']})</span>
+                        <span class="odds-chip green">Mkt: {ev_sp['cuota_spread_home_decimal']:.2f} | Fair: {ev_sp['fair_home_decimal']:.2f} (EV {ev_sp['ev_home_pct']:+.1f}%)</span>
                     </span>
                 </div>
                 <div class="metric-row">
-                    <span class="metric-label">{res['away_abbr']} cubre ({spread_away_ref:+.1f})</span>
+                    <span class="metric-label">{res['away_abbr']} {spread_away_mkt:+.1f} (Cov {ev_sp['prob_cover_away_pct']}%)</span>
                     <span>
-                        <span class="metric-val">{res['cover_away_pct']}%</span>
-                        <span class="odds-chip">Fair: {res['sp_away_dec']} ({res['sp_away_am']})</span>
+                        <span class="odds-chip">Mkt: {ev_sp['cuota_spread_away_decimal']:.2f} | Fair: {ev_sp['fair_away_decimal']:.2f} (EV {ev_sp['ev_away_pct']:+.1f}%)</span>
                     </span>
+                </div>
+                <div class="metric-row">
+                    <span class="metric-label">Dictamen Cuantitativo Spread</span>
+                    <span class="odds-chip {'green' if ev_sp['hay_valor'] else 'amber'}">{ev_sp['etiqueta_ev']}</span>
                 </div>
             </div>
             """,
@@ -859,21 +1052,28 @@ else:
         st.markdown(
             f"""
             <div class="quant-card">
-                <div class="quant-card-header">⚡ TOTAL PROYECTADO (OVER / UNDER & MONTE CARLO)</div>
+                <div class="quant-card-header">🏆 3. MONEYLINE Y DESGLOSE MONTE CARLO (DECIMAL)</div>
                 <div class="metric-row">
-                    <span class="metric-label">Total Proyectado Modelo</span>
-                    <span class="metric-val">{res['total_ou']:.1f} pts (Línea Ref: {res['total_ref_line']:.1f})</span>
+                    <span class="metric-label">Victoria {res['home_name']} ({res['home_abbr']})</span>
+                    <span>
+                        <span class="metric-val">{res['win_home_pct']}%</span>
+                        <span class="odds-chip green">Cuota Justa Dec: {res['ml_home_decimal']:.2f}</span>
+                    </span>
                 </div>
                 <div class="metric-row">
-                    <span class="metric-label">OVER {res['total_ref_line']:.1f} / UNDER {res['total_ref_line']:.1f}</span>
+                    <span class="metric-label">Victoria {res['away_name']} ({res['away_abbr']})</span>
                     <span>
-                        <span class="odds-chip green">O: {res['over_pct']}% ({res['ou_over_am']})</span>
-                        <span class="odds-chip">U: {res['under_pct']}% ({res['ou_under_am']})</span>
+                        <span class="metric-val">{res['win_away_pct']}%</span>
+                        <span class="odds-chip">Cuota Justa Dec: {res['ml_away_decimal']:.2f}</span>
                     </span>
                 </div>
                 <div class="metric-row">
                     <span class="metric-label">Percentiles P10 / P50 / P90 (OT {res['ot_pct']}%)</span>
                     <span class="metric-val">{res['mc_p10_total']} / {res['mc_p50_total']} / {res['mc_p90_total']} pts</span>
+                </div>
+                <div class="metric-row">
+                    <span class="metric-label">Touchdowns Esperados (λ Poisson)</span>
+                    <span class="odds-chip amber">{res['away_abbr']}: {res['lam_td_away']} TDs | {res['home_abbr']}: {res['lam_td_home']} TDs</span>
                 </div>
             </div>
             """,
@@ -894,8 +1094,8 @@ else:
             fig_p = go.Figure()
             categorias = [
                 f"Win % ({res['home_abbr']} vs {res['away_abbr']})",
-                f"Spread Cover ({res['spread_ref_line']:+.1f})",
-                f"Total O/U ({res['total_ref_line']:.1f})",
+                f"Spread Cover ({res['spread_mercado_home']:+.1f})",
+                f"Total O/U ({res['total_mercado']:.1f})",
             ]
             v_home = [res["win_home_pct"], res["cover_home_pct"], res["over_pct"]]
             v_away = [res["win_away_pct"], res["cover_away_pct"], res["under_pct"]]
@@ -923,7 +1123,7 @@ else:
                 )
             )
             fig_p.update_layout(
-                title="Distribución de Probabilidad (5,000 Iteraciones Monte Carlo)",
+                title="Distribución de Probabilidad vs Líneas de Mercado (5,000 Sims)",
                 barmode="stack",
                 paper_bgcolor="rgba(0,0,0,0)",
                 plot_bgcolor="rgba(12,19,34,0.85)",
@@ -983,7 +1183,6 @@ else:
             )
             st.plotly_chart(fig_epa, use_container_width=True)
 
-    # Frecuencia de Key Numbers NFL
     kn_cols = st.columns(6)
     for idx_kn, (kn_label, kn_pct) in enumerate(res["key_numbers_freq"].items()):
         with kn_cols[idx_kn]:
