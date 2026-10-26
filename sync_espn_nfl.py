@@ -738,3 +738,12 @@ def obtener_calendario_nfl_semana(
             if m_key in mapa_odds_live:
                 p.update(mapa_odds_live[m_key])
         return partidos_fb
+
+        def obtener_logo_nfl(team_abbr, size=32):
+    """Retorna el tag HTML con el logo oficial del equipo desde el CDN de ESPN."""
+    abbr = str(team_abbr).strip().lower()
+    # Mapeo de normalización para abreviaturas conflictivas
+    mapeo = {"was": "wsh", "la": "lar", "jac": "jax"}
+    abbr_cdn = mapeo.get(abbr, abbr)
+    url = f"https://a.espncdn.com/i/teamlogos/nfl/500/{abbr_cdn}.png"
+    return f'<img src="{url}" width="{size}" height="{size}" style="object-fit: contain; vertical-align: middle; margin-right: 8px;">'
