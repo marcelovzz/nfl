@@ -30,6 +30,7 @@ import streamlit as st
 from sync_espn_nfl import (
     NFL_FRANCHISE_NAMES,
     obtener_calendario_nfl_semana,
+    obtener_lineas_mercado_nfl,
     obtener_logo_nfl,
 )
 from engine_nfl import (
@@ -315,6 +316,17 @@ def inyectar_estilos_css() -> None:
     )
 
 
+def _render_logo_html(logo_str: str, abbr: str, size: int = 34) -> str:
+    """Garantiza renderizado limpio tanto si obtener_logo_nfl devuelve tag <img> como si devuelve URL."""
+    clean = str(logo_str or "").strip()
+    if clean.startswith("<img"):
+        return clean
+    return (
+        f'<img src="{clean}" alt="{abbr}" width="{size}" height="{size}" '
+        f'style="width:{size}px; height:{size}px; object-fit:contain;">'
+    )
+
+
 # ==============================================================================
 # INICIALIZACIÓN DE ESTADO EN ST.SESSION_STATE
 # ==============================================================================
@@ -377,7 +389,6 @@ def obtener_simulacion_partido(partido: Dict[str, Any]) -> Dict[str, Any]:
             tipo_estadio="Auto",
         )
         st.session_state.simulaciones_cache[pid] = sim
-        # Guardar snapshot de la proyección original previa a cualquier calibración Kalman
         if pid not in st.session_state.simulaciones_previas:
             st.session_state.simulaciones_previas[pid] = copy.deepcopy(sim)
 
@@ -394,7 +405,6 @@ def aplicar_calibracion_partido_en_estado(partido: Dict[str, Any]) -> Dict[str, 
     away = partido["away_abbr"]
     home = partido["home_abbr"]
 
-    # Usamos la proyección previa del modelo (snapshot antes de calibrar) para medir el residual puro
     sim_previa = st.session_state.simulaciones_previas.get(pid) or obtener_simulacion_partido(partido)
     auditoria = auditar_partido_nfl(sim_previa, partido)
 
@@ -418,7 +428,6 @@ def aplicar_calibracion_partido_en_estado(partido: Dict[str, Any]) -> Dict[str, 
         f"Base Calibrada Kalman ({len(st.session_state.partidos_calibrados) + 1} juegos auditados)"
     )
     st.session_state.partidos_calibrados.add(pid)
-    # Limpiamos la caché activa para que todos los juegos pendientes se recalculen al instante
     st.session_state.simulaciones_cache = {}
 
     stats_despues_away = st.session_state.nfl_stats.get(away, {})
@@ -473,7 +482,6 @@ def render_sidebar() -> None:
 
         st.info(f"**Fuente activa:** {st.session_state.nfl_stats_source}")
 
-        # Exportación / Persistencia del Excel Recalibrado con io.BytesIO()
         excel_calibrado_bytes = generar_plantilla_excel_bytes(st.session_state.nfl_stats)
         st.download_button(
             label="📥 Descargar nfl_stats_calibrado.xlsx",
@@ -610,7 +618,6 @@ def render_vista_cartelera() -> None:
         st.warning("No se encontraron partidos para la semana seleccionada.")
         return
 
-    # Contabilizar oportunidades +EV y partidos finalizados
     total_ev_count = 0
     partidos_finalizados: List[Dict[str, Any]] = []
     for p in partidos:
@@ -627,7 +634,6 @@ def render_vista_cartelera() -> None:
     k3.metric("Partidos Finalizados (Kalman)", f"{len(partidos_finalizados)} Auditables")
     k4.metric("Learning Rate / Fuente", f"LR {st.session_state.learning_rate_kalman:.3f} · {fuente_detectada[:14]}")
 
-    # Panel superior de calibración por lote cuando existen partidos finalizados en la semana
     if partidos_finalizados:
         pendientes_calibrar = [
             pf
@@ -677,8 +683,8 @@ def render_vista_cartelera() -> None:
                 sim = obtener_simulacion_partido(partido)
                 away = partido["away_abbr"]
                 home = partido["home_abbr"]
-                logo_away = obtener_logo_nfl(away)
-                logo_home = obtener_logo_nfl(home)
+                logo_away_html = _render_logo_html(obtener_logo_nfl(away, size=34), away, size=34)
+                logo_home_html = _render_logo_html(obtener_logo_nfl(home, size=34), home, size=34)
 
                 es_final = bool(partido.get("finalizado", False))
                 ya_calibrado = pid in st.session_state.partidos_calibrados
@@ -686,7 +692,6 @@ def render_vista_cartelera() -> None:
                 ev_tot = sim["ev_totales"]
                 ev_spr = sim["ev_spread"]
 
-                # Cintillo 1: Auditoría de TOTALES (Over / Under en Cuota Decimal)
                 if ev_tot["hay_valor"]:
                     tot_badge_html = (
                         f'<div class="ev-badge-positive">'
@@ -702,7 +707,6 @@ def render_vista_cartelera() -> None:
                         f'</div>'
                     )
 
-                # Cintillo 2: Auditoría de HÁNDICAP / SPREAD (en Cuota Decimal)
                 if ev_spr["hay_valor"]:
                     spr_badge_html = (
                         f'<div class="ev-badge-positive">'
@@ -722,7 +726,6 @@ def render_vista_cartelera() -> None:
                 pill_class = "league-pill-final" if es_final else "league-pill"
                 pill_text = f"NFL · S{semana} · FINAL" if es_final else f"NFL · SEMANA {semana}"
 
-                # Bloque de Auditoría Post-Partido si el juego está finalizado (finalizado: True)
                 kalman_block_html = ""
                 if es_final:
                     sim_prev = st.session_state.simulaciones_previas.get(pid, sim)
@@ -759,7 +762,7 @@ def render_vista_cartelera() -> None:
                     f'</div>'
                     f'<div class="team-match-row">'
                     f'<div class="team-left">'
-                    f'<img src="{logo_away}" class="team-logo-img" alt="{away}">'
+                    f'{logo_away_html}'
                     f'<div>'
                     f'<span class="team-abbr-txt">{away} · {NFL_FRANCHISE_NAMES.get(away, away)}</span>'
                     f'<span class="team-qb-sub">QB: {sim["away_qb"]} · {sim["n_drives_equipo"]} drives (TD {sim["drive_td_pct_away"]:.0f}%)</span>'
@@ -769,7 +772,7 @@ def render_vista_cartelera() -> None:
                     f'</div>'
                     f'<div class="team-match-row">'
                     f'<div class="team-left">'
-                    f'<img src="{logo_home}" class="team-logo-img" alt="{home}">'
+                    f'{logo_home_html}'
                     f'<div>'
                     f'<span class="team-abbr-txt">{home} · {NFL_FRANCHISE_NAMES.get(home, home)}</span>'
                     f'<span class="team-qb-sub">QB: {sim["home_qb"]} · {sim["n_drives_equipo"]} drives (TD {sim["drive_td_pct_home"]:.0f}%)</span>'
@@ -829,8 +832,8 @@ def render_vista_detalle(partido: Dict[str, Any]) -> None:
     sim = obtener_simulacion_partido(partido)
     away = sim["away_abbr"]
     home = sim["home_abbr"]
-    logo_away = obtener_logo_nfl(away)
-    logo_home = obtener_logo_nfl(home)
+    logo_away_tv = _render_logo_html(obtener_logo_nfl(away, size=68), away, size=68)
+    logo_home_tv = _render_logo_html(obtener_logo_nfl(home, size=68), home, size=68)
 
     ev_tot = sim["ev_totales"]
     ev_spr = sim["ev_spread"]
@@ -849,13 +852,12 @@ def render_vista_detalle(partido: Dict[str, Any]) -> None:
 
     spread_justo_label = f"{home} {sim['spread_proyectado']:+.1f}"
 
-    # Scoreboard TV Header
     st.markdown(
         f"""
         <div class="tv-scoreboard">
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;">
                 <div style="display:flex; align-items:center; gap:16px;">
-                    <img src="{logo_away}" style="width:68px; height:68px; object-fit:contain;">
+                    {logo_away_tv}
                     <div>
                         <div style="font-size:0.78rem; color:#94A3B8; text-transform:uppercase;">Visitante · QB {sim["away_qb"]}</div>
                         <div style="font-size:1.45rem; font-weight:800; color:#F8FAFC;">{sim["away_name"]} ({away})</div>
@@ -881,7 +883,7 @@ def render_vista_detalle(partido: Dict[str, Any]) -> None:
                             Win Prob: {sim["win_home_pct"]:.1f}% · Cuota Justa Decimal: <b>{sim["ml_home_decimal"]:.2f}</b>
                         </div>
                     </div>
-                    <img src="{logo_home}" style="width:68px; height:68px; object-fit:contain;">
+                    {logo_home_tv}
                 </div>
             </div>
         </div>
@@ -889,7 +891,6 @@ def render_vista_detalle(partido: Dict[str, Any]) -> None:
         unsafe_allow_html=True,
     )
 
-    # Sección de Retroalimentación Kalman en Vista Detallada si el partido ya finalizó
     if es_final:
         sim_prev = st.session_state.simulaciones_previas.get(pid, sim)
         aud_det = auditar_partido_nfl(sim_prev, partido)
@@ -938,7 +939,6 @@ def render_vista_detalle(partido: Dict[str, Any]) -> None:
                 )
                 st.rerun()
 
-    # Fila de KPIs de Mercados y Simulación por Series
     c1, c2, c3, c4 = st.columns(4)
     with c1:
         st.markdown(
@@ -987,7 +987,6 @@ def render_vista_detalle(partido: Dict[str, Any]) -> None:
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # Tabla de Auditoría de Valor Esperado (+EV) en Formato Decimal con Empates (Push)
     st.markdown("#### 💹 Auditoría de Valor Esperado (+EV) y Probabilidad de Push (Formato Decimal Europeo)")
     df_ev_audit = pd.DataFrame(
         [
@@ -1031,7 +1030,6 @@ def render_vista_detalle(partido: Dict[str, Any]) -> None:
     )
     st.dataframe(df_ev_audit, use_container_width=True, hide_index=True)
 
-    # Frecuencia de Números Clave NFL (3, 7, 6, 10, 4, 14) en las 5,000 Simulaciones
     kn = sim["key_numbers_freq"]
     st.markdown(
         f"**🔑 Frecuencia Exacta en Números Clave NFL (|Margen|):** "
@@ -1043,7 +1041,6 @@ def render_vista_detalle(partido: Dict[str, Any]) -> None:
         f"`14 pts`: **{kn.get('Margen 14 pts', 0):.1f}%**"
     )
 
-    # Gráficos interactivos: Comparativa de Drives/EPA y Distribución Discreta de Puntos
     col_chart1, col_chart2 = st.columns(2)
 
     with col_chart1:
@@ -1150,7 +1147,6 @@ def render_vista_detalle(partido: Dict[str, Any]) -> None:
         )
         st.plotly_chart(fig_tot, use_container_width=True)
 
-    # Tabla comparativa de métricas de entrada + desglose de series ofensivas
     st.markdown("#### 🧮 Desglose de Métricas y Resultados por Serie Ofensiva (`st.session_state.nfl_stats`)")
     df_comp = pd.DataFrame(
         [

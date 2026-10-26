@@ -47,6 +47,7 @@ STANDARD_TO_ESPN_CDN_SLUG: Dict[str, str] = {
     "LA": "lar",
     "LAR": "lar",
     "JAX": "jax",
+    "JAC": "jax",
     "LV": "lv",
     "LAC": "lac",
     "KC": "kc",
@@ -216,25 +217,49 @@ def americano_a_decimal(momio: Any, default_decimal: float = 1.91) -> float:
 
 
 def obtener_url_escudo_nfl(team_abbr: str) -> str:
-    """Retorna la URL directa del escudo oficial en el CDN de ESPN."""
-    std_abbr = normalizar_abbr_nfl(team_abbr)
-    cdn_slug = STANDARD_TO_ESPN_CDN_SLUG.get(std_abbr, std_abbr.lower())
+    """
+    Limpia la abreviatura, mapea casos especiales (WAS -> wsh, LA -> lar, JAX -> jax)
+    y retorna la URL directa del escudo oficial en el CDN de ESPN:
+    'https://a.espncdn.com/i/teamlogos/nfl/500/{abbr}.png'
+    """
+    raw_clean = str(team_abbr or "").strip().upper()
+    casos_especiales_cdn = {
+        "WAS": "wsh",
+        "WSH": "wsh",
+        "LA": "lar",
+        "LAR": "lar",
+        "STL": "lar",
+        "JAX": "jax",
+        "JAC": "jax",
+    }
+    if raw_clean in casos_especiales_cdn:
+        cdn_slug = casos_especiales_cdn[raw_clean]
+    else:
+        std_abbr = normalizar_abbr_nfl(raw_clean)
+        cdn_slug = STANDARD_TO_ESPN_CDN_SLUG.get(std_abbr, std_abbr.lower())
     return ESPN_NFL_LOGO_CDN.format(abbr=cdn_slug)
 
 
-def escudo_nfl_html(team_abbr: str, size: int = 32) -> str:
+def obtener_logo_nfl(team_abbr: str, size: int = 32) -> str:
     """
-    Retorna el tag <img> apuntando al CDN público de ESPN:
-    'https://a.espncdn.com/i/teamlogos/nfl/500/{abbr}.png'
+    Limpia la abreviatura de la franquicia, mapea casos especiales (WAS -> wsh,
+    LA -> lar, JAX -> jax) y retorna el tag HTML <img> apuntando al CDN oficial
+    de ESPN: 'https://a.espncdn.com/i/teamlogos/nfl/500/{abbr}.png'.
     """
     std_abbr = normalizar_abbr_nfl(team_abbr)
-    logo_url = obtener_url_escudo_nfl(std_abbr)
+    logo_url = obtener_url_escudo_nfl(team_abbr)
+    px = int(size) if size and int(size) > 0 else 32
     return (
-        f'<img src="{logo_url}" alt="{std_abbr}" width="{size}" height="{size}" '
-        f'style="width:{size}px; height:{size}px; object-fit:contain; '
+        f'<img src="{logo_url}" alt="{std_abbr}" width="{px}" height="{px}" '
+        f'style="width:{px}px; height:{px}px; object-fit:contain; '
         f'vertical-align:middle; filter:drop-shadow(0 2px 5px rgba(0,0,0,0.55));" '
         f'onerror="this.style.display=\'none\'">'
     )
+
+
+def escudo_nfl_html(team_abbr: str, size: int = 32) -> str:
+    """Alias compatible con obtener_logo_nfl(team_abbr, size)."""
+    return obtener_logo_nfl(team_abbr=team_abbr, size=size)
 
 
 def _formatear_fecha_espn(iso_date_str: str, short_detail: str = "") -> str:
@@ -276,7 +301,6 @@ def _extraer_boxscore_competitor(team_entry: Dict[str, Any], puntos_equipo: floa
     total_yds = mapa_st.get("totalyards") or (pass_yds + rush_yds)
     plays = mapa_st.get("totaloffensiveplays") or mapa_st.get("plays") or 0.0
 
-    # Si ESPN Scoreboard compacto no trae statistics en ese nodo, estimar según puntos reales
     if pass_yds <= 0.0 and rush_yds <= 0.0:
         total_est = max(210.0, min(465.0, 195.0 + float(puntos_equipo) * 5.8))
         pass_yds = round(total_est * 0.63, 1)
@@ -552,7 +576,6 @@ def _calendario_fallback_semana(semana: Optional[int] = None) -> List[Dict[str, 
     marcador real y estadísticas de pase/carrera para auditar y calibrar el modelo.
     """
     sem_num = semana if semana is not None else 8
-    # Tuplas: (away, home, hora, finalizado, pts_away_real, pts_home_real, pass_away, rush_away, pass_home, rush_home, plays_tot)
     cruces_base = [
         ("BAL", "KC",  "FINAL · TNF",        True,  20.0, 27.0, 268.0, 142.0, 291.0, 108.0, 128.0),
         ("DET", "SF",  "FINAL · FOX",        True,  31.0, 24.0, 284.0, 156.0, 255.0, 118.0, 132.0),
@@ -738,12 +761,3 @@ def obtener_calendario_nfl_semana(
             if m_key in mapa_odds_live:
                 p.update(mapa_odds_live[m_key])
         return partidos_fb
-
-    def obtener_logo_nfl(team_abbr, size=32):
-    """Retorna el tag HTML con el logo oficial del equipo desde el CDN de ESPN."""
-    abbr = str(team_abbr).strip().lower()
-    # Mapeo de normalización para abreviaturas conflictivas
-    mapeo = {"was": "wsh", "la": "lar", "jac": "jax"}
-    abbr_cdn = mapeo.get(abbr, abbr)
-    url = f"https://a.espncdn.com/i/teamlogos/nfl/500/{abbr_cdn}.png"
-    return f'<img src="{url}" width="{size}" height="{size}" style="object-fit: contain; vertical-align: middle; margin-right: 8px;">'
