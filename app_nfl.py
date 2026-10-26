@@ -6,19 +6,14 @@ Interfaz Principal de "TERMINAL SHARP: NFL QUANT"
   - Gestión de base de datos vía archivo Excel (.xlsx) en st.sidebar con persistencia
     en st.session_state.nfl_stats y descarga directa de nfl_stats_calibrado.xlsx
     mediante io.BytesIO() para conservar el aprendizaje Kalman entre semanas.
-  - Sincronización en vivo del calendario semanal (ESPN Scoreboard API) y momios en
-    FORMATO DECIMAL (The Odds API + Fallback automático a ESPN Scoreboard).
-  - Bucle de Retroalimentación y Auto-Corrección Dinámica (Kalman-Style Update):
-    * En la cartelera semanal, identifica los partidos finalizados (finalizado: True)
-      y muestra una sección/tarjeta comparativa con:
-        - Marcador Real vs Modelo Previo (ej. Marcador Real: KC 27 - 20 BAL vs Modelo Previo: KC 24.2 - 23.1 BAL)
-        - Desviación Spread y Desviación Total
-        - Diagnóstico de desviación (Juego Aéreo vs Terrestre)
-        - Botón interactivo "⚡ APLICAR CALIBRACIÓN AL MODELO" (individual por partido y lote semanal)
-  - Navegación con st.session_state entre:
-    * Vista A: Cartelera Interactiva Grid 3 Columnas con cintillos dinámicos +EV y auditoría Kalman.
-    * Vista B: Drill-Down de Análisis Profundo (Simulación Discreta por Series Ofensivas,
-      Tabla de Auditoría +EV con Push, Números Clave NFL y Auditoría Post-Partido).
+  - Separación de vistas en dos pestañas principales mediante st.tabs:
+    1) "🏈 Cartelera & Momios en Vivo": Muestra exclusivamente los partidos pendientes
+       o en curso en cuadrícula de 3 columnas con auditoría +EV en FORMATO DECIMAL
+       (con Shrinkage Bayesiano profesional: máx +5% a +12% EV en líneas 1.91).
+    2) "📈 Auditoría & Calibración": Muestra los partidos con estado FINAL, comparando
+       Marcador Real vs. Modelo Previo (ocultando los badges de apuestas en juegos ya
+       concluidos) e integra el botón global "⚡ Calibrar Todos los Partidos Finalizados"
+       para ejecutar el ajuste bayesiano/Kalman de toda la jornada en una sola pasada.
 """
 
 import copy
@@ -183,8 +178,14 @@ def inyectar_estilos_css() -> None:
             font-weight: 800;
             color: #10B981;
         }
+        .team-real-pts {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.22rem;
+            font-weight: 800;
+            color: #F59E0B;
+        }
 
-        /* Cintillos de Auditoría +EV (Totales y Hándicap en Cuota Decimal) */
+        /* Cintillos de Auditoría +EV (Solo para juegos pendientes/en vivo) */
         .ev-badge-positive {
             font-family: 'JetBrains Mono', monospace;
             font-size: 0.72rem;
@@ -231,15 +232,15 @@ def inyectar_estilos_css() -> None:
             font-size: 0.68rem;
         }
 
-        /* Caja de Auditoría Post-Partido (Kalman Feedback Card) */
+        /* Caja de Auditoría Post-Partido (Pestaña de Auditoría & Calibración) */
         .kalman-audit-box {
-            background: linear-gradient(135deg, rgba(245, 158, 11, 0.13) 0%, rgba(15, 23, 42, 0.92) 100%);
+            background: linear-gradient(135deg, rgba(245, 158, 11, 0.13) 0%, rgba(15, 23, 42, 0.94) 100%);
             border: 1px solid rgba(245, 158, 11, 0.42);
             border-radius: 10px;
-            padding: 10px 12px;
+            padding: 11px 13px;
             margin-top: 9px;
             font-family: 'JetBrains Mono', monospace;
-            font-size: 0.73rem;
+            font-size: 0.74rem;
         }
         .kalman-calibrated-pill {
             display: inline-block;
@@ -361,13 +362,13 @@ def inicializar_session_state() -> None:
 
 
 def obtener_simulacion_partido(partido: Dict[str, Any]) -> Dict[str, Any]:
-    """Calcula o recupera de caché la simulación por series ofensivas (5,000 iteraciones)."""
+    """Calcula o recupera de caché la simulación por series ofensivas (11.5 drives/equipo, 5,000 iteraciones)."""
     pid = str(partido.get("id_partido", f"{partido['away_abbr']}_{partido['home_abbr']}"))
     away = partido["away_abbr"]
     home = partido["home_abbr"]
 
     lineas_mercado = {
-        "total_mercado": partido.get("total_mercado", 45.5),
+        "total_mercado": partido.get("total_mercado", 43.5),
         "cuota_over_decimal": partido.get("cuota_over_decimal", 1.91),
         "cuota_under_decimal": partido.get("cuota_under_decimal", 1.91),
         "spread_mercado_home": partido.get("spread_mercado_home", -2.5),
@@ -424,10 +425,10 @@ def aplicar_calibracion_partido_en_estado(partido: Dict[str, Any]) -> Dict[str, 
     )
 
     st.session_state.nfl_stats = nuevo_dict
-    st.session_state.nfl_stats_source = (
-        f"Base Calibrada Kalman ({len(st.session_state.partidos_calibrados) + 1} juegos auditados)"
-    )
     st.session_state.partidos_calibrados.add(pid)
+    st.session_state.nfl_stats_source = (
+        f"Base Calibrada Kalman ({len(st.session_state.partidos_calibrados)} juegos auditados)"
+    )
     st.session_state.simulaciones_cache = {}
 
     stats_despues_away = st.session_state.nfl_stats.get(away, {})
@@ -449,13 +450,32 @@ def aplicar_calibracion_partido_en_estado(partido: Dict[str, Any]) -> Dict[str, 
     return auditoria
 
 
+def calibrar_todos_los_finalizados(partidos_finalizados: List[Dict[str, Any]]) -> int:
+    """
+    Ejecuta la calibración masiva bayesiana/Kalman en una sola pasada sobre todas
+    las discrepancias de los partidos finalizados de la jornada.
+    """
+    if not partidos_finalizados:
+        return 0
+    pendientes = [
+        pf
+        for pf in partidos_finalizados
+        if str(pf.get("id_partido", f"{pf['away_abbr']}_{pf['home_abbr']}"))
+        not in st.session_state.partidos_calibrados
+    ]
+    objetivo = pendientes if pendientes else partidos_finalizados
+    for pf in objetivo:
+        aplicar_calibracion_partido_en_estado(pf)
+    return len(objetivo)
+
+
 # ==============================================================================
 # BARRA LATERAL: CARGA DE EXCEL (.XLSX), DESCARGA CALIBRADA Y LEARNING RATE KALMAN
 # ==============================================================================
 def render_sidebar() -> None:
     with st.sidebar:
         st.markdown("### 🏈 TERMINAL SHARP: NFL QUANT")
-        st.caption("Drive-Based Engine · Calibración Kalman · Cuotas Decimales")
+        st.caption("11.5 Drives/Eq · Shrinkage +EV · Filtro Kalman")
 
         st.markdown("#### 1. Base de Datos Excel (`.xlsx`)")
         uploaded_xlsx = st.file_uploader(
@@ -550,7 +570,7 @@ def render_sidebar() -> None:
             step=1.0,
             help=(
                 "Si supera 14 mph en estadios abiertos (Outdoor), el motor penaliza la tasa de "
-                "éxito de Field Goals largos y reduce EPA_Pass_Off aumentando la varianza terrestre."
+                "éxito de Field Goals largos y reduce EPA_Pass_Off."
             ),
         )
 
@@ -595,7 +615,7 @@ def render_sidebar() -> None:
 
 
 # ==============================================================================
-# VISTA A: CARTELERA INTERACTIVA (GRID 3 COLUMNAS CON AUDITORÍA +EV Y KALMAN)
+# VISTA A: PESTAÑAS SEPARADAS (EN VIVO vs. AUDITORÍA & CALIBRACIÓN MASIVA)
 # ==============================================================================
 def render_vista_cartelera() -> None:
     semana = st.session_state.semana_actual
@@ -606,8 +626,8 @@ def render_vista_cartelera() -> None:
         <div class="terminal-banner">
             <p class="terminal-title">🏈 TERMINAL SHARP: NFL QUANT — SEMANA {semana}</p>
             <p class="terminal-sub">
-                Simulación Discreta por Series Ofensivas (~11 Drives/Equipo · 5,000 Iteraciones) ·
-                Auditoría +EV en <b>Cuota Decimal Europea</b> · Auto-Corrección Dinámica (Filtro Kalman)
+                Drive-Based Engine (~11.5 Drives/Equipo · Media Neutral ~43.5 pts · 5,000 Iteraciones) ·
+                Shrinkage Bayesiano +EV en <b>Cuota Decimal</b> · Auto-Corrección Dinámica (Filtro Kalman)
             </p>
         </div>
         """,
@@ -618,210 +638,290 @@ def render_vista_cartelera() -> None:
         st.warning("No se encontraron partidos para la semana seleccionada.")
         return
 
-    total_ev_count = 0
+    # Separar estrictamente partidos en vivo/pendientes de los finalizados (STATUS_FINAL)
+    partidos_en_vivo: List[Dict[str, Any]] = []
     partidos_finalizados: List[Dict[str, Any]] = []
+    total_ev_en_vivo = 0
+
     for p in partidos:
         sim_p = obtener_simulacion_partido(p)
-        if sim_p["ev_totales"]["hay_valor"] or sim_p["ev_spread"]["hay_valor"]:
-            total_ev_count += 1
         if p.get("finalizado", False):
             partidos_finalizados.append(p)
+        else:
+            partidos_en_vivo.append(p)
+            if sim_p["ev_totales"]["hay_valor"] or sim_p["ev_spread"]["hay_valor"]:
+                total_ev_en_vivo += 1
 
     fuente_detectada = partidos[0].get("fuente_odds", "ESPN Scoreboard (Decimal)")
     k1, k2, k3, k4 = st.columns(4)
-    k1.metric("Juegos en Cartelera", f"{len(partidos)} Partidos")
-    k2.metric("Oportunidades +EV", f"{total_ev_count} Juegos con Valor")
-    k3.metric("Partidos Finalizados (Kalman)", f"{len(partidos_finalizados)} Auditables")
+    k1.metric("Juegos Pendientes / En Vivo", f"{len(partidos_en_vivo)} Partidos")
+    k2.metric("Oportunidades +EV (En Vivo)", f"{total_ev_en_vivo} con Ventaja")
+    k3.metric("Partidos Finalizados (Auditables)", f"{len(partidos_finalizados)} Finales")
     k4.metric("Learning Rate / Fuente", f"LR {st.session_state.learning_rate_kalman:.3f} · {fuente_detectada[:14]}")
 
-    if partidos_finalizados:
-        pendientes_calibrar = [
-            pf
-            for pf in partidos_finalizados
-            if str(pf.get("id_partido", f"{pf['away_abbr']}_{pf['home_abbr']}"))
-            not in st.session_state.partidos_calibrados
-        ]
-        with st.container():
-            c_info, c_btn = st.columns([3.2, 1.3])
-            with c_info:
+    # SEPARACIÓN DE VISTAS MEDIANTE ST.TABS
+    tab_vivo, tab_auditoria = st.tabs(
+        ["🏈 Cartelera & Momios en Vivo", "📈 Auditoría & Calibración"]
+    )
+
+    # --------------------------------------------------------------------------
+    # PESTAÑA 1: SOLO JUEGOS PENDIENTES O EN CURSO CON BADGES +EV
+    # --------------------------------------------------------------------------
+    with tab_vivo:
+        if not partidos_en_vivo:
+            st.info(
+                "Todos los partidos de esta semana han concluido (`STATUS_FINAL`). "
+                "Cambia a la pestaña **📈 Auditoría & Calibración** para auditar los marcadores reales y recalibrar el modelo."
+            )
+        else:
+            st.markdown(
+                f"#### 📅 Cartelera Activa y Momios en Formato Decimal ({len(partidos_en_vivo)} Juegos en Curso / Programados)"
+            )
+            for row_start in range(0, len(partidos_en_vivo), 3):
+                cols = st.columns(3)
+                chunk = partidos_en_vivo[row_start : row_start + 3]
+
+                for idx, partido in enumerate(chunk):
+                    with cols[idx]:
+                        pid = str(partido.get("id_partido", f"{partido['away_abbr']}_{partido['home_abbr']}"))
+                        sim = obtener_simulacion_partido(partido)
+                        away = partido["away_abbr"]
+                        home = partido["home_abbr"]
+                        logo_away_html = _render_logo_html(obtener_logo_nfl(away, size=34), away, size=34)
+                        logo_home_html = _render_logo_html(obtener_logo_nfl(home, size=34), home, size=34)
+
+                        ev_tot = sim["ev_totales"]
+                        ev_spr = sim["ev_spread"]
+
+                        # Cintillo 1: Auditoría de TOTALES (Over / Under en Cuota Decimal con Shrinkage)
+                        if ev_tot["hay_valor"]:
+                            tot_badge_html = (
+                                f'<div class="ev-badge-positive">'
+                                f'<span>🔥 VALOR: {ev_tot["recomendacion"]} ({ev_tot["cuota_mercado_decimal"]:.2f})</span>'
+                                f'<span class="ev-pct-pill">EV: +{ev_tot["ev_pct"]:.1f}%</span>'
+                                f'</div>'
+                            )
+                        else:
+                            tot_badge_html = (
+                                f'<div class="ev-badge-neutral">'
+                                f'<span>⚖️ TOTAL {ev_tot["total_mercado"]:.1f} SIN VALOR</span>'
+                                f'<span class="ev-pct-pill-gray">O {ev_tot["cuota_over_decimal"]:.2f} | U {ev_tot["cuota_under_decimal"]:.2f}</span>'
+                                f'</div>'
+                            )
+
+                        # Cintillo 2: Auditoría de HÁNDICAP / SPREAD (en Cuota Decimal con Shrinkage)
+                        if ev_spr["hay_valor"]:
+                            spr_badge_html = (
+                                f'<div class="ev-badge-positive">'
+                                f'<span>🔥 VALOR: {ev_spr["recomendacion"]} ({ev_spr["cuota_mercado_decimal"]:.2f})</span>'
+                                f'<span class="ev-pct-pill">EV: +{ev_spr["ev_pct"]:.1f}%</span>'
+                                f'</div>'
+                            )
+                        else:
+                            spr_home_fmt = f"{home} {ev_spr['spread_mercado_home']:+.1f}"
+                            spr_badge_html = (
+                                f'<div class="ev-badge-neutral">'
+                                f'<span>⚖️ SPREAD ({spr_home_fmt}) SIN VALOR</span>'
+                                f'<span class="ev-pct-pill-gray">{ev_spr["cuota_spread_home_decimal"]:.2f} / {ev_spr["cuota_spread_away_decimal"]:.2f}</span>'
+                                f'</div>'
+                            )
+
+                        card_live_html = (
+                            f'<div class="nfl-game-card">'
+                            f'<div class="card-top-bar">'
+                            f'<span class="league-pill">NFL · SEMANA {semana}</span>'
+                            f'<span class="game-clock">{partido.get("hora", "TBD")} · {sim["tipo_estadio"]}</span>'
+                            f'</div>'
+                            f'<div class="team-match-row">'
+                            f'<div class="team-left">'
+                            f'{logo_away_html}'
+                            f'<div>'
+                            f'<span class="team-abbr-txt">{away} · {NFL_FRANCHISE_NAMES.get(away, away)}</span>'
+                            f'<span class="team-qb-sub">QB: {sim["away_qb"]} · {sim["n_drives_equipo"]} drives (TD {sim["drive_td_pct_away"]:.0f}%)</span>'
+                            f'</div>'
+                            f'</div>'
+                            f'<div class="team-proj-pts">{sim["away_pts"]:.1f}</div>'
+                            f'</div>'
+                            f'<div class="team-match-row">'
+                            f'<div class="team-left">'
+                            f'{logo_home_html}'
+                            f'<div>'
+                            f'<span class="team-abbr-txt">{home} · {NFL_FRANCHISE_NAMES.get(home, home)}</span>'
+                            f'<span class="team-qb-sub">QB: {sim["home_qb"]} · {sim["n_drives_equipo"]} drives (TD {sim["drive_td_pct_home"]:.0f}%)</span>'
+                            f'</div>'
+                            f'</div>'
+                            f'<div class="team-proj-pts">{sim["home_pts"]:.1f}</div>'
+                            f'</div>'
+                            f'<div class="quick-forecast-box">'
+                            f'<div class="quick-forecast-txt">'
+                            f'Proyección Drive-Engine: {away} {sim["away_pts"]:.1f} - {sim["home_pts"]:.1f} {home}'
+                            f'</div>'
+                            f'<div class="quick-fair-sub">'
+                            f'Cuota Justa ML: {away} <b>{sim["ml_away_decimal"]:.2f}</b> | {home} <b>{sim["ml_home_decimal"]:.2f}</b> · '
+                            f'Total Proy: <b>{sim["total_ou"]:.1f}</b>'
+                            f'</div>'
+                            f'</div>'
+                            f'{tot_badge_html}'
+                            f'{spr_badge_html}'
+                            f'</div>'
+                        )
+                        st.markdown(card_live_html, unsafe_allow_html=True)
+
+                        if st.button(
+                            "LEER ANÁLISIS →",
+                            key=f"btn_drill_live_{pid}_{row_start}_{idx}",
+                            use_container_width=True,
+                        ):
+                            st.session_state.partido_seleccionado = partido
+                            st.rerun()
+
+    # --------------------------------------------------------------------------
+    # PESTAÑA 2: AUDITORÍA & CALIBRACIÓN MASIVA (SIN BADGES DE APUESTAS)
+    # --------------------------------------------------------------------------
+    with tab_auditoria:
+        st.markdown("#### 📈 Auditoría Post-Partido (`STATUS_FINAL`) y Calibración Bayesiana / Kalman")
+
+        if not partidos_finalizados:
+            st.info(
+                "Aún no hay partidos finalizados (`STATUS_FINAL`) en esta semana para auditar contra el modelo."
+            )
+        else:
+            pendientes_calibrar = [
+                pf
+                for pf in partidos_finalizados
+                if str(pf.get("id_partido", f"{pf['away_abbr']}_{pf['home_abbr']}"))
+                not in st.session_state.partidos_calibrados
+            ]
+
+            col_hdr_info, col_hdr_btn = st.columns([3.0, 1.5])
+            with col_hdr_info:
                 st.markdown(
-                    f"**📡 Bucle de Retroalimentación Activo:** Se detectaron **{len(partidos_finalizados)} partidos finalizados (`STATUS_FINAL`)** "
-                    f"en esta jornada ({len(pendientes_calibrar)} pendientes de calibrar). Puedes calibrar cada partido individualmente en su tarjeta "
-                    f"o recalibrar toda la jornada de un clic."
+                    f"Se detectaron **{len(partidos_finalizados)} partidos concluidos (`FINAL`)** en la jornada "
+                    f"(**{len(pendientes_calibrar)}** pendientes de calibrar). Presiona el botón global para ajustar "
+                    f"`EPA_Pass`, `EPA_Rush`, `Success_Rate` y `Pace_Sec` de todas las franquicias en una sola pasada."
                 )
-            with c_btn:
+            with col_hdr_btn:
                 if st.button(
-                    f"⚡ CALIBRAR TODOS LOS FINALIZADOS ({len(pendientes_calibrar)})",
-                    disabled=(len(pendientes_calibrar) == 0),
+                    "⚡ Calibrar Todos los Partidos Finalizados",
+                    key="btn_global_calibrar_todos",
                     use_container_width=True,
                     type="primary",
                 ):
-                    for pf in pendientes_calibrar:
-                        aplicar_calibracion_partido_en_estado(pf)
+                    n_cal = calibrar_todos_los_finalizados(partidos_finalizados)
+                    st.toast(
+                        f"⚡ Calibración masiva completada sobre {n_cal} partido(s) finalizado(s)."
+                    )
                     st.rerun()
 
-    if st.session_state.historial_calibraciones:
-        with st.expander(
-            f"✅ Bitácora de Recalibraciones Kalman Aplicadas ({len(st.session_state.historial_calibraciones)})",
-            expanded=False,
-        ):
-            st.dataframe(
-                pd.DataFrame(st.session_state.historial_calibraciones),
-                use_container_width=True,
-                hide_index=True,
-            )
-
-    st.markdown("#### 📅 Cartelera de la Jornada y Auditoría Cuantitativa (Grid 3 Columnas)")
-
-    for row_start in range(0, len(partidos), 3):
-        cols = st.columns(3)
-        chunk = partidos[row_start : row_start + 3]
-
-        for idx, partido in enumerate(chunk):
-            with cols[idx]:
-                pid = str(partido.get("id_partido", f"{partido['away_abbr']}_{partido['home_abbr']}"))
-                sim = obtener_simulacion_partido(partido)
-                away = partido["away_abbr"]
-                home = partido["home_abbr"]
-                logo_away_html = _render_logo_html(obtener_logo_nfl(away, size=34), away, size=34)
-                logo_home_html = _render_logo_html(obtener_logo_nfl(home, size=34), home, size=34)
-
-                es_final = bool(partido.get("finalizado", False))
-                ya_calibrado = pid in st.session_state.partidos_calibrados
-
-                ev_tot = sim["ev_totales"]
-                ev_spr = sim["ev_spread"]
-
-                if ev_tot["hay_valor"]:
-                    tot_badge_html = (
-                        f'<div class="ev-badge-positive">'
-                        f'<span>🔥 VALOR: {ev_tot["recomendacion"]} ({ev_tot["cuota_mercado_decimal"]:.2f})</span>'
-                        f'<span class="ev-pct-pill">EV: +{ev_tot["ev_pct"]:.1f}%</span>'
-                        f'</div>'
-                    )
-                else:
-                    tot_badge_html = (
-                        f'<div class="ev-badge-neutral">'
-                        f'<span>⚖️ TOTAL {ev_tot["total_mercado"]:.1f} SIN VALOR</span>'
-                        f'<span class="ev-pct-pill-gray">O {ev_tot["cuota_over_decimal"]:.2f} | U {ev_tot["cuota_under_decimal"]:.2f}</span>'
-                        f'</div>'
-                    )
-
-                if ev_spr["hay_valor"]:
-                    spr_badge_html = (
-                        f'<div class="ev-badge-positive">'
-                        f'<span>🔥 VALOR: {ev_spr["recomendacion"]} ({ev_spr["cuota_mercado_decimal"]:.2f})</span>'
-                        f'<span class="ev-pct-pill">EV: +{ev_spr["ev_pct"]:.1f}%</span>'
-                        f'</div>'
-                    )
-                else:
-                    spr_home_fmt = f"{home} {ev_spr['spread_mercado_home']:+.1f}"
-                    spr_badge_html = (
-                        f'<div class="ev-badge-neutral">'
-                        f'<span>⚖️ SPREAD ({spr_home_fmt}) SIN VALOR</span>'
-                        f'<span class="ev-pct-pill-gray">{ev_spr["cuota_spread_home_decimal"]:.2f} / {ev_spr["cuota_spread_away_decimal"]:.2f}</span>'
-                        f'</div>'
-                    )
-
-                pill_class = "league-pill-final" if es_final else "league-pill"
-                pill_text = f"NFL · S{semana} · FINAL" if es_final else f"NFL · SEMANA {semana}"
-
-                kalman_block_html = ""
-                if es_final:
-                    sim_prev = st.session_state.simulaciones_previas.get(pid, sim)
-                    aud_card = auditar_partido_nfl(sim_prev, partido)
-                    estado_cal_html = (
-                        '<span class="kalman-calibrated-pill">✓ MODELO CALIBRADO</span>'
-                        if ya_calibrado
-                        else '<span style="color:#FBBF24; font-weight:700;">⏳ PENDIENTE DE CALIBRAR</span>'
-                    )
-                    kalman_block_html = (
-                        f'<div class="kalman-audit-box">'
-                        f'<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">'
-                        f'<span style="color:#F8FAFC; font-weight:800;">🏁 AUDITORÍA POST-PARTIDO</span>'
-                        f'{estado_cal_html}'
-                        f'</div>'
-                        f'<div style="color:#E2E8F0; margin-top:3px;">'
-                        f'<b>Marcador Real:</b> {home} {int(round(aud_card["puntos_home_real"]))} - {int(round(aud_card["puntos_away_real"]))} {away}<br>'
-                        f'<b>Modelo Previo:</b> {home} {aud_card["home_pts_modelo"]:.1f} - {aud_card["away_pts_modelo"]:.1f} {away}'
-                        f'</div>'
-                        f'<div style="color:#38BDF8; margin-top:4px; font-weight:700;">'
-                        f'Desviación Spread: {aud_card["error_spread"]:+.1f} pts | Desviación Total: {aud_card["error_total"]:+.1f} pts'
-                        f'</div>'
-                        f'<div style="color:#94A3B8; font-size:0.68rem; margin-top:3px;">'
-                        f'Origen: {aud_card["origen_desviacion"]}'
-                        f'</div>'
-                        f'</div>'
-                    )
-
-                card_html = (
-                    f'<div class="nfl-game-card">'
-                    f'<div class="card-top-bar">'
-                    f'<span class="{pill_class}">{pill_text}</span>'
-                    f'<span class="game-clock">{partido.get("hora", "TBD")} · {sim["tipo_estadio"]}</span>'
-                    f'</div>'
-                    f'<div class="team-match-row">'
-                    f'<div class="team-left">'
-                    f'{logo_away_html}'
-                    f'<div>'
-                    f'<span class="team-abbr-txt">{away} · {NFL_FRANCHISE_NAMES.get(away, away)}</span>'
-                    f'<span class="team-qb-sub">QB: {sim["away_qb"]} · {sim["n_drives_equipo"]} drives (TD {sim["drive_td_pct_away"]:.0f}%)</span>'
-                    f'</div>'
-                    f'</div>'
-                    f'<div class="team-proj-pts">{sim["away_pts"]:.1f}</div>'
-                    f'</div>'
-                    f'<div class="team-match-row">'
-                    f'<div class="team-left">'
-                    f'{logo_home_html}'
-                    f'<div>'
-                    f'<span class="team-abbr-txt">{home} · {NFL_FRANCHISE_NAMES.get(home, home)}</span>'
-                    f'<span class="team-qb-sub">QB: {sim["home_qb"]} · {sim["n_drives_equipo"]} drives (TD {sim["drive_td_pct_home"]:.0f}%)</span>'
-                    f'</div>'
-                    f'</div>'
-                    f'<div class="team-proj-pts">{sim["home_pts"]:.1f}</div>'
-                    f'</div>'
-                    f'<div class="quick-forecast-box">'
-                    f'<div class="quick-forecast-txt">'
-                    f'Proyección Drive-Engine: {away} {sim["away_pts"]:.1f} - {sim["home_pts"]:.1f} {home}'
-                    f'</div>'
-                    f'<div class="quick-fair-sub">'
-                    f'Cuota Justa ML: {away} <b>{sim["ml_away_decimal"]:.2f}</b> | {home} <b>{sim["ml_home_decimal"]:.2f}</b> · '
-                    f'Total Proy: <b>{sim["total_ou"]:.1f}</b>'
-                    f'</div>'
-                    f'</div>'
-                    f'{tot_badge_html}'
-                    f'{spr_badge_html}'
-                    f'{kalman_block_html}'
-                    f'</div>'
-                )
-                st.markdown(card_html, unsafe_allow_html=True)
-
-                if es_final:
-                    btn_cal_label = (
-                        "✅ CALIBRACIÓN APLICADA (RE-APLICAR)"
-                        if ya_calibrado
-                        else "⚡ APLICAR CALIBRACIÓN AL MODELO"
-                    )
-                    if st.button(
-                        btn_cal_label,
-                        key=f"btn_kalman_{pid}_{row_start}_{idx}",
-                        use_container_width=True,
-                        type="primary" if not ya_calibrado else "secondary",
-                    ):
-                        aud_res = aplicar_calibracion_partido_en_estado(partido)
-                        st.toast(
-                            f"⚡ Modelo recalibrado con {away} @ {home} "
-                            f"(Err Spread: {aud_res['error_spread']:+.1f} pts | Err Total: {aud_res['error_total']:+.1f} pts)."
-                        )
-                        st.rerun()
-
-                if st.button(
-                    "LEER ANÁLISIS →",
-                    key=f"btn_drill_{pid}_{row_start}_{idx}",
-                    use_container_width=True,
+            if st.session_state.historial_calibraciones:
+                with st.expander(
+                    f"✅ Bitácora de Recalibraciones Kalman Aplicadas ({len(st.session_state.historial_calibraciones)})",
+                    expanded=True,
                 ):
-                    st.session_state.partido_seleccionado = partido
-                    st.rerun()
+                    st.dataframe(
+                        pd.DataFrame(st.session_state.historial_calibraciones),
+                        use_container_width=True,
+                        hide_index=True,
+                    )
+
+            # Cuadrícula de 3 columnas de partidos finalizados (SIN badges de apuestas)
+            for row_start in range(0, len(partidos_finalizados), 3):
+                cols_fin = st.columns(3)
+                chunk_fin = partidos_finalizados[row_start : row_start + 3]
+
+                for idx, partido in enumerate(chunk_fin):
+                    with cols_fin[idx]:
+                        pid = str(partido.get("id_partido", f"{partido['away_abbr']}_{partido['home_abbr']}"))
+                        sim = obtener_simulacion_partido(partido)
+                        sim_prev = st.session_state.simulaciones_previas.get(pid, sim)
+                        aud_card = auditar_partido_nfl(sim_prev, partido)
+
+                        away = partido["away_abbr"]
+                        home = partido["home_abbr"]
+                        logo_away_html = _render_logo_html(obtener_logo_nfl(away, size=34), away, size=34)
+                        logo_home_html = _render_logo_html(obtener_logo_nfl(home, size=34), home, size=34)
+                        ya_calibrado = pid in st.session_state.partidos_calibrados
+
+                        estado_cal_html = (
+                            '<span class="kalman-calibrated-pill">✓ CALIBRADO</span>'
+                            if ya_calibrado
+                            else '<span style="color:#FBBF24; font-weight:700;">⏳ PENDIENTE</span>'
+                        )
+
+                        pts_away_real_int = int(round(aud_card["puntos_away_real"]))
+                        pts_home_real_int = int(round(aud_card["puntos_home_real"]))
+
+                        card_audit_html = (
+                            f'<div class="nfl-game-card">'
+                            f'<div class="card-top-bar">'
+                            f'<span class="league-pill-final">NFL · S{semana} · FINAL</span>'
+                            f'<span class="game-clock">{partido.get("hora", "FINAL")} · {sim["tipo_estadio"]}</span>'
+                            f'</div>'
+                            f'<div class="team-match-row">'
+                            f'<div class="team-left">'
+                            f'{logo_away_html}'
+                            f'<div>'
+                            f'<span class="team-abbr-txt">{away} · {NFL_FRANCHISE_NAMES.get(away, away)}</span>'
+                            f'<span class="team-qb-sub">Modelo Previo: {aud_card["away_pts_modelo"]:.1f} pts ({aud_card[" error_away" if " error_away" in aud_card else "error_away"]:+.1f})</span>'
+                            f'</div>'
+                            f'</div>'
+                            f'<div class="team-real-pts">{pts_away_real_int}</div>'
+                            f'</div>'
+                            f'<div class="team-match-row">'
+                            f'<div class="team-left">'
+                            f'{logo_home_html}'
+                            f'<div>'
+                            f'<span class="team-abbr-txt">{home} · {NFL_FRANCHISE_NAMES.get(home, home)}</span>'
+                            f'<span class="team-qb-sub">Modelo Previo: {aud_card["home_pts_modelo"]:.1f} pts ({aud_card["error_home"]:+.1f})</span>'
+                            f'</div>'
+                            f'</div>'
+                            f'<div class="team-real-pts">{pts_home_real_int}</div>'
+                            f'</div>'
+                            f'<div class="kalman-audit-box">'
+                            f'<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">'
+                            f'<span style="color:#F8FAFC; font-weight:800;">🏁 REAL vs. MODELO</span>'
+                            f'{estado_cal_html}'
+                            f'</div>'
+                            f'<div style="color:#E2E8F0; margin-top:3px;">'
+                            f'<b>Marcador Real:</b> {home} {pts_home_real_int} - {pts_away_real_int} {away}<br>'
+                            f'<b>Modelo Previo:</b> {home} {aud_card["home_pts_modelo"]:.1f} - {aud_card["away_pts_modelo"]:.1f} {away}'
+                            f'</div>'
+                            f'<div style="color:#38BDF8; margin-top:5px; font-weight:700;">'
+                            f'Desviación Spread: {aud_card["error_spread"]:+.1f} pts | Desviación Total: {aud_card["error_total"]:+.1f} pts'
+                            f'</div>'
+                            f'<div style="color:#94A3B8; font-size:0.68rem; margin-top:4px;">'
+                            f'Diagnóstico: {aud_card["origen_desviacion"]}'
+                            f'</div>'
+                            f'</div>'
+                            f'</div>'
+                        )
+                        st.markdown(card_audit_html, unsafe_allow_html=True)
+
+                        btn_cal_label = (
+                            "✅ CALIBRACIÓN APLICADA (RE-APLICAR)"
+                            if ya_calibrado
+                            else "⚡ APLICAR CALIBRACIÓN AL MODELO"
+                        )
+                        if st.button(
+                            btn_cal_label,
+                            key=f"btn_kalman_tab_{pid}_{row_start}_{idx}",
+                            use_container_width=True,
+                            type="primary" if not ya_calibrado else "secondary",
+                        ):
+                            aud_res = aplicar_calibracion_partido_en_estado(partido)
+                            st.toast(
+                                f"⚡ Modelo recalibrado con {away} @ {home} "
+                                f"(Err Spread: {aud_res['error_spread']:+.1f} pts | Err Total: {aud_res['error_total']:+.1f} pts)."
+                            )
+                            st.rerun()
+
+                        if st.button(
+                            "VER AUDITORÍA DETALLADA →",
+                            key=f"btn_drill_fin_{pid}_{row_start}_{idx}",
+                            use_container_width=True,
+                        ):
+                            st.session_state.partido_seleccionado = partido
+                            st.rerun()
 
 
 # ==============================================================================
@@ -987,48 +1087,50 @@ def render_vista_detalle(partido: Dict[str, Any]) -> None:
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    st.markdown("#### 💹 Auditoría de Valor Esperado (+EV) y Probabilidad de Push (Formato Decimal Europeo)")
-    df_ev_audit = pd.DataFrame(
-        [
-            {
-                "Mercado": f"TOTALES: OVER {ev_tot['total_mercado']:.1f}",
-                "Prob. Modelo (%)": f"{ev_tot['prob_over_pct']:.1f}%",
-                "Prob. Push (%)": f"{ev_tot['prob_push_pct']:.1f}%",
-                "Cuota Justa (Fair Decimal)": f"{ev_tot['fair_over_decimal']:.2f}",
-                "Cuota Casa (Decimal)": f"{ev_tot['cuota_over_decimal']:.2f}",
-                "EV Matemático (%)": f"{ev_tot['ev_over_pct']:+.2f}%",
-                "Señal Cuantitativa": "🔥 +EV DETECTADO" if ev_tot["ev_over_pct"] >= 1.5 else "⚖️ Sin Ventaja",
-            },
-            {
-                "Mercado": f"TOTALES: UNDER {ev_tot['total_mercado']:.1f}",
-                "Prob. Modelo (%)": f"{ev_tot['prob_under_pct']:.1f}%",
-                "Prob. Push (%)": f"{ev_tot['prob_push_pct']:.1f}%",
-                "Cuota Justa (Fair Decimal)": f"{ev_tot['fair_under_decimal']:.2f}",
-                "Cuota Casa (Decimal)": f"{ev_tot['cuota_under_decimal']:.2f}",
-                "EV Matemático (%)": f"{ev_tot['ev_under_pct']:+.2f}%",
-                "Señal Cuantitativa": "🔥 +EV DETECTADO" if ev_tot["ev_under_pct"] >= 1.5 else "⚖️ Sin Ventaja",
-            },
-            {
-                "Mercado": f"SPREAD: {home} {ev_spr['spread_mercado_home']:+.1f}",
-                "Prob. Modelo (%)": f"{ev_spr['prob_cover_home_pct']:.1f}%",
-                "Prob. Push (%)": f"{ev_spr['prob_push_pct']:.1f}%",
-                "Cuota Justa (Fair Decimal)": f"{ev_spr['fair_home_decimal']:.2f}",
-                "Cuota Casa (Decimal)": f"{ev_spr['cuota_spread_home_decimal']:.2f}",
-                "EV Matemático (%)": f"{ev_spr['ev_home_pct']:+.2f}%",
-                "Señal Cuantitativa": "🔥 +EV DETECTADO" if ev_spr["ev_home_pct"] >= 1.5 else "⚖️ Sin Ventaja",
-            },
-            {
-                "Mercado": f"SPREAD: {away} {ev_spr['spread_mercado_away']:+.1f}",
-                "Prob. Modelo (%)": f"{ev_spr['prob_cover_away_pct']:.1f}%",
-                "Prob. Push (%)": f"{ev_spr['prob_push_pct']:.1f}%",
-                "Cuota Justa (Fair Decimal)": f"{ev_spr['fair_away_decimal']:.2f}",
-                "Cuota Casa (Decimal)": f"{ev_spr['cuota_spread_away_decimal']:.2f}",
-                "EV Matemático (%)": f"{ev_spr['ev_away_pct']:+.2f}%",
-                "Señal Cuantitativa": "🔥 +EV DETECTADO" if ev_spr["ev_away_pct"] >= 1.5 else "⚖️ Sin Ventaja",
-            },
-        ]
-    )
-    st.dataframe(df_ev_audit, use_container_width=True, hide_index=True)
+    # En la vista detallada, solo mostramos la tabla de apuestas activas si el partido NO ha finalizado
+    if not es_final:
+        st.markdown("#### 💹 Auditoría de Valor Esperado (+EV con Shrinkage Bayesiano) y Probabilidad de Push")
+        df_ev_audit = pd.DataFrame(
+            [
+                {
+                    "Mercado": f"TOTALES: OVER {ev_tot['total_mercado']:.1f}",
+                    "Prob. Modelo (Shrunk %)": f"{ev_tot['prob_over_pct']:.1f}%",
+                    "Prob. Push (%)": f"{ev_tot['prob_push_pct']:.1f}%",
+                    "Cuota Justa (Fair Decimal)": f"{ev_tot['fair_over_decimal']:.2f}",
+                    "Cuota Casa (Decimal)": f"{ev_tot['cuota_over_decimal']:.2f}",
+                    "EV Matemático (%)": f"{ev_tot['ev_over_pct']:+.2f}%",
+                    "Señal Cuantitativa": "🔥 +EV DETECTADO" if (ev_tot["hay_valor"] and ev_tot["lado"] == "OVER") else "⚖️ Sin Ventaja",
+                },
+                {
+                    "Mercado": f"TOTALES: UNDER {ev_tot['total_mercado']:.1f}",
+                    "Prob. Modelo (Shrunk %)": f"{ev_tot['prob_under_pct']:.1f}%",
+                    "Prob. Push (%)": f"{ev_tot['prob_push_pct']:.1f}%",
+                    "Cuota Justa (Fair Decimal)": f"{ev_tot['fair_under_decimal']:.2f}",
+                    "Cuota Casa (Decimal)": f"{ev_tot['cuota_under_decimal']:.2f}",
+                    "EV Matemático (%)": f"{ev_tot['ev_under_pct']:+.2f}%",
+                    "Señal Cuantitativa": "🔥 +EV DETECTADO" if (ev_tot["hay_valor"] and ev_tot["lado"] == "UNDER") else "⚖️ Sin Ventaja",
+                },
+                {
+                    "Mercado": f"SPREAD: {home} {ev_spr['spread_mercado_home']:+.1f}",
+                    "Prob. Modelo (Shrunk %)": f"{ev_spr['prob_cover_home_pct']:.1f}%",
+                    "Prob. Push (%)": f"{ev_spr['prob_push_pct']:.1f}%",
+                    "Cuota Justa (Fair Decimal)": f"{ev_spr['fair_home_decimal']:.2f}",
+                    "Cuota Casa (Decimal)": f"{ev_spr['cuota_spread_home_decimal']:.2f}",
+                    "EV Matemático (%)": f"{ev_spr['ev_home_pct']:+.2f}%",
+                    "Señal Cuantitativa": "🔥 +EV DETECTADO" if (ev_spr["hay_valor"] and ev_spr["lado"] == "HOME") else "⚖️ Sin Ventaja",
+                },
+                {
+                    "Mercado": f"SPREAD: {away} {ev_spr['spread_mercado_away']:+.1f}",
+                    "Prob. Modelo (Shrunk %)": f"{ev_spr['prob_cover_away_pct']:.1f}%",
+                    "Prob. Push (%)": f"{ev_spr['prob_push_pct']:.1f}%",
+                    "Cuota Justa (Fair Decimal)": f"{ev_spr['fair_away_decimal']:.2f}",
+                    "Cuota Casa (Decimal)": f"{ev_spr['cuota_spread_away_decimal']:.2f}",
+                    "EV Matemático (%)": f"{ev_spr['ev_away_pct']:+.2f}%",
+                    "Señal Cuantitativa": "🔥 +EV DETECTADO" if (ev_spr["hay_valor"] and ev_spr["lado"] == "AWAY") else "⚖️ Sin Ventaja",
+                },
+            ]
+        )
+        st.dataframe(df_ev_audit, use_container_width=True, hide_index=True)
 
     kn = sim["key_numbers_freq"]
     st.markdown(
