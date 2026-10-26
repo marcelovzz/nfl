@@ -475,7 +475,7 @@ def calibrar_todos_los_finalizados(partidos_finalizados: List[Dict[str, Any]]) -
 def render_sidebar() -> None:
     with st.sidebar:
         st.markdown("### 🏈 TERMINAL SHARP: NFL QUANT")
-        st.caption("11.5 Drives/Eq · Shrinkage +EV · Filtro Kalman")
+        st.caption("Drives Dinámicos (9.4-12.6/Eq) · EV Continuo · Filtro Kalman")
 
         st.markdown("#### 1. Base de Datos Excel (`.xlsx`)")
         uploaded_xlsx = st.file_uploader(
@@ -626,7 +626,7 @@ def render_vista_cartelera() -> None:
         <div class="terminal-banner">
             <p class="terminal-title">🏈 TERMINAL SHARP: NFL QUANT — SEMANA {semana}</p>
             <p class="terminal-sub">
-                Drive-Based Engine (~11.5 Drives/Equipo · Media Neutral ~43.5 pts · 5,000 Iteraciones) ·
+                Drive-Based Engine (Drives Dinámicos por Pace 9.4–12.6/Eq · Media 43.0–45.5 pts · 5,000 Iteraciones) ·
                 Shrinkage Bayesiano +EV en <b>Cuota Decimal</b> · Auto-Corrección Dinámica (Filtro Kalman)
             </p>
         </div>
@@ -726,18 +726,21 @@ def render_vista_cartelera() -> None:
                                 f'</div>'
                             )
 
+                        drives_away_card = float(sim.get("drives_away", sim["n_drives_equipo"]))
+                        drives_home_card = float(sim.get("drives_home", sim["n_drives_equipo"]))
+
                         card_live_html = (
                             f'<div class="nfl-game-card">'
                             f'<div class="card-top-bar">'
                             f'<span class="league-pill">NFL · SEMANA {semana}</span>'
-                            f'<span class="game-clock">{partido.get("hora", "TBD")} · {sim["tipo_estadio"]}</span>'
+                            f'<span class="game-clock">{partido.get("hora", "TBD")} · {sim["tipo_estadio"]} ({sim["pace_combinado"]:.1f}s/play)</span>'
                             f'</div>'
                             f'<div class="team-match-row">'
                             f'<div class="team-left">'
                             f'{logo_away_html}'
                             f'<div>'
                             f'<span class="team-abbr-txt">{away} · {NFL_FRANCHISE_NAMES.get(away, away)}</span>'
-                            f'<span class="team-qb-sub">QB: {sim["away_qb"]} · {sim["n_drives_equipo"]} drives (TD {sim["drive_td_pct_away"]:.0f}%)</span>'
+                            f'<span class="team-qb-sub">QB: {sim["away_qb"]} · {drives_away_card:.1f} drives (TD {sim["drive_td_pct_away"]:.0f}% · FG {sim["drive_fg_pct_away"]:.0f}%)</span>'
                             f'</div>'
                             f'</div>'
                             f'<div class="team-proj-pts">{sim["away_pts"]:.1f}</div>'
@@ -747,7 +750,7 @@ def render_vista_cartelera() -> None:
                             f'{logo_home_html}'
                             f'<div>'
                             f'<span class="team-abbr-txt">{home} · {NFL_FRANCHISE_NAMES.get(home, home)}</span>'
-                            f'<span class="team-qb-sub">QB: {sim["home_qb"]} · {sim["n_drives_equipo"]} drives (TD {sim["drive_td_pct_home"]:.0f}%)</span>'
+                            f'<span class="team-qb-sub">QB: {sim["home_qb"]} · {drives_home_card:.1f} drives (TD {sim["drive_td_pct_home"]:.0f}% · FG {sim["drive_fg_pct_home"]:.0f}%)</span>'
                             f'</div>'
                             f'</div>'
                             f'<div class="team-proj-pts">{sim["home_pts"]:.1f}</div>'
@@ -758,7 +761,7 @@ def render_vista_cartelera() -> None:
                             f'</div>'
                             f'<div class="quick-fair-sub">'
                             f'Cuota Justa ML: {away} <b>{sim["ml_away_decimal"]:.2f}</b> | {home} <b>{sim["ml_home_decimal"]:.2f}</b> · '
-                            f'Total Proy: <b>{sim["total_ou"]:.1f}</b>'
+                            f'Total Proy: <b>{sim["total_ou"]:.1f} pts</b> ({sim["drives_combinados"]:.1f} drives · HFA +{sim["hfa_pts"]:.2f})'
                             f'</div>'
                             f'</div>'
                             f'{tot_badge_html}'
@@ -1255,7 +1258,8 @@ def render_vista_detalle(partido: Dict[str, Any]) -> None:
             {
                 "Equipo": f"{away} ({sim['away_name']})",
                 "QB Titular": sim["away_qb"],
-                "Drives / Juego": sim["n_drives_equipo"],
+                "Drives / Juego": sim.get("drives_away", sim["n_drives_equipo"]),
+                "Pts / Drive": f"{sim['pts_por_drive_away']:.2f}",
                 "P(TD / Drive)": f"{sim['drive_td_pct_away']:.1f}%",
                 "P(FG / Drive)": f"{sim['drive_fg_pct_away']:.1f}%",
                 "P(Punt-TO / Drive)": f"{sim['drive_punt_pct_away']:.1f}%",
@@ -1270,7 +1274,8 @@ def render_vista_detalle(partido: Dict[str, Any]) -> None:
             {
                 "Equipo": f"{home} ({sim['home_name']})",
                 "QB Titular": sim["home_qb"],
-                "Drives / Juego": sim["n_drives_equipo"],
+                "Drives / Juego": sim.get("drives_home", sim["n_drives_equipo"]),
+                "Pts / Drive": f"{sim['pts_por_drive_home']:.2f}",
                 "P(TD / Drive)": f"{sim['drive_td_pct_home']:.1f}%",
                 "P(FG / Drive)": f"{sim['drive_fg_pct_home']:.1f}%",
                 "P(Punt-TO / Drive)": f"{sim['drive_punt_pct_home']:.1f}%",
