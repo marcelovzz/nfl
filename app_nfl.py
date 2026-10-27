@@ -17,7 +17,8 @@ Interfaz Principal de "TERMINAL SHARP: NFL QUANT"
 """
 
 import copy
-from typing import Any, Dict, List
+import os
+from typing import Any, Dict, List, Optional
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
@@ -329,13 +330,66 @@ def _render_logo_html(logo_str: str, abbr: str, size: int = 34) -> str:
 
 
 # ==============================================================================
+# FLUJO HÍBRIDO DE CARGA DE DATOS (REPOSITORIO LOCAL + UPLOADER OPCIONAL)
+# ==============================================================================
+NOMBRE_ARCHIVO_DEFECTO: str = "nfl_stats.xlsx"
+ARCHIVOS_RESPALDO_REPO: List[str] = [
+    "nfl_stats.xlsx",
+    "nfl_stats.csv",
+    "nfl_stats_completo.csv",
+]
+
+
+def cargar_datos_base(ruta_archivo: str = NOMBRE_ARCHIVO_DEFECTO) -> Optional[pd.DataFrame]:
+    """
+    Comprueba con os.path.exists() si el archivo predeterminado ('nfl_stats.xlsx'
+    o su equivalente '.csv') existe en el disco/repositorio y lo lee automáticamente.
+    Si no existe ningún archivo local en el repositorio, retorna None.
+    """
+    rutas_candidatas = [ruta_archivo] + [
+        r for r in ARCHIVOS_RESPALDO_REPO if r != ruta_archivo
+    ]
+    for ruta in rutas_candidatas:
+        if os.path.exists(ruta):
+            if str(ruta).lower().endswith(".csv"):
+                return pd.read_csv(ruta)
+            return pd.read_excel(ruta)
+    return None
+
+
+def _leer_archivo_subido(archivo_subido: Any) -> pd.DataFrame:
+    """Lee un archivo subido (.xlsx o .csv) desde st.file_uploader."""
+    nombre_archivo = str(getattr(archivo_subido, "name", "")).lower()
+    if nombre_archivo.endswith(".csv"):
+        return pd.read_csv(archivo_subido)
+    return pd.read_excel(archivo_subido)
+
+
+# ==============================================================================
 # INICIALIZACIÓN DE ESTADO EN ST.SESSION_STATE
 # ==============================================================================
 def inicializar_session_state() -> None:
-    if "nfl_stats" not in st.session_state:
-        st.session_state.nfl_stats = obtener_stats_nfl_default()
+    if "df_nfl" not in st.session_state:
+        df_base = cargar_datos_base(NOMBRE_ARCHIVO_DEFECTO)
+        st.session_state.df_nfl = df_base
+        if df_base is not None:
+            st.session_state.nfl_stats = validar_y_parsear_excel_nfl(df_base)
+            st.session_state.nfl_stats_source = (
+                f"Repositorio Local: {NOMBRE_ARCHIVO_DEFECTO} ({len(df_base)} eq.)"
+            )
+        else:
+            st.session_state.nfl_stats = None
+            st.session_state.nfl_stats_source = "Sin archivo base en el repositorio"
+    elif "nfl_stats" not in st.session_state:
+        if st.session_state.df_nfl is not None:
+            st.session_state.nfl_stats = validar_y_parsear_excel_nfl(st.session_state.df_nfl)
+        else:
+            st.session_state.nfl_stats = None
+
     if "nfl_stats_source" not in st.session_state:
-        st.session_state.nfl_stats_source = "Base Pre-Cargada (32 Franquicias NFL)"
+        st.session_state.nfl_stats_source = f"Repositorio Local: {NOMBRE_ARCHIVO_DEFECTO}"
+    if "ultimo_archivo_subido_id" not in st.session_state:
+        st.session_state.ultimo_archivo_subido_id = None
     if "semana_actual" not in st.session_state:
         st.session_state.semana_actual = 8
     if "odds_api_key" not in st.session_state:
@@ -425,6 +479,9 @@ def aplicar_calibracion_partido_en_estado(partido: Dict[str, Any]) -> Dict[str, 
     )
 
     st.session_state.nfl_stats = nuevo_dict
+    st.session_state.df_nfl = pd.DataFrame(
+        [v for k, v in nuevo_dict.items() if k not in ("LAR", "WSH")]
+    )
     st.session_state.partidos_calibrados.add(pid)
     st.session_state.nfl_stats_source = (
         f"Base Calibrada Kalman ({len(st.session_state.partidos_calibrados)} juegos auditados)"
@@ -477,43 +534,73 @@ def render_sidebar() -> None:
         st.markdown("### 🏈 TERMINAL SHARP: NFL QUANT")
         st.caption("Drives Dinámicos (9.4-12.6/Eq) · EV Continuo · Filtro Kalman")
 
-        st.markdown("#### 1. Base de Datos Excel (`.xlsx`)")
-        uploaded_xlsx = st.file_uploader(
-            "Subir métricas y QBs (`nfl_stats.xlsx`)",
-            type=["xlsx"],
+        st.markdown("#### 1. Base de Datos Híbrida (`.xlsx` / `.csv`)")
+        archivo_subido = st.file_uploader(
+            "Actualizar métricas (Opcional)",
+            type=["xlsx", "csv"],
             help=(
-                "Columnas requeridas: Team_Abbr, QB_Name, EPA_Pass_Off, EPA_Rush_Off, "
-                "EPA_Pass_Def, EPA_Rush_Def, Success_Rate_Off, Success_Rate_Def, Pace_Sec"
+                "Opcional: Si no subes ningún archivo, la app utiliza automáticamente "
+                f"'{NOMBRE_ARCHIVO_DEFECTO}' del repositorio. Columnas requeridas: "
+                "Team_Abbr, QB_Name, EPA_Pass_Off, EPA_Rush_Off, EPA_Pass_Def, "
+                "EPA_Rush_Def, Success_Rate_Off, Success_Rate_Def, Pace_Sec."
             ),
         )
 
-        if uploaded_xlsx is not None:
+        if archivo_subido is not None:
+            file_id = f"{archivo_subido.name}_{archivo_subido.size}"
             try:
-                df_up = pd.read_excel(uploaded_xlsx)
-                parsed_dict = validar_y_parsear_excel_nfl(df_up)
+                if str(archivo_subido.name).lower().endswith(".csv"):
+                    st.session_state.df_nfl = pd.read_csv(archivo_subido)
+                else:
+                    st.session_state.df_nfl = pd.read_excel(archivo_subido)
+
+                parsed_dict = validar_y_parsear_excel_nfl(st.session_state.df_nfl)
                 st.session_state.nfl_stats = parsed_dict
-                st.session_state.nfl_stats_source = f"Excel: {uploaded_xlsx.name} ({len(parsed_dict)} eq.)"
+                st.session_state.nfl_stats_source = (
+                    f"Archivo Subido: {archivo_subido.name} ({len(st.session_state.df_nfl)} eq.)"
+                )
+                if st.session_state.ultimo_archivo_subido_id != file_id:
+                    st.session_state.ultimo_archivo_subido_id = file_id
+                    st.session_state.simulaciones_cache = {}
+                    st.session_state.simulaciones_previas = {}
+                    st.session_state.partidos_calibrados = set()
+                st.success(f"Métricas actualizadas desde '{archivo_subido.name}'.")
+            except Exception as exc:
+                st.error(f"Error al leer o validar el archivo subido: {exc}")
+
+        if st.button("🔄 Restaurar archivo del repositorio", use_container_width=True):
+            df_repo = cargar_datos_base(NOMBRE_ARCHIVO_DEFECTO)
+            if df_repo is not None:
+                st.session_state.df_nfl = df_repo
+                st.session_state.nfl_stats = validar_y_parsear_excel_nfl(df_repo)
+                st.session_state.nfl_stats_source = (
+                    f"Repositorio Local: {NOMBRE_ARCHIVO_DEFECTO} ({len(df_repo)} eq.)"
+                )
+                st.session_state.ultimo_archivo_subido_id = None
                 st.session_state.simulaciones_cache = {}
                 st.session_state.simulaciones_previas = {}
                 st.session_state.partidos_calibrados = set()
-                st.success(f"Base actualizada ({len(parsed_dict)} franquicias).")
-            except Exception as exc:
-                st.error(f"Error al validar el Excel: {exc}")
+                st.session_state.historial_calibraciones = []
+                st.rerun()
+            else:
+                st.session_state.df_nfl = None
+                st.session_state.nfl_stats = None
+                st.rerun()
 
-        st.info(f"**Fuente activa:** {st.session_state.nfl_stats_source}")
-
-        excel_calibrado_bytes = generar_plantilla_excel_bytes(st.session_state.nfl_stats)
-        st.download_button(
-            label="📥 Descargar nfl_stats_calibrado.xlsx",
-            data=excel_calibrado_bytes,
-            file_name="nfl_stats_calibrado.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            use_container_width=True,
-            help=(
-                "Exporta en memoria (BytesIO) el diccionario st.session_state.nfl_stats con "
-                "los últimos ajustes de EPA y Pace_Sec para reutilizarlo la próxima semana."
-            ),
-        )
+        if st.session_state.get("df_nfl") is not None and st.session_state.get("nfl_stats") is not None:
+            st.info(f"**Fuente activa:** {st.session_state.nfl_stats_source}")
+            excel_calibrado_bytes = generar_plantilla_excel_bytes(st.session_state.nfl_stats)
+            st.download_button(
+                label="📥 Descargar nfl_stats_calibrado.xlsx",
+                data=excel_calibrado_bytes,
+                file_name="nfl_stats_calibrado.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                use_container_width=True,
+                help=(
+                    "Exporta en memoria (BytesIO) el diccionario st.session_state.nfl_stats con "
+                    "los últimos ajustes de EPA y Pace_Sec para reutilizarlo la próxima semana."
+                ),
+            )
 
         st.markdown("---")
         st.markdown("#### 2. Bucle Kalman (Auto-Corrección)")
@@ -536,8 +623,14 @@ def render_sidebar() -> None:
                 f"⚡ **{len(st.session_state.partidos_calibrados)} partido(s)** calibrados en la sesión actual."
             )
             if st.button("↩️ Restaurar Ratings Originales", use_container_width=True):
-                st.session_state.nfl_stats = obtener_stats_nfl_default()
-                st.session_state.nfl_stats_source = "Base Pre-Cargada (32 Franquicias NFL)"
+                df_orig = cargar_datos_base(NOMBRE_ARCHIVO_DEFECTO)
+                if df_orig is not None:
+                    st.session_state.df_nfl = df_orig
+                    st.session_state.nfl_stats = validar_y_parsear_excel_nfl(df_orig)
+                    st.session_state.nfl_stats_source = f"Repositorio Local: {NOMBRE_ARCHIVO_DEFECTO} ({len(df_orig)} eq.)"
+                else:
+                    st.session_state.nfl_stats = obtener_stats_nfl_default()
+                    st.session_state.nfl_stats_source = "Base Pre-Cargada (32 Franquicias NFL)"
                 st.session_state.simulaciones_cache = {}
                 st.session_state.simulaciones_previas = {}
                 st.session_state.partidos_calibrados = set()
@@ -601,7 +694,7 @@ def render_sidebar() -> None:
             df_preview = pd.DataFrame(
                 [
                     v
-                    for k, v in st.session_state.nfl_stats.items()
+                    for k, v in (st.session_state.get("nfl_stats") or {}).items()
                     if k not in ("LAR", "WSH")
                 ]
             )
@@ -1295,10 +1388,27 @@ def render_vista_detalle(partido: Dict[str, Any]) -> None:
 # ==============================================================================
 # PUNTO DE ENTRADA PRINCIPAL
 # ==============================================================================
+def verificar_datos_disponibles() -> None:
+    """
+    Control de errores: Si no existe el archivo local en el repositorio
+    y tampoco se ha subido ningún archivo mediante el uploader, detiene
+    la ejecución limpiamente con st.error(...) y st.stop().
+    """
+    if st.session_state.get("df_nfl") is None or st.session_state.get("nfl_stats") is None:
+        st.error(
+            f"🚨 Error Crítico de Datos: No se encontró el archivo base '{NOMBRE_ARCHIVO_DEFECTO}' "
+            "en la raíz del repositorio y tampoco se ha cargado ningún archivo en la barra lateral. "
+            "Por favor, sube un archivo '.xlsx' o '.csv' en 'Actualizar métricas (Opcional)' "
+            f"o agrega '{NOMBRE_ARCHIVO_DEFECTO}' a tu repositorio en GitHub."
+        )
+        st.stop()
+
+
 def main() -> None:
     inyectar_estilos_css()
     inicializar_session_state()
     render_sidebar()
+    verificar_datos_disponibles()
 
     if st.session_state.partido_seleccionado is None:
         render_vista_cartelera()
