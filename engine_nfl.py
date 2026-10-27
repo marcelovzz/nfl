@@ -98,38 +98,38 @@ NEUTRAL_DRIVES_PER_TEAM: float = 11.00
 TARGET_PTS_PER_DRIVE: float = 2.00
 
 DEFAULT_NFL_STATS_ROWS: List[Dict[str, Any]] = [
-    {"Team_Abbr": "KC",  "QB_Name": "P. Mahomes",       "EPA_Pass_Off": 0.195, "EPA_Rush_Off": 0.015, "EPA_Pass_Def": -0.065, "EPA_Rush_Def": -0.040, "Success_Rate_Off": 0.505, "Success_Rate_Def": 0.415, "Pace_Sec": 26.8},
-    {"Team_Abbr": "SF",  "QB_Name": "B. Purdy",         "EPA_Pass_Off": 0.210, "EPA_Rush_Off": 0.065, "EPA_Pass_Def": -0.070, "EPA_Rush_Def": -0.055, "Success_Rate_Off": 0.515, "Success_Rate_Def": 0.410, "Pace_Sec": 28.4},
-    {"Team_Abbr": "BUF", "QB_Name": "J. Allen",         "EPA_Pass_Off": 0.180, "EPA_Rush_Off": 0.045, "EPA_Pass_Def": -0.040, "EPA_Rush_Def": -0.025, "Success_Rate_Off": 0.498, "Success_Rate_Def": 0.430, "Pace_Sec": 26.2},
-    {"Team_Abbr": "BAL", "QB_Name": "L. Jackson",       "EPA_Pass_Off": 0.165, "EPA_Rush_Off": 0.095, "EPA_Pass_Def": -0.085, "EPA_Rush_Def": -0.060, "Success_Rate_Off": 0.502, "Success_Rate_Def": 0.405, "Pace_Sec": 28.3},
-    {"Team_Abbr": "DET", "QB_Name": "J. Goff",          "EPA_Pass_Off": 0.175, "EPA_Rush_Off": 0.055, "EPA_Pass_Def": -0.020, "EPA_Rush_Def": -0.050, "Success_Rate_Off": 0.508, "Success_Rate_Def": 0.435, "Pace_Sec": 26.5},
-    {"Team_Abbr": "PHI", "QB_Name": "J. Hurts",         "EPA_Pass_Off": 0.145, "EPA_Rush_Off": 0.075, "EPA_Pass_Def": -0.035, "EPA_Rush_Def": -0.045, "Success_Rate_Off": 0.492, "Success_Rate_Def": 0.428, "Pace_Sec": 26.6},
-    {"Team_Abbr": "DAL", "QB_Name": "D. Prescott",      "EPA_Pass_Off": 0.150, "EPA_Rush_Off": -0.010, "EPA_Pass_Def": -0.030, "EPA_Rush_Def": 0.010, "Success_Rate_Off": 0.485, "Success_Rate_Def": 0.440, "Pace_Sec": 25.8},
-    {"Team_Abbr": "CIN", "QB_Name": "J. Burrow",        "EPA_Pass_Off": 0.170, "EPA_Rush_Off": -0.015, "EPA_Pass_Def": 0.010,  "EPA_Rush_Def": 0.005, "Success_Rate_Off": 0.490, "Success_Rate_Def": 0.452, "Pace_Sec": 26.4},
-    {"Team_Abbr": "HOU", "QB_Name": "C. Stroud",        "EPA_Pass_Off": 0.155, "EPA_Rush_Off": -0.005, "EPA_Pass_Def": -0.035, "EPA_Rush_Def": -0.030, "Success_Rate_Off": 0.482, "Success_Rate_Def": 0.432, "Pace_Sec": 26.9},
-    {"Team_Abbr": "GB",  "QB_Name": "J. Love",          "EPA_Pass_Off": 0.160, "EPA_Rush_Off": 0.025, "EPA_Pass_Def": -0.015, "EPA_Rush_Def": 0.010, "Success_Rate_Off": 0.488, "Success_Rate_Def": 0.445, "Pace_Sec": 27.2},
-    {"Team_Abbr": "MIA", "QB_Name": "T. Tagovailoa",    "EPA_Pass_Off": 0.165, "EPA_Rush_Off": 0.035, "EPA_Pass_Def": -0.010, "EPA_Rush_Def": -0.015, "Success_Rate_Off": 0.494, "Success_Rate_Def": 0.442, "Pace_Sec": 25.7},
-    {"Team_Abbr": "LA",  "QB_Name": "M. Stafford",      "EPA_Pass_Off": 0.135, "EPA_Rush_Off": 0.020, "EPA_Pass_Def": 0.015,  "EPA_Rush_Def": 0.005, "Success_Rate_Off": 0.480, "Success_Rate_Def": 0.450, "Pace_Sec": 27.0},
-    {"Team_Abbr": "MIN", "QB_Name": "S. Darnold",       "EPA_Pass_Off": 0.115, "EPA_Rush_Off": -0.010, "EPA_Pass_Def": -0.045, "EPA_Rush_Def": -0.030, "Success_Rate_Off": 0.472, "Success_Rate_Def": 0.425, "Pace_Sec": 26.4},
-    {"Team_Abbr": "NYJ", "QB_Name": "A. Rodgers",       "EPA_Pass_Off": 0.085, "EPA_Rush_Off": -0.015, "EPA_Pass_Def": -0.080, "EPA_Rush_Def": -0.045, "Success_Rate_Off": 0.455, "Success_Rate_Def": 0.408, "Pace_Sec": 28.5},
-    {"Team_Abbr": "CLE", "QB_Name": "J. Winston",       "EPA_Pass_Off": 0.040, "EPA_Rush_Off": -0.020, "EPA_Pass_Def": -0.075, "EPA_Rush_Def": -0.050, "Success_Rate_Off": 0.442, "Success_Rate_Def": 0.412, "Pace_Sec": 28.2},
-    {"Team_Abbr": "PIT", "QB_Name": "R. Wilson",        "EPA_Pass_Off": 0.075, "EPA_Rush_Off": 0.015, "EPA_Pass_Def": -0.065, "EPA_Rush_Def": -0.040, "Success_Rate_Off": 0.458, "Success_Rate_Def": 0.418, "Pace_Sec": 28.4},
-    {"Team_Abbr": "ATL", "QB_Name": "K. Cousins",       "EPA_Pass_Off": 0.110, "EPA_Rush_Off": 0.020, "EPA_Pass_Def": 0.010,  "EPA_Rush_Def": 0.005, "Success_Rate_Off": 0.475, "Success_Rate_Def": 0.448, "Pace_Sec": 26.3},
-    {"Team_Abbr": "CHI", "QB_Name": "C. Williams",      "EPA_Pass_Off": 0.055, "EPA_Rush_Off": 0.005, "EPA_Pass_Def": -0.040, "EPA_Rush_Def": -0.035, "Success_Rate_Off": 0.452, "Success_Rate_Def": 0.428, "Pace_Sec": 27.4},
-    {"Team_Abbr": "JAX", "QB_Name": "T. Lawrence",      "EPA_Pass_Off": 0.080, "EPA_Rush_Off": -0.010, "EPA_Pass_Def": 0.025,  "EPA_Rush_Def": 0.010, "Success_Rate_Off": 0.464, "Success_Rate_Def": 0.458, "Pace_Sec": 26.8},
-    {"Team_Abbr": "IND", "QB_Name": "A. Richardson",    "EPA_Pass_Off": 0.065, "EPA_Rush_Off": 0.040, "EPA_Pass_Def": 0.020,  "EPA_Rush_Def": 0.015, "Success_Rate_Off": 0.460, "Success_Rate_Def": 0.455, "Pace_Sec": 26.1},
-    {"Team_Abbr": "SEA", "QB_Name": "G. Smith",         "EPA_Pass_Off": 0.095, "EPA_Rush_Off": 0.005, "EPA_Pass_Def": 0.015,  "EPA_Rush_Def": 0.020, "Success_Rate_Off": 0.470, "Success_Rate_Def": 0.456, "Pace_Sec": 26.5},
-    {"Team_Abbr": "TB",  "QB_Name": "B. Mayfield",      "EPA_Pass_Off": 0.125, "EPA_Rush_Off": -0.005, "EPA_Pass_Def": 0.010,  "EPA_Rush_Def": -0.020, "Success_Rate_Off": 0.478, "Success_Rate_Def": 0.445, "Pace_Sec": 26.6},
-    {"Team_Abbr": "WAS", "QB_Name": "J. Daniels",       "EPA_Pass_Off": 0.140, "EPA_Rush_Off": 0.060, "EPA_Pass_Def": 0.035,  "EPA_Rush_Def": 0.025, "Success_Rate_Off": 0.488, "Success_Rate_Def": 0.465, "Pace_Sec": 26.0},
-    {"Team_Abbr": "ARI", "QB_Name": "K. Murray",        "EPA_Pass_Off": 0.090, "EPA_Rush_Off": 0.045, "EPA_Pass_Def": 0.045,  "EPA_Rush_Def": 0.035, "Success_Rate_Off": 0.468, "Success_Rate_Def": 0.472, "Pace_Sec": 26.4},
-    {"Team_Abbr": "LAC", "QB_Name": "J. Herbert",       "EPA_Pass_Off": 0.120, "EPA_Rush_Off": 0.015, "EPA_Pass_Def": -0.030, "EPA_Rush_Def": -0.025, "Success_Rate_Off": 0.474, "Success_Rate_Def": 0.432, "Pace_Sec": 28.0},
-    {"Team_Abbr": "NO",  "QB_Name": "D. Carr",          "EPA_Pass_Off": 0.070, "EPA_Rush_Off": -0.010, "EPA_Pass_Def": -0.025, "EPA_Rush_Def": -0.015, "Success_Rate_Off": 0.456, "Success_Rate_Def": 0.436, "Pace_Sec": 27.1},
-    {"Team_Abbr": "LV",  "QB_Name": "G. Minshew",       "EPA_Pass_Off": -0.015,"EPA_Rush_Off": -0.030, "EPA_Pass_Def": 0.005,  "EPA_Rush_Def": 0.010, "Success_Rate_Off": 0.432, "Success_Rate_Def": 0.448, "Pace_Sec": 27.6},
-    {"Team_Abbr": "DEN", "QB_Name": "B. Nix",           "EPA_Pass_Off": 0.045, "EPA_Rush_Off": 0.010, "EPA_Pass_Def": -0.055, "EPA_Rush_Def": -0.030, "Success_Rate_Off": 0.448, "Success_Rate_Def": 0.422, "Pace_Sec": 27.8},
-    {"Team_Abbr": "TEN", "QB_Name": "W. Levis",         "EPA_Pass_Off": -0.025,"EPA_Rush_Off": -0.015, "EPA_Pass_Def": 0.015,  "EPA_Rush_Def": -0.010, "Success_Rate_Off": 0.428, "Success_Rate_Def": 0.446, "Pace_Sec": 28.4},
-    {"Team_Abbr": "NE",  "QB_Name": "D. Maye",          "EPA_Pass_Off": -0.010,"EPA_Rush_Off": -0.020, "EPA_Pass_Def": 0.010,  "EPA_Rush_Def": -0.015, "Success_Rate_Off": 0.435, "Success_Rate_Def": 0.442, "Pace_Sec": 28.6},
-    {"Team_Abbr": "NYG", "QB_Name": "D. Jones",         "EPA_Pass_Off": -0.035,"EPA_Rush_Off": -0.025, "EPA_Pass_Def": 0.025,  "EPA_Rush_Def": 0.020, "Success_Rate_Off": 0.425, "Success_Rate_Def": 0.458, "Pace_Sec": 28.1},
-    {"Team_Abbr": "CAR", "QB_Name": "B. Young",         "EPA_Pass_Off": -0.055,"EPA_Rush_Off": -0.030, "EPA_Pass_Def": 0.050,  "EPA_Rush_Def": 0.040, "Success_Rate_Off": 0.415, "Success_Rate_Def": 0.475, "Pace_Sec": 28.5},
+    {"Team_Abbr": "KC",  "QB_Name": "P. Mahomes",       "EPA_Pass_Off": 0.195, "EPA_Rush_Off": 0.015, "EPA_Pass_Def": -0.065, "EPA_Rush_Def": -0.040, "Success_Rate_Off": 0.505, "Success_Rate_Def": 0.415, "Pace_Sec": 28.0, "Drives_Game": 10.8},
+    {"Team_Abbr": "SF",  "QB_Name": "B. Purdy",         "EPA_Pass_Off": 0.210, "EPA_Rush_Off": 0.065, "EPA_Pass_Def": -0.070, "EPA_Rush_Def": -0.055, "Success_Rate_Off": 0.515, "Success_Rate_Def": 0.410, "Pace_Sec": 29.1, "Drives_Game": 10.4},
+    {"Team_Abbr": "BUF", "QB_Name": "J. Allen",         "EPA_Pass_Off": 0.180, "EPA_Rush_Off": 0.045, "EPA_Pass_Def": -0.040, "EPA_Rush_Def": -0.025, "Success_Rate_Off": 0.498, "Success_Rate_Def": 0.430, "Pace_Sec": 27.3, "Drives_Game": 11.2},
+    {"Team_Abbr": "BAL", "QB_Name": "L. Jackson",       "EPA_Pass_Off": 0.165, "EPA_Rush_Off": 0.095, "EPA_Pass_Def": -0.085, "EPA_Rush_Def": -0.060, "Success_Rate_Off": 0.502, "Success_Rate_Def": 0.405, "Pace_Sec": 29.0, "Drives_Game": 10.3},
+    {"Team_Abbr": "DET", "QB_Name": "J. Goff",          "EPA_Pass_Off": 0.175, "EPA_Rush_Off": 0.055, "EPA_Pass_Def": -0.020, "EPA_Rush_Def": -0.050, "Success_Rate_Off": 0.508, "Success_Rate_Def": 0.435, "Pace_Sec": 27.4, "Drives_Game": 11.3},
+    {"Team_Abbr": "PHI", "QB_Name": "J. Hurts",         "EPA_Pass_Off": 0.145, "EPA_Rush_Off": 0.075, "EPA_Pass_Def": -0.035, "EPA_Rush_Def": -0.045, "Success_Rate_Off": 0.492, "Success_Rate_Def": 0.428, "Pace_Sec": 27.6, "Drives_Game": 11.0},
+    {"Team_Abbr": "DAL", "QB_Name": "D. Prescott",      "EPA_Pass_Off": 0.150, "EPA_Rush_Off": -0.010, "EPA_Pass_Def": -0.030, "EPA_Rush_Def": 0.010, "Success_Rate_Off": 0.485, "Success_Rate_Def": 0.440, "Pace_Sec": 26.8, "Drives_Game": 11.5},
+    {"Team_Abbr": "CIN", "QB_Name": "J. Burrow",        "EPA_Pass_Off": 0.170, "EPA_Rush_Off": -0.015, "EPA_Pass_Def": 0.010,  "EPA_Rush_Def": 0.005, "Success_Rate_Off": 0.490, "Success_Rate_Def": 0.452, "Pace_Sec": 27.5, "Drives_Game": 11.1},
+    {"Team_Abbr": "HOU", "QB_Name": "C. Stroud",        "EPA_Pass_Off": 0.155, "EPA_Rush_Off": -0.005, "EPA_Pass_Def": -0.035, "EPA_Rush_Def": -0.030, "Success_Rate_Off": 0.482, "Success_Rate_Def": 0.432, "Pace_Sec": 27.8, "Drives_Game": 11.1},
+    {"Team_Abbr": "GB",  "QB_Name": "J. Love",          "EPA_Pass_Off": 0.160, "EPA_Rush_Off": 0.025, "EPA_Pass_Def": -0.015, "EPA_Rush_Def": 0.010, "Success_Rate_Off": 0.488, "Success_Rate_Def": 0.445, "Pace_Sec": 28.1, "Drives_Game": 10.9},
+    {"Team_Abbr": "MIA", "QB_Name": "T. Tagovailoa",    "EPA_Pass_Off": 0.165, "EPA_Rush_Off": 0.035, "EPA_Pass_Def": -0.010, "EPA_Rush_Def": -0.015, "Success_Rate_Off": 0.494, "Success_Rate_Def": 0.442, "Pace_Sec": 26.7, "Drives_Game": 11.5},
+    {"Team_Abbr": "LA",  "QB_Name": "M. Stafford",      "EPA_Pass_Off": 0.135, "EPA_Rush_Off": 0.020, "EPA_Pass_Def": 0.015,  "EPA_Rush_Def": 0.005, "Success_Rate_Off": 0.480, "Success_Rate_Def": 0.450, "Pace_Sec": 27.9, "Drives_Game": 10.9},
+    {"Team_Abbr": "MIN", "QB_Name": "S. Darnold",       "EPA_Pass_Off": 0.115, "EPA_Rush_Off": -0.010, "EPA_Pass_Def": -0.045, "EPA_Rush_Def": -0.030, "Success_Rate_Off": 0.472, "Success_Rate_Def": 0.425, "Pace_Sec": 27.4, "Drives_Game": 11.3},
+    {"Team_Abbr": "NYJ", "QB_Name": "A. Rodgers",       "EPA_Pass_Off": 0.085, "EPA_Rush_Off": -0.015, "EPA_Pass_Def": -0.080, "EPA_Rush_Def": -0.045, "Success_Rate_Off": 0.455, "Success_Rate_Def": 0.408, "Pace_Sec": 29.3, "Drives_Game": 10.3},
+    {"Team_Abbr": "CLE", "QB_Name": "J. Winston",       "EPA_Pass_Off": 0.040, "EPA_Rush_Off": -0.020, "EPA_Pass_Def": -0.075, "EPA_Rush_Def": -0.050, "Success_Rate_Off": 0.442, "Success_Rate_Def": 0.412, "Pace_Sec": 29.0, "Drives_Game": 10.4},
+    {"Team_Abbr": "PIT", "QB_Name": "R. Wilson",        "EPA_Pass_Off": 0.075, "EPA_Rush_Off": 0.015, "EPA_Pass_Def": -0.065, "EPA_Rush_Def": -0.040, "Success_Rate_Off": 0.458, "Success_Rate_Def": 0.418, "Pace_Sec": 29.2, "Drives_Game": 10.3},
+    {"Team_Abbr": "ATL", "QB_Name": "K. Cousins",       "EPA_Pass_Off": 0.110, "EPA_Rush_Off": 0.020, "EPA_Pass_Def": 0.010,  "EPA_Rush_Def": 0.005, "Success_Rate_Off": 0.475, "Success_Rate_Def": 0.448, "Pace_Sec": 27.3, "Drives_Game": 11.2},
+    {"Team_Abbr": "CHI", "QB_Name": "C. Williams",      "EPA_Pass_Off": 0.055, "EPA_Rush_Off": 0.005, "EPA_Pass_Def": -0.040, "EPA_Rush_Def": -0.035, "Success_Rate_Off": 0.452, "Success_Rate_Def": 0.428, "Pace_Sec": 28.3, "Drives_Game": 10.8},
+    {"Team_Abbr": "JAX", "QB_Name": "T. Lawrence",      "EPA_Pass_Off": 0.080, "EPA_Rush_Off": -0.010, "EPA_Pass_Def": 0.025,  "EPA_Rush_Def": 0.010, "Success_Rate_Off": 0.464, "Success_Rate_Def": 0.458, "Pace_Sec": 27.8, "Drives_Game": 11.0},
+    {"Team_Abbr": "IND", "QB_Name": "A. Richardson",    "EPA_Pass_Off": 0.065, "EPA_Rush_Off": 0.040, "EPA_Pass_Def": 0.020,  "EPA_Rush_Def": 0.015, "Success_Rate_Off": 0.460, "Success_Rate_Def": 0.455, "Pace_Sec": 27.1, "Drives_Game": 11.4},
+    {"Team_Abbr": "SEA", "QB_Name": "G. Smith",         "EPA_Pass_Off": 0.095, "EPA_Rush_Off": 0.005, "EPA_Pass_Def": 0.015,  "EPA_Rush_Def": 0.020, "Success_Rate_Off": 0.470, "Success_Rate_Def": 0.456, "Pace_Sec": 27.6, "Drives_Game": 11.1},
+    {"Team_Abbr": "TB",  "QB_Name": "B. Mayfield",      "EPA_Pass_Off": 0.125, "EPA_Rush_Off": -0.005, "EPA_Pass_Def": 0.010,  "EPA_Rush_Def": -0.020, "Success_Rate_Off": 0.478, "Success_Rate_Def": 0.445, "Pace_Sec": 27.7, "Drives_Game": 11.0},
+    {"Team_Abbr": "WAS", "QB_Name": "J. Daniels",       "EPA_Pass_Off": 0.140, "EPA_Rush_Off": 0.060, "EPA_Pass_Def": 0.035,  "EPA_Rush_Def": 0.025, "Success_Rate_Off": 0.488, "Success_Rate_Def": 0.465, "Pace_Sec": 27.1, "Drives_Game": 11.2},
+    {"Team_Abbr": "ARI", "QB_Name": "K. Murray",        "EPA_Pass_Off": 0.090, "EPA_Rush_Off": 0.045, "EPA_Pass_Def": 0.045,  "EPA_Rush_Def": 0.035, "Success_Rate_Off": 0.468, "Success_Rate_Def": 0.472, "Pace_Sec": 27.5, "Drives_Game": 11.0},
+    {"Team_Abbr": "LAC", "QB_Name": "J. Herbert",       "EPA_Pass_Off": 0.120, "EPA_Rush_Off": 0.015, "EPA_Pass_Def": -0.030, "EPA_Rush_Def": -0.025, "Success_Rate_Off": 0.474, "Success_Rate_Def": 0.432, "Pace_Sec": 28.8, "Drives_Game": 10.5},
+    {"Team_Abbr": "NO",  "QB_Name": "D. Carr",          "EPA_Pass_Off": 0.070, "EPA_Rush_Off": -0.010, "EPA_Pass_Def": -0.025, "EPA_Rush_Def": -0.015, "Success_Rate_Off": 0.456, "Success_Rate_Def": 0.436, "Pace_Sec": 28.0, "Drives_Game": 11.0},
+    {"Team_Abbr": "LV",  "QB_Name": "G. Minshew",       "EPA_Pass_Off": -0.015,"EPA_Rush_Off": -0.030, "EPA_Pass_Def": 0.005,  "EPA_Rush_Def": 0.010, "Success_Rate_Off": 0.432, "Success_Rate_Def": 0.448, "Pace_Sec": 28.4, "Drives_Game": 10.7},
+    {"Team_Abbr": "DEN", "QB_Name": "B. Nix",           "EPA_Pass_Off": 0.045, "EPA_Rush_Off": 0.010, "EPA_Pass_Def": -0.055, "EPA_Rush_Def": -0.030, "Success_Rate_Off": 0.448, "Success_Rate_Def": 0.422, "Pace_Sec": 28.6, "Drives_Game": 10.6},
+    {"Team_Abbr": "TEN", "QB_Name": "W. Levis",         "EPA_Pass_Off": -0.025,"EPA_Rush_Off": -0.015, "EPA_Pass_Def": 0.015,  "EPA_Rush_Def": -0.010, "Success_Rate_Off": 0.428, "Success_Rate_Def": 0.446, "Pace_Sec": 29.2, "Drives_Game": 10.3},
+    {"Team_Abbr": "NE",  "QB_Name": "D. Maye",          "EPA_Pass_Off": -0.010,"EPA_Rush_Off": -0.020, "EPA_Pass_Def": 0.010,  "EPA_Rush_Def": -0.015, "Success_Rate_Off": 0.435, "Success_Rate_Def": 0.442, "Pace_Sec": 29.4, "Drives_Game": 10.2},
+    {"Team_Abbr": "NYG", "QB_Name": "D. Jones",         "EPA_Pass_Off": -0.035,"EPA_Rush_Off": -0.025, "EPA_Pass_Def": 0.025,  "EPA_Rush_Def": 0.020, "Success_Rate_Off": 0.425, "Success_Rate_Def": 0.458, "Pace_Sec": 28.9, "Drives_Game": 10.4},
+    {"Team_Abbr": "CAR", "QB_Name": "B. Young",         "EPA_Pass_Off": -0.055,"EPA_Rush_Off": -0.030, "EPA_Pass_Def": 0.050,  "EPA_Rush_Def": 0.040, "Success_Rate_Off": 0.415, "Success_Rate_Def": 0.475, "Pace_Sec": 29.3, "Drives_Game": 10.3},
 ]
 
 
@@ -462,6 +462,11 @@ def validar_y_parsear_excel_nfl(df_excel: pd.DataFrame) -> Dict[str, Dict[str, A
             "Success_Rate_Off": _normalizar_tasa(float(row["Success_Rate_Off"])),
             "Success_Rate_Def": _normalizar_tasa(float(row["Success_Rate_Def"])),
             "Pace_Sec": float(np.clip(float(row["Pace_Sec"]), 22.0, 34.0)),
+            "Drives_Game": (
+                float(np.clip(float(row["Drives_Game"]), 8.5, 13.5))
+                if "Drives_Game" in row and pd.notna(row["Drives_Game"])
+                else 10.9
+            ),
         }
         stats_dict[std_abbr] = entry
         if std_abbr == "LA":
@@ -490,7 +495,9 @@ def generar_plantilla_excel_bytes(nfl_stats_dict: Dict[str, Dict[str, Any]]) -> 
         if std_abbr in vistos:
             continue
         vistos.add(std_abbr)
-        filas.append({col: data[col] for col in REQUIRED_EXCEL_COLUMNS})
+        fila_item = {col: data[col] for col in REQUIRED_EXCEL_COLUMNS}
+        fila_item["Drives_Game"] = round(float(data.get("Drives_Game", 10.9)), 2)
+        filas.append(fila_item)
     df_export = pd.DataFrame(filas)
     buffer = io.BytesIO()
     with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
@@ -532,130 +539,40 @@ def _calcular_medias_liga(nfl_stats_dict: Dict[str, Dict[str, Any]]) -> Dict[str
 
 
 # ==============================================================================
-# 1. MODELADO DINÁMICO DE DRIVES POR CRUCE DE RITMO (PACE) Y TERCEROS DOWNS
+# 1. FÓRMULA DE POSESIONES SIMÉTRICAS POR PARTIDO (PACE_SEC + DRIVES_GAME)
 # ==============================================================================
-def calcular_drives_dinamicos_nfl(
+def calcular_drives_partido(
     away_st: Dict[str, Any],
     home_st: Dict[str, Any],
-    es_domo: bool = False,
-    viento_mph: float = 5.0,
-    medias_liga: Optional[Dict[str, float]] = None,
 ) -> Dict[str, Any]:
     """
-    Calcula empíricamente el volumen de posesiones (drives) y jugadas totales
-    del enfrentamiento combinando:
-      1) 'Pace_Sec' de cada equipo:
-         pace_combinado = (pace_home + pace_away) / 2.0
-      2) Tiempo de juego detenido por pases incompletos y salidas fuera del campo
-         (estimado a partir de la vocación aérea relativa EPA_Pass vs EPA_Rush y Domo).
-      3) Duración media de las series (jugadas por drive) cruzando 'Success_Rate_Off'
-         de cada ataque contra el 'Success_Rate_Def' rival (eficiencia en 3er down).
-    Rangos objetivo calibrados:
-      - Enfrentamientos lentos y terrestres: ~9.4 a 10.2 drives por equipo.
-      - Enfrentamientos de ritmo medio: ~10.6 a 11.4 drives por equipo.
-      - Enfrentamientos aéreos acelerados en domo: ~11.8 a 12.6 drives por equipo.
+    Calcula un número de posesiones idéntico y simétrico ('drives_por_bando')
+    para ambos rivales en cada partido cruzando 'Pace_Sec' y 'Drives_Game'
+    de ambos equipos frente a la media de ritmo de la liga (28.2s):
+      - pace_partido = (pace_home + pace_away) / 2.0
+      - drives_promedio_cruce = (drives_home + drives_away) / 2.0
+      - factor_ritmo = 28.2 / pace_partido
+      - drives_por_bando = round(drives_promedio_cruce * factor_ritmo, 1)
     """
-    m = medias_liga or {
-        "pass_off": 0.0,
-        "rush_off": 0.0,
-        "pass_def": 0.0,
-        "rush_def": 0.0,
-        "sr_off": 0.468,
-        "sr_def": 0.440,
-        "pace_sec": 27.2,
-        "pace_std": 0.85,
-    }
+    pace_away = float(away_st.get("Pace_Sec", 28.2))
+    pace_home = float(home_st.get("Pace_Sec", 28.2))
 
-    pace_away = float(away_st.get("Pace_Sec", 27.2))
-    pace_home = float(home_st.get("Pace_Sec", 27.2))
-    pace_combinado = (pace_home + pace_away) / 2.0
+    drives_away = float(away_st.get("Drives_Game", 10.9))
+    drives_home = float(home_st.get("Drives_Game", 10.9))
 
-    # Velocidad relativa respecto a la media de la liga (positivo = más rápido que el promedio)
-    pace_ref = float(m.get("pace_sec", 27.2))
-    pace_std = max(0.50, float(m.get("pace_std", 0.85)))
-    z_velocidad_combinada = (pace_ref - pace_combinado) / pace_std
-    z_velocidad_away = (pace_ref - pace_away) / pace_std
-    z_velocidad_home = (pace_ref - pace_home) / pace_std
+    pace_partido = (pace_home + pace_away) / 2.0
+    drives_promedio_cruce = (drives_home + drives_away) / 2.0
 
-    # Vocación aérea vs terrestre (determina reloj detenido por incompletos y bandas)
-    pass_lean_away = (float(away_st.get("EPA_Pass_Off", 0.0)) - m["pass_off"]) - (
-        float(away_st.get("EPA_Rush_Off", 0.0)) - m["rush_off"]
-    )
-    pass_lean_home = (float(home_st.get("EPA_Pass_Off", 0.0)) - m["pass_off"]) - (
-        float(home_st.get("EPA_Rush_Off", 0.0)) - m["rush_off"]
-    )
-    pass_lean_comb = float(np.clip((pass_lean_away + pass_lean_home) / 2.0, -0.16, 0.16))
+    factor_ritmo = 28.2 / max(22.0, pace_partido)
+    drives_por_bando = round(drives_promedio_cruce * factor_ritmo, 1)
+    drives_por_bando = float(np.clip(drives_por_bando, 9.2, 13.0))
 
-    # Cruce de Success_Rate_Off vs Success_Rate_Def rival (sostenimiento de series y 3er down)
-    sr_off_away = _normalizar_tasa(float(away_st.get("Success_Rate_Off", 0.468)))
-    sr_def_away = _normalizar_tasa(float(away_st.get("Success_Rate_Def", 0.440)))
-    sr_off_home = _normalizar_tasa(float(home_st.get("Success_Rate_Off", 0.468)))
-    sr_def_home = _normalizar_tasa(float(home_st.get("Success_Rate_Def", 0.440)))
+    snaps_por_equipo = round(drives_por_bando * 5.75, 1)
+    jugadas_totales = round(snaps_por_equipo * 2.0, 1)
 
-    chain_move_away = (sr_off_away - m["sr_off"]) + (sr_def_home - m["sr_def"])
-    chain_move_home = (sr_off_home - m["sr_off"]) + (sr_def_away - m["sr_def"])
-    chain_move_comb = (chain_move_away + chain_move_home) / 2.0
-
-    # Segundos efectivos de reloj consumidos por jugada (descontando detenciones por incompletos y bandas)
-    reloj_detenido_bonus = (
-        (1.45 * z_velocidad_combinada)
-        + (6.0 * pass_lean_comb)
-        + (0.85 if es_domo else -0.15)
-        - (0.65 if (not es_domo and viento_mph > 14.0) else 0.0)
-    )
-    seg_efectivos_por_jugada = float(np.clip(28.5 - reloj_detenido_bonus, 24.6, 31.8))
-    jugadas_totales_estimadas = 3600.0 / seg_efectivos_por_jugada
-
-    # Duración media de cada serie (jugadas por drive):
-    # - Ataques terrestres y de alto Success Rate sostienen series largas (~6.0 - 6.45 snaps/drive),
-    #   consumiendo el reloj y reduciendo las posesiones a ~9.4 - 10.2 drives/equipo.
-    # - Ataques aéreos rápidos en domo tienen series de ~5.30 - 5.60 snaps/drive,
-    #   elevando las posesiones a ~11.8 - 12.6 drives/equipo.
-    jugadas_por_drive_away = float(
-        np.clip(
-            5.86
-            + (chain_move_away * 4.2)
-            - (pass_lean_away * 1.65)
-            - (0.16 if es_domo else 0.0)
-            + (0.14 if (not es_domo and viento_mph > 14.0) else 0.0),
-            5.20,
-            6.50,
-        )
-    )
-    jugadas_por_drive_home = float(
-        np.clip(
-            5.86
-            + (chain_move_home * 4.2)
-            - (pass_lean_home * 1.65)
-            - (0.16 if es_domo else 0.0)
-            + (0.14 if (not es_domo and viento_mph > 14.0) else 0.0),
-            5.20,
-            6.50,
-        )
-    )
-    jugadas_por_drive_medio = (jugadas_por_drive_away + jugadas_por_drive_home) / 2.0
-
-    # Drives base del encuentro derivados de jugadas totales y duración de serie
-    drives_base_partido = (jugadas_totales_estimadas / 2.0) / jugadas_por_drive_medio
-
-    # Ajuste estructural por régimen de ritmo (Lento Terrestre ~9.4-10.2 / Medio ~10.6-11.4 / Aéreo Domo ~11.8-12.6)
-    domo_boost = 0.58 if es_domo else -0.10
-    clima_drag = -0.40 if (not es_domo and viento_mph > 14.0) else 0.0
-    ajuste_ritmo = (0.78 * z_velocidad_combinada) + (3.1 * pass_lean_comb) + domo_boost + clima_drag
-
-    drives_centro = 0.58 * (10.85 + ajuste_ritmo) + 0.42 * drives_base_partido
-
-    # Diferenciación individual por equipo según el ritmo propio de cada QB y su eficiencia de serie
-    diff_individual_away = 0.22 * (z_velocidad_away - z_velocidad_home) + 0.95 * (chain_move_away - chain_move_home)
-    diff_individual_home = -diff_individual_away
-
-    drives_away = float(np.clip(drives_centro + diff_individual_away, 9.4, 12.6))
-    drives_home = float(np.clip(drives_centro + diff_individual_home, 9.4, 12.6))
-    drives_promedio_equipo = round((drives_away + drives_home) / 2.0, 2)
-
-    if drives_promedio_equipo >= 11.65:
+    if drives_por_bando >= 11.6:
         ritmo_tag = "⚡ Ritmo Acelerado / Shootout"
-    elif drives_promedio_equipo <= 10.35:
+    elif drives_por_bando <= 10.3:
         ritmo_tag = "🛡️ Ritmo Lento / Trincheras"
     else:
         ritmo_tag = "⚖️ Ritmo Medio NFL"
@@ -663,21 +580,38 @@ def calcular_drives_dinamicos_nfl(
     return {
         "pace_away": round(pace_away, 1),
         "pace_home": round(pace_home, 1),
-        "pace_combinado": round(pace_combinado, 2),
-        "jugadas_totales": round(jugadas_totales_estimadas, 1),
-        "snaps_away": round(drives_away * jugadas_por_drive_away, 1),
-        "snaps_home": round(drives_home * jugadas_por_drive_home, 1),
-        "snaps_por_equipo": round(jugadas_totales_estimadas / 2.0, 1),
-        "jugadas_por_drive_away": round(jugadas_por_drive_away, 2),
-        "jugadas_por_drive_home": round(jugadas_por_drive_home, 2),
-        "drives_away": round(drives_away, 1),
-        "drives_home": round(drives_home, 1),
-        "drives_away_raw": drives_away,
-        "drives_home_raw": drives_home,
-        "n_drives_equipo": round(drives_promedio_equipo, 1),
-        "drives_combinados": round(drives_away + drives_home, 1),
+        "pace_partido": round(pace_partido, 2),
+        "pace_combinado": round(pace_partido, 2),
+        "drives_base_away": round(drives_away, 2),
+        "drives_base_home": round(drives_home, 2),
+        "drives_promedio_cruce": round(drives_promedio_cruce, 2),
+        "factor_ritmo": round(factor_ritmo, 4),
+        "drives_por_bando": drives_por_bando,
+        "drives_away": drives_por_bando,
+        "drives_home": drives_por_bando,
+        "drives_away_raw": drives_por_bando,
+        "drives_home_raw": drives_por_bando,
+        "n_drives_equipo": drives_por_bando,
+        "drives_combinados": round(drives_por_bando * 2.0, 1),
+        "snaps_away": snaps_por_equipo,
+        "snaps_home": snaps_por_equipo,
+        "snaps_por_equipo": snaps_por_equipo,
+        "jugadas_totales": jugadas_totales,
+        "jugadas_por_drive_away": 5.75,
+        "jugadas_por_drive_home": 5.75,
         "ritmo_tag": ritmo_tag,
     }
+
+
+def calcular_drives_dinamicos_nfl(
+    away_st: Dict[str, Any],
+    home_st: Dict[str, Any],
+    es_domo: bool = False,
+    viento_mph: float = 5.0,
+    medias_liga: Optional[Dict[str, float]] = None,
+) -> Dict[str, Any]:
+    """Alias compatible que delega directamente en calcular_drives_partido."""
+    return calcular_drives_partido(away_st=away_st, home_st=home_st)
 
 
 # ==============================================================================
@@ -891,28 +825,26 @@ def run_simulacion_nfl(
         penalizacion_total_viento = 0.0
         fg_wind_multiplier = 1.00
 
-    # 2. Cálculo dinámico de posesiones por cruce de ritmo y terceros downs
-    info_ritmo = calcular_drives_dinamicos_nfl(
+    # 2. Cálculo de posesiones simétricas por partido (Pace_Sec + Drives_Game vs 28.2s)
+    info_ritmo = calcular_drives_partido(
         away_st=away_st,
         home_st=home_st,
-        es_domo=es_domo,
-        viento_mph=viento_val,
-        medias_liga=medias_liga,
     )
 
-    drives_away_esp = float(info_ritmo["drives_away_raw"])
-    drives_home_esp = float(info_ritmo["drives_home_raw"])
-    drives_away_display = float(info_ritmo["drives_away"])
-    drives_home_display = float(info_ritmo["drives_home"])
-    n_drives_equipo_display = float(info_ritmo["n_drives_equipo"])
-    drives_combinados_display = float(info_ritmo["drives_combinados"])
+    drives_por_bando = float(info_ritmo["drives_por_bando"])
+    drives_away_esp = drives_por_bando
+    drives_home_esp = drives_por_bando
+    drives_away_display = drives_por_bando
+    drives_home_display = drives_por_bando
+    n_drives_equipo_display = drives_por_bando
+    drives_combinados_display = round(drives_por_bando * 2.0, 1)
     snaps_por_equipo = float(info_ritmo["snaps_por_equipo"])
 
     # HFA y penalización climática por serie ofensiva (traslación 1:1 al marcador)
-    hfa_por_drive_away = -(hfa_nfl / 2.0) / drives_away_esp
-    hfa_por_drive_home = +(hfa_nfl / 2.0) / drives_home_esp
-    penal_viento_away = (penalizacion_total_viento / 2.0) / drives_away_esp
-    penal_viento_home = (penalizacion_total_viento / 2.0) / drives_home_esp
+    hfa_por_drive_away = -(hfa_nfl / 2.0) / drives_por_bando
+    hfa_por_drive_home = +(hfa_nfl / 2.0) / drives_por_bando
+    penal_viento_away = (penalizacion_total_viento / 2.0) / drives_por_bando
+    penal_viento_home = (penalizacion_total_viento / 2.0) / drives_por_bando
 
     # 3. Probabilidades de anotación por drive (TD 23%-27%, FG 15%-18%, ~1.95-2.05 pts/drive)
     drive_cfg_away = _calcular_probabilidades_drive(
@@ -955,18 +887,18 @@ def run_simulacion_nfl(
     )
     rng = np.random.default_rng(seed_val)
 
-    # 4. Simulación Monte Carlo (5,000 iteraciones) con volumen de posesiones estocástico
+    # 4. Simulación Monte Carlo (5,000 iteraciones): ambos equipos inician con exactamente 'drives_por_bando'
     sim_away, td_drives_away = _simular_puntos_drives_estocasticos(
         rng=rng,
         n_sims=n_sims,
-        drives_media=drives_away_esp,
+        drives_media=drives_por_bando,
         valores_drive=drive_cfg_away["valores"],
         probs_drive=drive_cfg_away["probs"],
     )
     sim_home, td_drives_home = _simular_puntos_drives_estocasticos(
         rng=rng,
         n_sims=n_sims,
-        drives_media=drives_home_esp,
+        drives_media=drives_por_bando,
         valores_drive=drive_cfg_home["valores"],
         probs_drive=drive_cfg_home["probs"],
     )
@@ -1103,9 +1035,10 @@ def run_simulacion_nfl(
         "drive_punt_pct_home": drive_cfg_home["p_punt_pct"],
         "pts_por_drive_away": drive_cfg_away["pts_por_drive"],
         "pts_por_drive_home": drive_cfg_home["pts_por_drive"],
-        "drives_away": drives_away_display,
-        "drives_home": drives_home_display,
-        "n_drives_equipo": n_drives_equipo_display,
+        "drives_por_bando": drives_por_bando,
+        "drives_away": drives_por_bando,
+        "drives_home": drives_por_bando,
+        "n_drives_equipo": drives_por_bando,
         "drives_combinados": drives_combinados_display,
         "ritmo_tag": info_ritmo["ritmo_tag"],
         "jugadas_por_drive_away": info_ritmo["jugadas_por_drive_away"],

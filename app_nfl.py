@@ -819,8 +819,11 @@ def render_vista_cartelera() -> None:
                                 f'</div>'
                             )
 
-                        drives_away_card = float(sim.get("drives_away", sim["n_drives_equipo"]))
-                        drives_home_card = float(sim.get("drives_home", sim["n_drives_equipo"]))
+                        drives_por_bando_card = float(
+                            sim.get("drives_por_bando", sim.get("n_drives_equipo", 11.0))
+                        )
+                        drives_away_card = drives_por_bando_card
+                        drives_home_card = drives_por_bando_card
 
                         card_live_html = (
                             f'<div class="nfl-game-card">'
