@@ -17,6 +17,7 @@ Interfaz Principal de "TERMINAL SHARP: NFL QUANT"
 """
 
 import copy
+import io
 import os
 from typing import Any, Dict, List, Optional
 import pandas as pd
@@ -450,6 +451,147 @@ def obtener_simulacion_partido(partido: Dict[str, Any]) -> Dict[str, Any]:
     return st.session_state.simulaciones_cache[pid]
 
 
+# ==============================================================================
+# EXPORTACIÓN EN MEMORIA (.XLSX / .CSV) DE PROYECCIONES Y SEÑALES +EV SEMANALES
+# ==============================================================================
+PREDICCIONES_EXPORT_COLUMNS: List[str] = [
+    "Semana",
+    "Visitante",
+    "Local",
+    "Pts_Away_Proy",
+    "Pts_Home_Proy",
+    "Total_Proy",
+    "Spread_Proy",
+    "Drives_Partido",
+    "ML_Away_Justa",
+    "ML_Home_Justa",
+    "Senal_Total",
+    "EV_Total_%",
+    "Senal_Spread",
+    "EV_Spread_%",
+    "Pace_Sec",
+]
+
+
+def recopilar_simulaciones_en_memoria() -> List[Dict[str, Any]]:
+    """
+    Recupera las simulaciones ya almacenadas en st.session_state.simulaciones_cache
+    para los partidos de la semana actual sin recalcular las 5,000 iteraciones.
+    """
+    semana_act = int(st.session_state.get("semana_actual", 8))
+    partidos = st.session_state.get("partidos_semana", []) or []
+    cache = st.session_state.get("simulaciones_cache", {}) or {}
+    lista_sims: List[Dict[str, Any]] = []
+
+    for p in partidos:
+        pid = str(p.get("id_partido", f"{p['away_abbr']}_{p['home_abbr']}"))
+        sim = cache.get(pid)
+        if sim is None:
+            sim = obtener_simulacion_partido(p)
+        sim_copia = dict(sim)
+        sim_copia["semana"] = semana_act
+        lista_sims.append(sim_copia)
+
+    return lista_sims
+
+
+def construir_dataframe_predicciones(
+    partidos_simulados: List[Dict[str, Any]],
+    semana: Optional[int] = None,
+) -> pd.DataFrame:
+    """
+    Construye un DataFrame limpio con las columnas exactas:
+    ['Semana', 'Visitante', 'Local', 'Pts_Away_Proy', 'Pts_Home_Proy',
+     'Total_Proy', 'Spread_Proy', 'Drives_Partido', 'ML_Away_Justa',
+     'ML_Home_Justa', 'Senal_Total', 'EV_Total_%', 'Senal_Spread',
+     'EV_Spread_%', 'Pace_Sec']
+    """
+    sem_default = int(semana if semana is not None else st.session_state.get("semana_actual", 8))
+    filas: List[Dict[str, Any]] = []
+
+    for item in partidos_simulados or []:
+        sim = item.get("simulacion", item) if isinstance(item, dict) else {}
+        if not sim or "away_pts" not in sim:
+            continue
+
+        sem_val = int(item.get("semana", sem_default))
+        ev_tot = sim.get("ev_totales", {}) or {}
+        ev_spr = sim.get("ev_spread", {}) or {}
+
+        senal_tot = (
+            f"VALOR: {ev_tot.get('recomendacion', '')}"
+            if ev_tot.get("hay_valor")
+            else f"SIN VALOR ({ev_tot.get('lado', '')} {ev_tot.get('total_mercado', 0.0):.1f})"
+        )
+        senal_spr = (
+            f"VALOR: {ev_spr.get('recomendacion', '')}"
+            if ev_spr.get("hay_valor")
+            else f"SIN VALOR ({ev_spr.get('recomendacion', '')})"
+        )
+
+        pace_comb = float(
+            sim.get(
+                "pace_combinado",
+                (float(sim.get("pace_away", 28.2)) + float(sim.get("pace_home", 28.2))) / 2.0,
+            )
+        )
+        drives_bando = float(sim.get("drives_por_bando", sim.get("n_drives_equipo", 11.0)))
+
+        filas.append(
+            {
+                "Semana": sem_val,
+                "Visitante": str(sim.get("away_abbr", "")),
+                "Local": str(sim.get("home_abbr", "")),
+                "Pts_Away_Proy": round(float(sim.get("away_pts", 0.0)), 1),
+                "Pts_Home_Proy": round(float(sim.get("home_pts", 0.0)), 1),
+                "Total_Proy": round(float(sim.get("total_ou", 0.0)), 1),
+                "Spread_Proy": round(float(sim.get("spread_proyectado", 0.0)), 1),
+                "Drives_Partido": round(drives_bando, 1),
+                "ML_Away_Justa": round(float(sim.get("ml_away_decimal", 1.91)), 2),
+                "ML_Home_Justa": round(float(sim.get("ml_home_decimal", 1.91)), 2),
+                "Senal_Total": senal_tot,
+                "EV_Total_%": round(float(ev_tot.get("ev_pct", 0.0)), 1),
+                "Senal_Spread": senal_spr,
+                "EV_Spread_%": round(float(ev_spr.get("ev_pct", 0.0)), 1),
+                "Pace_Sec": round(pace_comb, 2),
+            }
+        )
+
+    if not filas:
+        return pd.DataFrame(columns=PREDICCIONES_EXPORT_COLUMNS)
+    return pd.DataFrame(filas, columns=PREDICCIONES_EXPORT_COLUMNS)
+
+
+def exportar_predicciones_a_excel(
+    partidos_simulados: List[Dict[str, Any]],
+    semana: Optional[int] = None,
+) -> bytes:
+    """
+    Utiliza io.BytesIO() y openpyxl para generar el archivo Excel (.xlsx) en
+    memoria sin escribir archivos temporales en disco.
+    """
+    sem_num = int(semana if semana is not None else st.session_state.get("semana_actual", 8))
+    df_export = construir_dataframe_predicciones(partidos_simulados, semana=sem_num)
+    buffer = io.BytesIO()
+    with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
+        df_export.to_excel(writer, index=False, sheet_name=f"Semana_{sem_num}")
+    buffer.seek(0)
+    return buffer.getvalue()
+
+
+def exportar_predicciones_a_csv(
+    partidos_simulados: List[Dict[str, Any]],
+    semana: Optional[int] = None,
+) -> bytes:
+    """
+    Genera en memoria el archivo CSV con las mismas 15 columnas de proyecciones
+    y señales +EV de la semana actual.
+    """
+    sem_num = int(semana if semana is not None else st.session_state.get("semana_actual", 8))
+    df_export = construir_dataframe_predicciones(partidos_simulados, semana=sem_num)
+    return df_export.to_csv(index=False, encoding="utf-8-sig").encode("utf-8-sig")
+
+
 def aplicar_calibracion_partido_en_estado(partido: Dict[str, Any]) -> Dict[str, Any]:
     """
     Ejecuta el ciclo completo de auditoría y calibración Kalman sobre un partido finalizado,
@@ -601,6 +743,17 @@ def render_sidebar() -> None:
                     "los últimos ajustes de EPA y Pace_Sec para reutilizarlo la próxima semana."
                 ),
             )
+            sims_sb_mem = recopilar_simulaciones_en_memoria()
+            sem_sb = int(st.session_state.get("semana_actual", 8))
+            st.download_button(
+                label="📥 Exportar Proyecciones (.xlsx)",
+                data=exportar_predicciones_a_excel(sims_sb_mem, semana=sem_sb),
+                file_name=f"proyecciones_nfl_semana_{sem_sb}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                key=f"btn_export_xlsx_sidebar_s{sem_sb}",
+                use_container_width=True,
+                help="Exporta a Excel (.xlsx) todas las proyecciones y señales +EV de la semana actual desde session_state.",
+            )
 
         st.markdown("---")
         st.markdown("#### 2. Bucle Kalman (Auto-Corrección)")
@@ -751,6 +904,33 @@ def render_vista_cartelera() -> None:
     k2.metric("Oportunidades +EV (En Vivo)", f"{total_ev_en_vivo} con Ventaja")
     k3.metric("Partidos Finalizados (Auditables)", f"{len(partidos_finalizados)} Finales")
     k4.metric("Learning Rate / Fuente", f"LR {st.session_state.learning_rate_kalman:.3f} · {fuente_detectada[:14]}")
+
+    # Lectura directa desde st.session_state.simulaciones_cache sin recalcular las 5,000 iteraciones
+    partidos_simulados_mem = recopilar_simulaciones_en_memoria()
+    excel_pred_bytes = exportar_predicciones_a_excel(partidos_simulados_mem, semana=semana)
+    csv_pred_bytes = exportar_predicciones_a_csv(partidos_simulados_mem, semana=semana)
+
+    exp_col1, exp_col2, exp_col3 = st.columns([1.4, 1.4, 2.2])
+    with exp_col1:
+        st.download_button(
+            label="📥 Exportar Proyecciones (.xlsx)",
+            data=excel_pred_bytes,
+            file_name=f"proyecciones_nfl_semana_{semana}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            key=f"btn_export_xlsx_banner_s{semana}",
+            use_container_width=True,
+            help="Descarga en Excel (.xlsx) todas las proyecciones y señales +EV desde memoria sin recalcular Monte Carlo.",
+        )
+    with exp_col2:
+        st.download_button(
+            label="📄 Exportar Proyecciones (.csv)",
+            data=csv_pred_bytes,
+            file_name=f"proyecciones_nfl_semana_{semana}.csv",
+            mime="text/csv",
+            key=f"btn_export_csv_banner_s{semana}",
+            use_container_width=True,
+            help="Descarga en CSV todas las proyecciones y señales +EV desde memoria sin recalcular Monte Carlo.",
+        )
 
     # SEPARACIÓN DE VISTAS MEDIANTE ST.TABS
     tab_vivo, tab_auditoria = st.tabs(

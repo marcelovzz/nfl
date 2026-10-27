@@ -1238,3 +1238,112 @@ def calibrar_stats_nfl(
         updated_dict["WSH"] = home_entry
 
     return updated_dict
+
+
+PREDICCIONES_EXPORT_COLUMNS: List[str] = [
+    "Semana",
+    "Visitante",
+    "Local",
+    "Pts_Away_Proy",
+    "Pts_Home_Proy",
+    "Total_Proy",
+    "Spread_Proy",
+    "Drives_Partido",
+    "ML_Away_Justa",
+    "ML_Home_Justa",
+    "Senal_Total",
+    "EV_Total_%",
+    "Senal_Spread",
+    "EV_Spread_%",
+    "Pace_Sec",
+]
+
+
+def construir_dataframe_predicciones(
+    partidos_simulados: List[Dict[str, Any]],
+    semana: int = 8,
+) -> pd.DataFrame:
+    """
+    Construye un DataFrame limpio con las 15 columnas exactas requeridas para
+    exportar las proyecciones y señales +EV de la semana actual.
+    """
+    filas: List[Dict[str, Any]] = []
+    for item in partidos_simulados or []:
+        sim = item.get("simulacion", item) if isinstance(item, dict) else {}
+        if not sim or "away_pts" not in sim:
+            continue
+
+        sem_val = int(item.get("semana", semana))
+        ev_tot = sim.get("ev_totales", {}) or {}
+        ev_spr = sim.get("ev_spread", {}) or {}
+
+        senal_tot = (
+            f"VALOR: {ev_tot.get('recomendacion', '')}"
+            if ev_tot.get("hay_valor")
+            else f"SIN VALOR ({ev_tot.get('lado', '')} {ev_tot.get('total_mercado', 0.0):.1f})"
+        )
+        senal_spr = (
+            f"VALOR: {ev_spr.get('recomendacion', '')}"
+            if ev_spr.get("hay_valor")
+            else f"SIN VALOR ({ev_spr.get('recomendacion', '')})"
+        )
+
+        pace_comb = float(
+            sim.get(
+                "pace_combinado",
+                (float(sim.get("pace_away", 28.2)) + float(sim.get("pace_home", 28.2))) / 2.0,
+            )
+        )
+        drives_bando = float(sim.get("drives_por_bando", sim.get("n_drives_equipo", 11.0)))
+
+        filas.append(
+            {
+                "Semana": sem_val,
+                "Visitante": str(sim.get("away_abbr", "")),
+                "Local": str(sim.get("home_abbr", "")),
+                "Pts_Away_Proy": round(float(sim.get("away_pts", 0.0)), 1),
+                "Pts_Home_Proy": round(float(sim.get("home_pts", 0.0)), 1),
+                "Total_Proy": round(float(sim.get("total_ou", 0.0)), 1),
+                "Spread_Proy": round(float(sim.get("spread_proyectado", 0.0)), 1),
+                "Drives_Partido": round(drives_bando, 1),
+                "ML_Away_Justa": round(float(sim.get("ml_away_decimal", 1.91)), 2),
+                "ML_Home_Justa": round(float(sim.get("ml_home_decimal", 1.91)), 2),
+                "Senal_Total": senal_tot,
+                "EV_Total_%": round(float(ev_tot.get("ev_pct", 0.0)), 1),
+                "Senal_Spread": senal_spr,
+                "EV_Spread_%": round(float(ev_spr.get("ev_pct", 0.0)), 1),
+                "Pace_Sec": round(pace_comb, 2),
+            }
+        )
+
+    if not filas:
+        return pd.DataFrame(columns=PREDICCIONES_EXPORT_COLUMNS)
+    return pd.DataFrame(filas, columns=PREDICCIONES_EXPORT_COLUMNS)
+
+
+def exportar_predicciones_a_excel(
+    partidos_simulados: List[Dict[str, Any]],
+    semana: int = 8,
+) -> bytes:
+    """
+    Genera en memoria (io.BytesIO + openpyxl) el archivo Excel (.xlsx) con todas
+    las proyecciones y señales +EV de la semana actual sin escribir en disco.
+    """
+    df_pred = construir_dataframe_predicciones(partidos_simulados, semana=semana)
+    buffer = io.BytesIO()
+    with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
+        df_pred.to_excel(writer, index=False, sheet_name=f"Semana_{semana}")
+    buffer.seek(0)
+    return buffer.getvalue()
+
+
+def exportar_predicciones_a_csv(
+    partidos_simulados: List[Dict[str, Any]],
+    semana: int = 8,
+) -> bytes:
+    """
+    Genera en memoria el archivo CSV (UTF-8 con BOM para Excel) con todas las
+    proyecciones y señales +EV de la semana actual.
+    """
+    df_pred = construir_dataframe_predicciones(partidos_simulados, semana=semana)
+    return df_pred.to_csv(index=False, encoding="utf-8-sig").encode("utf-8-sig")
