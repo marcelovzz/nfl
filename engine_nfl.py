@@ -93,9 +93,14 @@ STADIUM_HFA_PTS: Dict[str, float] = {
 
 NFL_KEY_NUMBERS: List[int] = [3, 7, 6, 10, 4, 14]
 
-# Parámetros base de referencia NFL
+# Parámetros base de referencia NFL calibrados
 NEUTRAL_DRIVES_PER_TEAM: float = 11.00
-TARGET_PTS_PER_DRIVE: float = 2.00
+TD_PTS_VALUE: float = 6.95
+FG_PTS_VALUE: float = 2.90
+DEF_ST_BONUS_PER_DRIVE: float = 0.08
+MODEL_TOTAL_WEIGHT: float = 0.65
+MARKET_TOTAL_WEIGHT: float = 0.35
+EV_THRESHOLD_PCT: float = 4.0
 
 DEFAULT_NFL_STATS_ROWS: List[Dict[str, Any]] = [
     {"Team_Abbr": "KC",  "QB_Name": "P. Mahomes",       "EPA_Pass_Off": 0.195, "EPA_Rush_Off": 0.015, "EPA_Pass_Def": -0.065, "EPA_Rush_Def": -0.040, "Success_Rate_Off": 0.505, "Success_Rate_Def": 0.415, "Pace_Sec": 28.0, "Drives_Game": 10.8},
@@ -280,7 +285,7 @@ def evaluar_valor_totales(
         fair_mejor_dec = fair_under_decimal
         ev_mejor_pct = ev_under_pct
 
-    hay_valor = (ev_mejor_pct >= 1.5) and (abs(diff_pts) >= 1.1)
+    hay_valor = ev_mejor_pct >= EV_THRESHOLD_PCT
 
     if hay_valor:
         recomendacion = f"{lado_mejor} {t_mkt:.1f}"
@@ -388,7 +393,7 @@ def evaluar_valor_spread(
         ev_mejor_pct = ev_away_pct
         edge_pts_pick = round(-edge_pts_home, 1)
 
-    hay_valor = (ev_mejor_pct >= 1.5) and (edge_pts_pick >= 1.0)
+    hay_valor = ev_mejor_pct >= EV_THRESHOLD_PCT
     pick_corto = f"{equipo_pick} {linea_pick:+.1f}"
 
     if hay_valor:
@@ -665,44 +670,46 @@ def _calcular_probabilidades_drive(
     epa_compuesto = 0.60 * net_pass_epa + 0.40 * net_rush_epa + (sr_net * 0.42)
     epa_acotado = float(np.clip(epa_compuesto, -0.22, 0.22))
 
-    # Conversión exacta 1:1 del HFA y clima por serie en probabilidades de TD (78%) y FG (22%)
+    # Conversión exacta 1:1 del HFA y clima por serie considerando TD=6.95 pts y FG=2.90 pts
     ajuste_pts_drive = hfa_pts_drive - penal_pts_viento_drive
-    delta_td_hfa = (0.78 * ajuste_pts_drive) / 6.91
-    delta_fg_hfa = (0.22 * ajuste_pts_drive) / 3.00
+    delta_td_hfa = (0.78 * ajuste_pts_drive) / TD_PTS_VALUE
+    delta_fg_hfa = (0.22 * ajuste_pts_drive) / FG_PTS_VALUE
 
-    # Piso de eficiencia elevado en series completas:
-    # - Tasa de Touchdown (TD%): Rango promedio de ~23.0% a 27.0% por serie activa (media ~24.5%)
-    # - Tasa de Gol de Campo (FG%): Rango base de ~15.0% a 18.0% por serie activa (media ~16.5%)
-    td_base_liga = 0.248 if es_domo else 0.242
-    fg_base_liga = 0.168 if es_domo else 0.165
+    # Tasas base calibradas para que un enfrentamiento estándar proyecte entre 44.0 y 48.0 pts:
+    # EV_drive = (p_td * 6.95) + (p_fg * 2.90) + 0.08 (Bonus Def/Special Teams)
+    td_base_liga = 0.228 if es_domo else 0.220
+    fg_base_liga = 0.165 if es_domo else 0.160
 
     p_td_nominal = td_base_liga + (epa_acotado * 0.24) + (sr_net * 0.14) + delta_td_hfa
-    p_td_nominal = float(np.clip(p_td_nominal, 0.205, 0.285))
+    p_td_nominal = float(np.clip(p_td_nominal, 0.195, 0.285))
 
     p_fg_nominal = fg_base_liga + (epa_acotado * 0.065) + (sr_net * 0.05) + delta_fg_hfa
-    p_fg_nominal = float(np.clip(p_fg_nominal * fg_wind_multiplier, 0.145, 0.188))
+    p_fg_nominal = float(np.clip(p_fg_nominal * fg_wind_multiplier, 0.142, 0.190))
     p_punt_nominal = max(0.300, 1.0 - (p_td_nominal + p_fg_nominal))
 
-    # Ajuste por series de cierre de mitad / kneel-downs (~1 serie corta por equipo por partido,
-    # factor = 0.915) para que la expectativa neta sea exactamente ~1.95 - 2.05 puntos/drive
-    # y el total medio de la liga se sitúe entre 43.0 y 45.5 puntos.
-    factor_serie_efectiva = 0.915
-    p_td_eff = p_td_nominal * factor_serie_efectiva
-    p_fg_eff = p_fg_nominal * factor_serie_efectiva
-    p_zero_eff = max(0.320, 1.0 - (p_td_eff + p_fg_eff))
+    # Valor esperado analítico exacto por posesión:
+    # TD (6.95 pts) + FG (2.90 pts) + Bonus Defensivo / Equipos Especiales (0.08 pts/drive)
+    pts_por_drive_esp = (
+        (p_td_nominal * TD_PTS_VALUE)
+        + (p_fg_nominal * FG_PTS_VALUE)
+        + DEF_ST_BONUS_PER_DRIVE
+    )
 
-    p_td_7 = p_td_eff * 0.87
-    p_td_6 = p_td_eff * 0.09
-    p_td_8 = p_td_eff * 0.04
+    # Distribución discreta para Monte Carlo que preserva E[TD]=6.95 (87% 7pts, 9% 6pts, 4% 8pts)
+    # y efectividad real de FG=2.90 (p_fg_efectivo = p_fg_nominal * (2.90 / 3.00))
+    p_fg_mc = p_fg_nominal * (FG_PTS_VALUE / 3.00)
+    p_td_7 = p_td_nominal * 0.87
+    p_td_6 = p_td_nominal * 0.09
+    p_td_8 = p_td_nominal * 0.04
+    p_zero_mc = max(0.250, 1.0 - (p_td_nominal + p_fg_mc))
 
-    probs = np.array([p_zero_eff, p_fg_eff, p_td_6, p_td_7, p_td_8], dtype=float)
+    probs = np.array([p_zero_mc, p_fg_mc, p_td_6, p_td_7, p_td_8], dtype=float)
     probs = probs / probs.sum()
-
-    pts_por_drive_esp = float(np.sum(probs * np.array([0, 3, 6, 7, 8], dtype=float)))
 
     return {
         "valores": np.array([0, 3, 6, 7, 8], dtype=int),
         "probs": probs,
+        "bonus_def_st_drive": DEF_ST_BONUS_PER_DRIVE,
         "epa_compuesto": round(epa_compuesto, 3),
         "net_pass_epa": round(net_pass_epa, 3),
         "net_rush_epa": round(net_rush_epa, 3),
@@ -749,7 +756,9 @@ def _simular_puntos_drives_estocasticos(
     mascara_activa = idx_cols < n_drives_iter[:, None]
 
     matriz_activa = np.where(mascara_activa, matriz_pts, 0)
-    puntos_totales_equipo = matriz_activa.sum(axis=1)
+    # Incorporar bonus de defensiva / equipos especiales (0.08 pts por drive)
+    bonus_def_st_pts = n_drives_iter.astype(float) * DEF_ST_BONUS_PER_DRIVE
+    puntos_totales_equipo = matriz_activa.sum(axis=1).astype(float) + bonus_def_st_pts
     td_drives_equipo = np.sum(matriz_activa >= 6, axis=1)
 
     return puntos_totales_equipo, td_drives_equipo
@@ -922,8 +931,26 @@ def run_simulacion_nfl(
         sim_home[ties_mask] += np.where(home_wins_ot, ot_pts, 0)
         sim_away[ties_mask] += np.where(~home_wins_ot, ot_pts, 0)
 
-    away_pts = round(float(np.mean(sim_away)), 1)
-    home_pts = round(float(np.mean(sim_home)), 1)
+    raw_away_pts = float(np.mean(sim_away))
+    raw_home_pts = float(np.mean(sim_home))
+    raw_total_modelo = raw_home_pts + raw_away_pts
+    raw_margin_home = raw_home_pts - raw_away_pts
+
+    mkt = lineas_mercado or {}
+    total_mercado = float(mkt.get("total_mercado", round(raw_total_modelo) - 0.5))
+    cuota_over_dec = americano_a_decimal(mkt.get("cuota_over_decimal", 1.91), 1.91)
+    cuota_under_dec = americano_a_decimal(mkt.get("cuota_under_decimal", 1.91), 1.91)
+
+    # Anclaje Bayesiano al Mercado (Shrinkage: 65% Proyección Modelo + 35% Línea de Mercado ESPN)
+    # Ajusta proporcionalmente los puntos proyectados de local y visitante manteniendo el spread intacto
+    total_anclado = (MODEL_TOTAL_WEIGHT * raw_total_modelo) + (MARKET_TOTAL_WEIGHT * total_mercado)
+    delta_shrinkage_equipo = (total_anclado - raw_total_modelo) / 2.0
+
+    sim_away = sim_away + delta_shrinkage_equipo
+    sim_home = sim_home + delta_shrinkage_equipo
+
+    away_pts = round((total_anclado - raw_margin_home) / 2.0, 1)
+    home_pts = round((total_anclado + raw_margin_home) / 2.0, 1)
 
     win_home_raw = float(np.mean(sim_home > sim_away))
     win_home_pct = round(win_home_raw * 100.0, 1)
@@ -932,13 +959,8 @@ def run_simulacion_nfl(
     ml_home_decimal = prob_a_cuota_decimal(win_home_raw)
     ml_away_decimal = prob_a_cuota_decimal(1.0 - win_home_raw)
 
-    spread_proyectado = round(-(home_pts - away_pts), 1)
-    total_ou = round(home_pts + away_pts, 1)
-
-    mkt = lineas_mercado or {}
-    total_mercado = float(mkt.get("total_mercado", round(total_ou) - 0.5))
-    cuota_over_dec = americano_a_decimal(mkt.get("cuota_over_decimal", 1.91), 1.91)
-    cuota_under_dec = americano_a_decimal(mkt.get("cuota_under_decimal", 1.91), 1.91)
+    spread_proyectado = round(-raw_margin_home, 1)
+    total_ou = round(away_pts + home_pts, 1)
 
     lineas_nfl_std = [
         -14.0, -10.5, -10.0, -7.5, -7.0, -6.5, -6.0, -4.5, -4.0, -3.5, -3.0, -2.5, -1.5,
