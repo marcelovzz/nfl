@@ -98,10 +98,28 @@ def inyectar_estilos_css() -> None:
             background: linear-gradient(180deg, rgba(19, 26, 40, 0.92) 0%, rgba(12, 17, 27, 0.97) 100%);
             border: 1px solid rgba(148, 163, 184, 0.18);
             border-radius: 14px;
-            padding: 16px 16px 12px 16px;
+            padding: 16px 16px 14px 16px;
             margin-bottom: 8px;
+            min-height: 560px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
             transition: all 0.2s ease-in-out;
             box-shadow: 0 8px 22px rgba(0, 0, 0, 0.42);
+        }
+        .card-header-section {
+            width: 100%;
+        }
+        .card-body-section {
+            width: 100%;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .card-footer-section {
+            width: 100%;
+            margin-top: auto;
         }
         .nfl-game-card:hover {
             border-color: #38BDF8;
@@ -897,18 +915,16 @@ def render_vista_cartelera() -> None:
     semana = st.session_state.semana_actual
     partidos: List[Dict[str, Any]] = st.session_state.partidos_semana
 
-    st.markdown(
-        f"""
-        <div class="terminal-banner">
-            <p class="terminal-title">🏈 TERMINAL SHARP: NFL QUANT — SEMANA {semana}</p>
-            <p class="terminal-sub">
-                Drive-Based Engine (Drives Dinámicos por Pace 9.4–12.6/Eq · Media 43.0–45.5 pts · 5,000 Iteraciones) ·
-                Shrinkage Bayesiano +EV en <b>Cuota Decimal</b> · Auto-Corrección Dinámica (Filtro Kalman)
-            </p>
-        </div>
-        """,
-        unsafe_allow_html=True,
+    banner_html = (
+        f'<div class="terminal-banner">'
+        f'<p class="terminal-title">🏈 TERMINAL SHARP: NFL QUANT — SEMANA {semana}</p>'
+        f'<p class="terminal-sub">'
+        f'Drive-Based Engine (Drives Dinámicos por Pace 9.4–12.6/Eq · Media 43.0–45.5 pts · 5,000 Iteraciones) · '
+        f'Shrinkage Bayesiano +EV en <b>Cuota Decimal</b> · Auto-Corrección Dinámica (Filtro Kalman)'
+        f'</p>'
+        f'</div>'
     )
+    st.markdown(banner_html, unsafe_allow_html=True)
 
     if not partidos:
         st.warning("No se encontraron partidos para la semana seleccionada.")
@@ -978,15 +994,101 @@ def render_vista_cartelera() -> None:
             st.markdown(
                 f"#### 📅 Cartelera Activa y Momios en Formato Decimal ({len(partidos_en_vivo)} Juegos en Curso / Programados)"
             )
-            for row_start in range(0, len(partidos_en_vivo), 3):
+            ctrl_col1, ctrl_col2 = st.columns(2)
+            with ctrl_col1:
+                filtro_cartelera = st.selectbox(
+                    "🔍 Filtrar Cartelera",
+                    options=[
+                        "Todos los partidos",
+                        "Solo +EV Activo",
+                        "Solo Spreads",
+                        "Solo Totales",
+                    ],
+                    index=0,
+                    key="selectbox_filtro_cartelera_nfl",
+                )
+            with ctrl_col2:
+                orden_cartelera = st.selectbox(
+                    "📊 Ordenar Partidos por",
+                    options=[
+                        "Predeterminado (Horario)",
+                        "Mayor Probabilidad de Ganar ML",
+                        "Mayor Probabilidad de Cubrir Spread",
+                        "Mayor Probabilidad de Over",
+                        "Mayor Probabilidad de Under",
+                        "Mayor Valor Esperado (+EV %)",
+                    ],
+                    index=0,
+                    key="selectbox_orden_cartelera_nfl",
+                )
+
+            partidos_con_sim = [(p, obtener_simulacion_partido(p)) for p in partidos_en_vivo]
+
+            if filtro_cartelera == "Solo +EV Activo":
+                partidos_con_sim = [
+                    (p, s)
+                    for p, s in partidos_con_sim
+                    if s["ev_totales"]["hay_valor"] or s["ev_spread"]["hay_valor"]
+                ]
+            elif filtro_cartelera == "Solo Spreads":
+                partidos_con_sim = [
+                    (p, s) for p, s in partidos_con_sim if s["ev_spread"]["hay_valor"]
+                ]
+            elif filtro_cartelera == "Solo Totales":
+                partidos_con_sim = [
+                    (p, s) for p, s in partidos_con_sim if s["ev_totales"]["hay_valor"]
+                ]
+
+            if orden_cartelera == "Mayor Probabilidad de Ganar ML":
+                partidos_con_sim.sort(
+                    key=lambda item: float(
+                        item[1].get(
+                            "ml_fav_model_pct",
+                            max(item[1].get("win_home_pct", 50.0), item[1].get("win_away_pct", 50.0)),
+                        )
+                    ),
+                    reverse=True,
+                )
+            elif orden_cartelera == "Mayor Probabilidad de Cubrir Spread":
+                partidos_con_sim.sort(
+                    key=lambda item: float(
+                        item[1].get(
+                            "spread_pick_cover_pct",
+                            max(item[1].get("cover_home_pct", 50.0), item[1].get("cover_away_pct", 50.0)),
+                        )
+                    ),
+                    reverse=True,
+                )
+            elif orden_cartelera == "Mayor Probabilidad de Over":
+                partidos_con_sim.sort(
+                    key=lambda item: float(item[1].get("over_pct", 50.0)),
+                    reverse=True,
+                )
+            elif orden_cartelera == "Mayor Probabilidad de Under":
+                partidos_con_sim.sort(
+                    key=lambda item: float(item[1].get("under_pct", 50.0)),
+                    reverse=True,
+                )
+            elif orden_cartelera == "Mayor Valor Esperado (+EV %)":
+                partidos_con_sim.sort(
+                    key=lambda item: max(
+                        float(item[1]["ev_totales"].get("ev_pct", -99.0)),
+                        float(item[1]["ev_spread"].get("ev_pct", -99.0)),
+                    ),
+                    reverse=True,
+                )
+
+            if not partidos_con_sim:
+                st.info("No hay partidos que coincidan con el filtro seleccionado en este momento.")
+
+            for row_start in range(0, len(partidos_con_sim), 3):
                 col1, col2, col3 = st.columns(3)
                 cols = [col1, col2, col3]
-                chunk = partidos_en_vivo[row_start : row_start + 3]
+                chunk = partidos_con_sim[row_start : row_start + 3]
 
-                for idx, partido in enumerate(chunk):
+                for idx, (partido, sim) in enumerate(chunk):
                     with cols[idx]:
                         pid = str(partido.get("id_partido", f"{partido['away_abbr']}_{partido['home_abbr']}"))
-                        sim = obtener_simulacion_partido(partido)
                         away = partido["away_abbr"]
                         home = partido["home_abbr"]
                         logo_away_html = _render_logo_html(obtener_logo_nfl(away, size=34), away, size=34)
@@ -1006,8 +1108,8 @@ def render_vista_cartelera() -> None:
                         else:
                             tot_badge_html = (
                                 f'<div class="ev-badge-neutral">'
-                                f'<span>⚖️ TOTAL {ev_tot["total_mercado"]:.1f} SIN VALOR</span>'
-                                f'<span class="ev-pct-pill-gray">O {ev_tot["cuota_over_decimal"]:.2f} | U {ev_tot["cuota_under_decimal"]:.2f}</span>'
+                                f'<span>⚖️ TOTAL {ev_tot["total_mercado"]:.1f}</span>'
+                                f'<span class="ev-pct-pill-gray">⚪ LÍNEA SIN EDGE</span>'
                                 f'</div>'
                             )
 
@@ -1023,8 +1125,8 @@ def render_vista_cartelera() -> None:
                             spr_home_fmt = f"{home} {ev_spr['spread_mercado_home']:+.1f}"
                             spr_badge_html = (
                                 f'<div class="ev-badge-neutral">'
-                                f'<span>⚖️ SPREAD ({spr_home_fmt}) SIN VALOR</span>'
-                                f'<span class="ev-pct-pill-gray">{ev_spr["cuota_spread_home_decimal"]:.2f} / {ev_spr["cuota_spread_away_decimal"]:.2f}</span>'
+                                f'<span>⚖️ SPREAD ({spr_home_fmt})</span>'
+                                f'<span class="ev-pct-pill-gray">⚪ LÍNEA SIN EDGE</span>'
                                 f'</div>'
                             )
 
@@ -1058,6 +1160,7 @@ def render_vista_cartelera() -> None:
 
                         card_live_html = (
                             f'<div class="nfl-game-card">'
+                            f'<div class="card-header-section">'
                             f'<div class="card-top-bar">'
                             f'<span class="league-pill">NFL · SEMANA {semana}</span>'
                             f'<span class="game-clock">{partido.get("hora", "TBD")} · {sim["tipo_estadio"]} ({sim["pace_combinado"]:.1f}s/play)</span>'
@@ -1082,6 +1185,8 @@ def render_vista_cartelera() -> None:
                             f'</div>'
                             f'<div class="team-proj-pts">{sim["home_pts"]:.1f}</div>'
                             f'</div>'
+                            f'</div>'
+                            f'<div class="card-body-section">'
                             f'<div class="quick-forecast-box">'
                             f'<div class="quick-forecast-txt">'
                             f'Proyección Drive-Engine: {away} {sim["away_pts"]:.1f} - {sim["home_pts"]:.1f} {home}'
@@ -1092,8 +1197,11 @@ def render_vista_cartelera() -> None:
                             f'</div>'
                             f'</div>'
                             f'{mc_breakdown_html}'
+                            f'</div>'
+                            f'<div class="card-footer-section">'
                             f'{tot_badge_html}'
                             f'{spr_badge_html}'
+                            f'</div>'
                             f'</div>'
                         )
                         st.markdown(card_live_html, unsafe_allow_html=True)
@@ -1184,6 +1292,7 @@ def render_vista_cartelera() -> None:
 
                         card_audit_html = (
                             f'<div class="nfl-game-card">'
+                            f'<div class="card-header-section">'
                             f'<div class="card-top-bar">'
                             f'<span class="league-pill-final">NFL · S{semana} · FINAL</span>'
                             f'<span class="game-clock">{partido.get("hora", "FINAL")} · {sim["tipo_estadio"]}</span>'
@@ -1208,6 +1317,8 @@ def render_vista_cartelera() -> None:
                             f'</div>'
                             f'<div class="team-real-pts">{pts_home_real_int}</div>'
                             f'</div>'
+                            f'</div>'
+                            f'<div class="card-footer-section">'
                             f'<div class="kalman-audit-box">'
                             f'<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">'
                             f'<span style="color:#F8FAFC; font-weight:800;">🏁 REAL vs. MODELO</span>'
@@ -1222,6 +1333,7 @@ def render_vista_cartelera() -> None:
                             f'</div>'
                             f'<div style="color:#94A3B8; font-size:0.68rem; margin-top:4px;">'
                             f'Diagnóstico: {aud_card["origen_desviacion"]}'
+                            f'</div>'
                             f'</div>'
                             f'</div>'
                             f'</div>'
@@ -1283,44 +1395,42 @@ def render_vista_detalle(partido: Dict[str, Any]) -> None:
 
     spread_justo_label = f"{home} {sim['spread_proyectado']:+.1f}"
 
-    st.markdown(
-        f"""
-        <div class="tv-scoreboard">
-            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;">
-                <div style="display:flex; align-items:center; gap:16px;">
-                    {logo_away_tv}
-                    <div>
-                        <div style="font-size:0.78rem; color:#94A3B8; text-transform:uppercase;">Visitante · QB {sim["away_qb"]}</div>
-                        <div style="font-size:1.45rem; font-weight:800; color:#F8FAFC;">{sim["away_name"]} ({away})</div>
-                        <div style="font-family:'JetBrains Mono',monospace; font-size:0.84rem; color:#38BDF8;">
-                            Win Prob: {sim["win_away_pct"]:.1f}% · Cuota Justa Decimal: <b>{sim["ml_away_decimal"]:.2f}</b>
-                        </div>
-                    </div>
-                </div>
-                <div style="text-align:center; padding:8px 22px; background:rgba(16,185,129,0.10); border:1px solid rgba(16,185,129,0.35); border-radius:12px;">
-                    <div style="font-family:'JetBrains Mono',monospace; font-size:0.74rem; color:#94A3B8;">MARCADOR PROYECTADO (5,000 SIMS · {sim["drives_combinados"]} DRIVES)</div>
-                    <div style="font-family:'JetBrains Mono',monospace; font-size:2.1rem; font-weight:800; color:#10B981;">
-                        {away} {sim["away_pts"]:.1f}  —  {sim["home_pts"]:.1f} {home}
-                    </div>
-                    <div style="font-family:'JetBrains Mono',monospace; font-size:0.82rem; color:#E2E8F0;">
-                        Spread Justo: <b>{spread_justo_label}</b> · Total Justo: <b>{sim["total_ou"]:.1f} pts</b> · HFA: <b>+{sim["hfa_pts"]:.2f} pts</b>
-                    </div>
-                </div>
-                <div style="display:flex; align-items:center; gap:16px;">
-                    <div style="text-align:right;">
-                        <div style="font-size:0.78rem; color:#94A3B8; text-transform:uppercase;">Local · QB {sim["home_qb"]}</div>
-                        <div style="font-size:1.45rem; font-weight:800; color:#F8FAFC;">{sim["home_name"]} ({home})</div>
-                        <div style="font-family:'JetBrains Mono',monospace; font-size:0.84rem; color:#38BDF8;">
-                            Win Prob: {sim["win_home_pct"]:.1f}% · Cuota Justa Decimal: <b>{sim["ml_home_decimal"]:.2f}</b>
-                        </div>
-                    </div>
-                    {logo_home_tv}
-                </div>
-            </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
+    tv_scoreboard_html = (
+        f'<div class="tv-scoreboard">'
+        f'<div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;">'
+        f'<div style="display:flex; align-items:center; gap:16px;">'
+        f'{logo_away_tv}'
+        f'<div>'
+        f'<div style="font-size:0.78rem; color:#94A3B8; text-transform:uppercase;">Visitante · QB {sim["away_qb"]}</div>'
+        f'<div style="font-size:1.45rem; font-weight:800; color:#F8FAFC;">{sim["away_name"]} ({away})</div>'
+        f'<div style="font-family:JetBrains Mono,monospace; font-size:0.84rem; color:#38BDF8;">'
+        f'Win Prob: {sim["win_away_pct"]:.1f}% · Cuota Justa Decimal: <b>{sim["ml_away_decimal"]:.2f}</b>'
+        f'</div>'
+        f'</div>'
+        f'</div>'
+        f'<div style="text-align:center; padding:8px 22px; background:rgba(16,185,129,0.10); border:1px solid rgba(16,185,129,0.35); border-radius:12px;">'
+        f'<div style="font-family:JetBrains Mono,monospace; font-size:0.74rem; color:#94A3B8;">MARCADOR PROYECTADO (5,000 SIMS · {sim["drives_combinados"]} DRIVES)</div>'
+        f'<div style="font-family:JetBrains Mono,monospace; font-size:2.1rem; font-weight:800; color:#10B981;">'
+        f'{away} {sim["away_pts"]:.1f}  —  {sim["home_pts"]:.1f} {home}'
+        f'</div>'
+        f'<div style="font-family:JetBrains Mono,monospace; font-size:0.82rem; color:#E2E8F0;">'
+        f'Spread Justo: <b>{spread_justo_label}</b> · Total Justo: <b>{sim["total_ou"]:.1f} pts</b> · HFA: <b>+{sim["hfa_pts"]:.2f} pts</b>'
+        f'</div>'
+        f'</div>'
+        f'<div style="display:flex; align-items:center; gap:16px;">'
+        f'<div style="text-align:right;">'
+        f'<div style="font-size:0.78rem; color:#94A3B8; text-transform:uppercase;">Local · QB {sim["home_qb"]}</div>'
+        f'<div style="font-size:1.45rem; font-weight:800; color:#F8FAFC;">{sim["home_name"]} ({home})</div>'
+        f'<div style="font-family:JetBrains Mono,monospace; font-size:0.84rem; color:#38BDF8;">'
+        f'Win Prob: {sim["win_home_pct"]:.1f}% · Cuota Justa Decimal: <b>{sim["ml_home_decimal"]:.2f}</b>'
+        f'</div>'
+        f'</div>'
+        f'{logo_home_tv}'
+        f'</div>'
+        f'</div>'
+        f'</div>'
     )
+    st.markdown(tv_scoreboard_html, unsafe_allow_html=True)
 
     if es_final:
         sim_prev = st.session_state.simulaciones_previas.get(pid, sim)
@@ -1373,46 +1483,38 @@ def render_vista_detalle(partido: Dict[str, Any]) -> None:
     c1, c2, c3, c4 = st.columns(4)
     with c1:
         st.markdown(
-            f"""
-            <div class="kpi-glass">
-                <div class="kpi-title">Línea Mercado Total (O/U)</div>
-                <div class="kpi-number">{ev_tot["total_mercado"]:.1f} pts</div>
-                <div class="kpi-sub">Over {ev_tot["cuota_over_decimal"]:.2f} | Under {ev_tot["cuota_under_decimal"]:.2f}</div>
-            </div>
-            """,
+            f'<div class="kpi-glass">'
+            f'<div class="kpi-title">Línea Mercado Total (O/U)</div>'
+            f'<div class="kpi-number">{ev_tot["total_mercado"]:.1f} pts</div>'
+            f'<div class="kpi-sub">Over {ev_tot["cuota_over_decimal"]:.2f} | Under {ev_tot["cuota_under_decimal"]:.2f}</div>'
+            f'</div>',
             unsafe_allow_html=True,
         )
     with c2:
         st.markdown(
-            f"""
-            <div class="kpi-glass">
-                <div class="kpi-title">Línea Mercado Spread ({home})</div>
-                <div class="kpi-number">{ev_spr["spread_mercado_home"]:+.1f} pts</div>
-                <div class="kpi-sub">{home} {ev_spr["cuota_spread_home_decimal"]:.2f} | {away} {ev_spr["cuota_spread_away_decimal"]:.2f}</div>
-            </div>
-            """,
+            f'<div class="kpi-glass">'
+            f'<div class="kpi-title">Línea Mercado Spread ({home})</div>'
+            f'<div class="kpi-number">{ev_spr["spread_mercado_home"]:+.1f} pts</div>'
+            f'<div class="kpi-sub">{home} {ev_spr["cuota_spread_home_decimal"]:.2f} | {away} {ev_spr["cuota_spread_away_decimal"]:.2f}</div>'
+            f'</div>',
             unsafe_allow_html=True,
         )
     with c3:
         st.markdown(
-            f"""
-            <div class="kpi-glass">
-                <div class="kpi-title">Probabilidades por Serie (TD / FG)</div>
-                <div class="kpi-number">{away} {sim["drive_td_pct_away"]:.1f}% | {home} {sim["drive_td_pct_home"]:.1f}%</div>
-                <div class="kpi-sub">FG/Serie: {away} {sim["drive_fg_pct_away"]:.1f}% · {home} {sim["drive_fg_pct_home"]:.1f}%</div>
-            </div>
-            """,
+            f'<div class="kpi-glass">'
+            f'<div class="kpi-title">Probabilidades por Serie (TD / FG)</div>'
+            f'<div class="kpi-number">{away} {sim["drive_td_pct_away"]:.1f}% | {home} {sim["drive_td_pct_home"]:.1f}%</div>'
+            f'<div class="kpi-sub">FG/Serie: {away} {sim["drive_fg_pct_away"]:.1f}% · {home} {sim["drive_fg_pct_home"]:.1f}%</div>'
+            f'</div>',
             unsafe_allow_html=True,
         )
     with c4:
         st.markdown(
-            f"""
-            <div class="kpi-glass">
-                <div class="kpi-title">Clima, Ritmo y HFA Dinámico</div>
-                <div class="kpi-number">{sim["tipo_estadio"]} · {sim["viento_mph"]:.0f} mph</div>
-                <div class="kpi-sub">HFA: +{sim["hfa_pts"]:.2f} pts · Penalización Viento: -{sim["penalizacion_viento_pts"]:.1f} pts</div>
-            </div>
-            """,
+            f'<div class="kpi-glass">'
+            f'<div class="kpi-title">Clima, Ritmo y HFA Dinámico</div>'
+            f'<div class="kpi-number">{sim["tipo_estadio"]} · {sim["viento_mph"]:.0f} mph</div>'
+            f'<div class="kpi-sub">HFA: +{sim["hfa_pts"]:.2f} pts · Penalización Viento: -{sim["penalizacion_viento_pts"]:.1f} pts</div>'
+            f'</div>',
             unsafe_allow_html=True,
         )
 

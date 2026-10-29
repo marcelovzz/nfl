@@ -291,8 +291,8 @@ def evaluar_valor_totales(
         recomendacion = f"{lado_mejor} {t_mkt:.1f}"
         etiqueta_ev = f"🔥 +EV {lado_mejor} {t_mkt:.1f} @ {cuota_mkt_mejor:.2f} (EV {ev_mejor_pct:+.1f}%)"
     else:
-        recomendacion = f"PASS / SIN VALOR ({lado_mejor} {t_mkt:.1f})"
-        etiqueta_ev = f"⚖️ SIN VALOR ({lado_mejor} {t_mkt:.1f} @ {cuota_mkt_mejor:.2f} | EV {ev_mejor_pct:+.1f}%)"
+        recomendacion = f"⚪ LÍNEA SIN EDGE ({lado_mejor} {t_mkt:.1f})"
+        etiqueta_ev = "⚪ LÍNEA SIN EDGE"
 
     return {
         "hay_valor": hay_valor,
@@ -399,7 +399,7 @@ def evaluar_valor_spread(
     if hay_valor:
         etiqueta_ev = f"🔥 +EV {pick_corto} @ {cuota_mkt_mejor:.2f} (EV {ev_mejor_pct:+.1f}%)"
     else:
-        etiqueta_ev = f"⚖️ SIN VALOR ({pick_corto} @ {cuota_mkt_mejor:.2f} | EV {ev_mejor_pct:+.1f}%)"
+        etiqueta_ev = "⚪ LÍNEA SIN EDGE"
 
     return {
         "hay_valor": hay_valor,
