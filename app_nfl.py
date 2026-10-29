@@ -33,7 +33,9 @@ from sync_espn_nfl import (
 from engine_nfl import (
     REQUIRED_EXCEL_COLUMNS,
     auditar_partido_nfl,
+    build_nfl_predictions_export_df,
     calibrar_stats_nfl,
+    export_nfl_excel_bytes,
     generar_plantilla_excel_bytes,
     obtener_stats_nfl_default,
     run_simulacion_nfl,
@@ -275,6 +277,34 @@ def inyectar_estilos_css() -> None:
             font-size: 0.72rem;
             color: #38BDF8;
             margin-top: 3px;
+        }
+
+        /* Caja de Desglose 5,000 Simulaciones (Monte Carlo) con fondo #0d1117 y acento #00ffcc */
+        .mc-breakdown-box {
+            background-color: #0d1117;
+            border: 1px solid rgba(0, 255, 204, 0.32);
+            border-left: 3px solid #00ffcc;
+            border-radius: 9px;
+            padding: 10px 12px;
+            margin-top: 8px;
+            font-family: 'JetBrains Mono', monospace;
+        }
+        .mc-breakdown-header {
+            font-size: 0.72rem;
+            font-weight: 800;
+            color: #00ffcc;
+            letter-spacing: 0.5px;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+        }
+        .mc-breakdown-line {
+            font-size: 0.72rem;
+            color: #E6EDF3;
+            line-height: 1.48;
+            margin: 2px 0;
+        }
+        .mc-breakdown-line b {
+            color: #00ffcc;
         }
 
         /* Scoreboard TV Header en Vista Detallada */
@@ -907,19 +937,18 @@ def render_vista_cartelera() -> None:
 
     # Lectura directa desde st.session_state.simulaciones_cache sin recalcular las 5,000 iteraciones
     partidos_simulados_mem = recopilar_simulaciones_en_memoria()
-    excel_pred_bytes = exportar_predicciones_a_excel(partidos_simulados_mem, semana=semana)
+    df_export_nfl = build_nfl_predictions_export_df(partidos_simulados_mem, semana=semana)
+    excel_data = export_nfl_excel_bytes(df_export_nfl)
     csv_pred_bytes = exportar_predicciones_a_csv(partidos_simulados_mem, semana=semana)
 
-    exp_col1, exp_col2, exp_col3 = st.columns([1.4, 1.4, 2.2])
+    exp_col1, exp_col2 = st.columns([2.2, 1.2])
     with exp_col1:
         st.download_button(
-            label="📥 Exportar Proyecciones (.xlsx)",
-            data=excel_pred_bytes,
-            file_name=f"proyecciones_nfl_semana_{semana}.xlsx",
+            label="📥 Descargar Proyecciones NFL (.xlsx)",
+            data=excel_data,
+            file_name="nfl_quant_predictions.xlsx",
             mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            key=f"btn_export_xlsx_banner_s{semana}",
             use_container_width=True,
-            help="Descarga en Excel (.xlsx) todas las proyecciones y señales +EV desde memoria sin recalcular Monte Carlo.",
         )
     with exp_col2:
         st.download_button(
@@ -929,7 +958,6 @@ def render_vista_cartelera() -> None:
             mime="text/csv",
             key=f"btn_export_csv_banner_s{semana}",
             use_container_width=True,
-            help="Descarga en CSV todas las proyecciones y señales +EV desde memoria sin recalcular Monte Carlo.",
         )
 
     # SEPARACIÓN DE VISTAS MEDIANTE ST.TABS
@@ -951,7 +979,8 @@ def render_vista_cartelera() -> None:
                 f"#### 📅 Cartelera Activa y Momios en Formato Decimal ({len(partidos_en_vivo)} Juegos en Curso / Programados)"
             )
             for row_start in range(0, len(partidos_en_vivo), 3):
-                cols = st.columns(3)
+                col1, col2, col3 = st.columns(3)
+                cols = [col1, col2, col3]
                 chunk = partidos_en_vivo[row_start : row_start + 3]
 
                 for idx, partido in enumerate(chunk):
@@ -1005,6 +1034,28 @@ def render_vista_cartelera() -> None:
                         drives_away_card = drives_por_bando_card
                         drives_home_card = drives_por_bando_card
 
+                        ml_eq_nombre = str(sim.get("ml_fav_name", NFL_FRANCHISE_NAMES.get(home, home)))
+                        ml_mod_val = float(sim.get("ml_fav_model_pct", sim["win_home_pct"]))
+                        ml_casas_val = float(sim.get("ml_fav_casas_pct", 50.0))
+                        ml_fpi_val = float(sim.get("ml_fav_fpi_pct", 50.0))
+
+                        sp_eq_nombre = str(sim.get("spread_pick_name", NFL_FRANCHISE_NAMES.get(home, home)))
+                        sp_linea_val = float(sim.get("spread_pick_line", sim["spread_mercado_home"]))
+                        sp_cubre_val = float(sim.get("spread_pick_cover_pct", sim["cover_home_pct"]))
+
+                        ou_linea_val = float(sim.get("total_mercado", 44.5))
+                        ou_over_val = float(sim.get("over_pct", 50.0))
+                        ou_under_val = float(sim.get("under_pct", 50.0))
+
+                        mc_breakdown_html = (
+                            f'<div class="mc-breakdown-box">'
+                            f'<div class="mc-breakdown-header">📊 DESGLOSE 5,000 SIMULACIONES (MONTE CARLO)</div>'
+                            f'<div class="mc-breakdown-line">🏈 Moneyline {ml_eq_nombre}: <b>{ml_mod_val:.1f}%</b> | Casas: {ml_casas_val:.1f}% | ESPN FPI: {ml_fpi_val:.1f}%</div>'
+                            f'<div class="mc-breakdown-line">🛡️ Spread {sp_eq_nombre} ({sp_linea_val:+.1f}): <b>{sp_cubre_val:.1f}% cubre</b></div>'
+                            f'<div class="mc-breakdown-line">🎯 Total ({ou_linea_val:.1f}): <b>Más de {ou_linea_val:.1f} en {ou_over_val:.1f}%</b> (Menos: {ou_under_val:.1f}%)</div>'
+                            f'</div>'
+                        )
+
                         card_live_html = (
                             f'<div class="nfl-game-card">'
                             f'<div class="card-top-bar">'
@@ -1040,6 +1091,7 @@ def render_vista_cartelera() -> None:
                             f'Total Proy: <b>{sim["total_ou"]:.1f} pts</b> ({sim["drives_combinados"]:.1f} drives · HFA +{sim["hfa_pts"]:.2f})'
                             f'</div>'
                             f'</div>'
+                            f'{mc_breakdown_html}'
                             f'{tot_badge_html}'
                             f'{spr_badge_html}'
                             f'</div>'

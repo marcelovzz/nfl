@@ -985,6 +985,68 @@ def run_simulacion_nfl(
         for kn in NFL_KEY_NUMBERS
     }
 
+    # --- Desglose Cuantitativo 5,000 Simulaciones: Moneyline (Modelo vs Casas No-Vig vs ESPN FPI) ---
+    ml_mkt_home_raw = mkt.get("ml_mercado_home_decimal")
+    ml_mkt_away_raw = mkt.get("ml_mercado_away_decimal")
+    if ml_mkt_home_raw is not None and ml_mkt_away_raw is not None:
+        c_ml_h = americano_a_decimal(ml_mkt_home_raw, 1.91)
+        c_ml_a = americano_a_decimal(ml_mkt_away_raw, 1.91)
+        imp_ml_h = 1.0 / max(1.02, c_ml_h)
+        imp_ml_a = 1.0 / max(1.02, c_ml_a)
+        casas_home_prob = imp_ml_h / (imp_ml_h + imp_ml_a)
+    else:
+        # Probabilidad implícita desvigilada derivada de la línea de spread de las casas (dispersión NFL sigma=13.45)
+        casas_home_prob = 0.5 * (1.0 + math.erf((-spread_mercado_home) / (13.45 * math.sqrt(2.0))))
+    casas_home_prob = float(np.clip(casas_home_prob, 0.04, 0.96))
+    casas_away_prob = 1.0 - casas_home_prob
+
+    casas_home_pct = round(casas_home_prob * 100.0, 1)
+    casas_away_pct = round(casas_away_prob * 100.0, 1)
+
+    # Estimación ESPN FPI (Football Power Index) basada en diferencial de EPA neto + HFA
+    fpi_margin_home = (
+        (drive_cfg_home["epa_compuesto"] - drive_cfg_away["epa_compuesto"]) * 62.0
+        + hfa_nfl
+    )
+    fpi_prob_analit = 0.5 * (1.0 + math.erf(fpi_margin_home / (13.60 * math.sqrt(2.0))))
+    fpi_home_prob = float(
+        np.clip(0.55 * fpi_prob_analit + 0.45 * casas_home_prob, 0.05, 0.95)
+    )
+    if mkt.get("espn_fpi_home_pct") is not None:
+        fpi_home_pct = round(float(mkt["espn_fpi_home_pct"]), 1)
+    else:
+        fpi_home_pct = round(fpi_home_prob * 100.0, 1)
+    fpi_away_pct = round(100.0 - fpi_home_pct, 1)
+
+    away_full_name = NFL_FRANCHISE_NAMES.get(away_key, away_key)
+    home_full_name = NFL_FRANCHISE_NAMES.get(home_key, home_key)
+
+    if win_home_pct >= win_away_pct:
+        ml_fav_abbr = home_key
+        ml_fav_name = home_full_name
+        ml_fav_model_pct = win_home_pct
+        ml_fav_casas_pct = casas_home_pct
+        ml_fav_fpi_pct = fpi_home_pct
+    else:
+        ml_fav_abbr = away_key
+        ml_fav_name = away_full_name
+        ml_fav_model_pct = win_away_pct
+        ml_fav_casas_pct = casas_away_pct
+        ml_fav_fpi_pct = fpi_away_pct
+
+    spread_pick_abbr = str(ev_spread["equipo_pick"])
+    spread_pick_name = NFL_FRANCHISE_NAMES.get(spread_pick_abbr, spread_pick_abbr)
+    spread_pick_line = float(ev_spread["linea_pick"])
+    spread_pick_cover_pct = float(ev_spread["prob_mejor_pct"])
+
+    spread_summary_str = (
+        f"{spread_pick_name} cubre {spread_pick_line:+.1f} en {spread_pick_cover_pct:.1f}%"
+    )
+    total_summary_str = (
+        f"Más de {total_mercado:.1f} en {ev_totales['prob_over_pct']:.1f}% | "
+        f"Menos: {ev_totales['prob_under_pct']:.1f}%"
+    )
+
     return {
         "away_abbr": away_key,
         "home_abbr": home_key,
@@ -998,6 +1060,21 @@ def run_simulacion_nfl(
         "exact_home": exact_home,
         "win_home_pct": win_home_pct,
         "win_away_pct": win_away_pct,
+        "casas_home_pct": casas_home_pct,
+        "casas_away_pct": casas_away_pct,
+        "fpi_home_pct": fpi_home_pct,
+        "fpi_away_pct": fpi_away_pct,
+        "ml_fav_abbr": ml_fav_abbr,
+        "ml_fav_name": ml_fav_name,
+        "ml_fav_model_pct": ml_fav_model_pct,
+        "ml_fav_casas_pct": ml_fav_casas_pct,
+        "ml_fav_fpi_pct": ml_fav_fpi_pct,
+        "spread_pick_abbr": spread_pick_abbr,
+        "spread_pick_name": spread_pick_name,
+        "spread_pick_line": spread_pick_line,
+        "spread_pick_cover_pct": spread_pick_cover_pct,
+        "spread_summary_str": spread_summary_str,
+        "total_summary_str": total_summary_str,
         "ml_home_decimal": ml_home_decimal,
         "ml_away_decimal": ml_away_decimal,
         "spread_proyectado": spread_proyectado,
@@ -1249,6 +1326,16 @@ PREDICCIONES_EXPORT_COLUMNS: List[str] = [
     "Total_Proy",
     "Spread_Proy",
     "Drives_Partido",
+    "ML_Favorito",
+    "ML_Modelo_%",
+    "ML_Casas_NoVig_%",
+    "ESPN_FPI_%",
+    "Desglose_Spread",
+    "Spread_Cubre_%",
+    "Linea_Total_OU",
+    "Over_%",
+    "Under_%",
+    "Desglose_Total",
     "ML_Away_Justa",
     "ML_Home_Justa",
     "Senal_Total",
@@ -1259,16 +1346,16 @@ PREDICCIONES_EXPORT_COLUMNS: List[str] = [
 ]
 
 
-def construir_dataframe_predicciones(
-    partidos_simulados: List[Dict[str, Any]],
+def build_nfl_predictions_export_df(
+    results_list: List[Dict[str, Any]],
     semana: int = 8,
 ) -> pd.DataFrame:
     """
-    Construye un DataFrame limpio con las 15 columnas exactas requeridas para
-    exportar las proyecciones y señales +EV de la semana actual.
+    Estructura toda la cartelera simulada (5,000 iteraciones de Monte Carlo por
+    partido) en un DataFrame limpio listo para exportar a Excel (.xlsx) o CSV.
     """
     filas: List[Dict[str, Any]] = []
-    for item in partidos_simulados or []:
+    for item in results_list or []:
         sim = item.get("simulacion", item) if isinstance(item, dict) else {}
         if not sim or "away_pts" not in sim:
             continue
@@ -1306,6 +1393,16 @@ def construir_dataframe_predicciones(
                 "Total_Proy": round(float(sim.get("total_ou", 0.0)), 1),
                 "Spread_Proy": round(float(sim.get("spread_proyectado", 0.0)), 1),
                 "Drives_Partido": round(drives_bando, 1),
+                "ML_Favorito": str(sim.get("ml_fav_name", sim.get("home_name", ""))),
+                "ML_Modelo_%": round(float(sim.get("ml_fav_model_pct", sim.get("win_home_pct", 50.0))), 1),
+                "ML_Casas_NoVig_%": round(float(sim.get("ml_fav_casas_pct", 50.0)), 1),
+                "ESPN_FPI_%": round(float(sim.get("ml_fav_fpi_pct", 50.0)), 1),
+                "Desglose_Spread": str(sim.get("spread_summary_str", "")),
+                "Spread_Cubre_%": round(float(sim.get("spread_pick_cover_pct", 50.0)), 1),
+                "Linea_Total_OU": round(float(sim.get("total_mercado", 44.5)), 1),
+                "Over_%": round(float(sim.get("over_pct", 50.0)), 1),
+                "Under_%": round(float(sim.get("under_pct", 50.0)), 1),
+                "Desglose_Total": str(sim.get("total_summary_str", "")),
                 "ML_Away_Justa": round(float(sim.get("ml_away_decimal", 1.91)), 2),
                 "ML_Home_Justa": round(float(sim.get("ml_home_decimal", 1.91)), 2),
                 "Senal_Total": senal_tot,
@@ -1321,29 +1418,39 @@ def construir_dataframe_predicciones(
     return pd.DataFrame(filas, columns=PREDICCIONES_EXPORT_COLUMNS)
 
 
+def export_nfl_excel_bytes(df: pd.DataFrame) -> io.BytesIO:
+    """
+    Compila el DataFrame de proyecciones NFL en memoria usando io.BytesIO y
+    openpyxl, retornando el buffer listo para st.download_button.
+    """
+    buffer = io.BytesIO()
+    with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
+        df.to_excel(writer, index=False, sheet_name="NFL_Quant_Predictions")
+    buffer.seek(0)
+    return buffer
+
+
+def construir_dataframe_predicciones(
+    partidos_simulados: List[Dict[str, Any]],
+    semana: int = 8,
+) -> pd.DataFrame:
+    """Alias compatible con build_nfl_predictions_export_df."""
+    return build_nfl_predictions_export_df(partidos_simulados, semana=semana)
+
+
 def exportar_predicciones_a_excel(
     partidos_simulados: List[Dict[str, Any]],
     semana: int = 8,
 ) -> bytes:
-    """
-    Genera en memoria (io.BytesIO + openpyxl) el archivo Excel (.xlsx) con todas
-    las proyecciones y señales +EV de la semana actual sin escribir en disco.
-    """
-    df_pred = construir_dataframe_predicciones(partidos_simulados, semana=semana)
-    buffer = io.BytesIO()
-    with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
-        df_pred.to_excel(writer, index=False, sheet_name=f"Semana_{semana}")
-    buffer.seek(0)
-    return buffer.getvalue()
+    """Retorna los bytes del archivo Excel (.xlsx) compilado en memoria."""
+    df_pred = build_nfl_predictions_export_df(partidos_simulados, semana=semana)
+    return export_nfl_excel_bytes(df_pred).getvalue()
 
 
 def exportar_predicciones_a_csv(
     partidos_simulados: List[Dict[str, Any]],
     semana: int = 8,
 ) -> bytes:
-    """
-    Genera en memoria el archivo CSV (UTF-8 con BOM para Excel) con todas las
-    proyecciones y señales +EV de la semana actual.
-    """
-    df_pred = construir_dataframe_predicciones(partidos_simulados, semana=semana)
+    """Genera en memoria el archivo CSV con las proyecciones y desglose Monte Carlo."""
+    df_pred = build_nfl_predictions_export_df(partidos_simulados, semana=semana)
     return df_pred.to_csv(index=False, encoding="utf-8-sig").encode("utf-8-sig")
