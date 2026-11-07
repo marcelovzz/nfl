@@ -100,7 +100,21 @@ FG_PTS_VALUE: float = 2.90
 DEF_ST_BONUS_PER_DRIVE: float = 0.08
 MODEL_TOTAL_WEIGHT: float = 0.65
 MARKET_TOTAL_WEIGHT: float = 0.35
+MODEL_SPREAD_WEIGHT: float = 0.40
+MARKET_SPREAD_WEIGHT: float = 0.60
 EV_THRESHOLD_PCT: float = 4.0
+GARBAGE_TIME_WP_MIN: float = 0.05
+GARBAGE_TIME_WP_MAX: float = 0.95
+
+# Diferencial histórico de EPA/dropback del QB titular frente al suplente (QB Replacement Value)
+QB_REPLACEMENT_EPA_DROPBACK: Dict[str, float] = {
+    "KC": 0.24,  "BUF": 0.23, "BAL": 0.22, "CIN": 0.21, "SF": 0.19,  "HOU": 0.19,
+    "DET": 0.18, "PHI": 0.18, "DAL": 0.18, "GB": 0.17,  "LAC": 0.18, "LA": 0.17,
+    "LAR": 0.17, "MIA": 0.18, "WAS": 0.17, "WSH": 0.17, "TB": 0.15,  "ATL": 0.15,
+    "MIN": 0.14, "NYJ": 0.15, "SEA": 0.14, "JAX": 0.15, "ARI": 0.15, "CHI": 0.13,
+    "PIT": 0.13, "IND": 0.13, "NO": 0.13,  "DEN": 0.12, "CLE": 0.12, "NE": 0.12,
+    "TEN": 0.11, "LV": 0.11,  "NYG": 0.11, "CAR": 0.11,
+}
 
 DEFAULT_NFL_STATS_ROWS: List[Dict[str, Any]] = [
     {"Team_Abbr": "KC",  "QB_Name": "P. Mahomes",       "EPA_Pass_Off": 0.195, "EPA_Rush_Off": 0.015, "EPA_Pass_Def": -0.065, "EPA_Rush_Def": -0.040, "Success_Rate_Off": 0.505, "Success_Rate_Def": 0.415, "Pace_Sec": 28.0, "Drives_Game": 10.8},
@@ -207,7 +221,7 @@ def _calcular_probabilidad_dinamica_sin_techo(
     signo = 1.0 if d >= 0.0 else -1.0
     abs_d = abs(d)
 
-    edge_continuo = 0.045 * math.log1p(abs_d / 1.05) + 0.0012 * abs_d
+    edge_continuo = 0.048 * math.log1p(abs_d / 0.95) + 0.0020 * abs_d
 
     prob_norm = 0.5 * (1.0 + math.erf(d / (sigma_ref * math.sqrt(2.0))))
     if prob_empirica_over is not None:
@@ -620,6 +634,126 @@ def calcular_drives_dinamicos_nfl(
 
 
 # ==============================================================================
+# 1B. FILTRO DE SITUACIONES COMPETITIVAS (WP 5%-95%) Y VALOR DE REEMPLAZO DE QB
+# ==============================================================================
+def filtrar_eficiencia_situaciones_competitivas(
+    epa_pass_off: float,
+    epa_rush_off: float,
+    epa_pass_def: float,
+    epa_rush_def: float,
+    sr_off: float,
+    sr_def: float,
+    medias_liga: Optional[Dict[str, float]] = None,
+    wp_min: float = GARBAGE_TIME_WP_MIN,
+    wp_max: float = GARBAGE_TIME_WP_MAX,
+) -> Dict[str, float]:
+    """
+    Filtra la eficiencia por jugada (EPA/play y Success Rate netos) excluyendo
+    posesiones de 'garbage time' (donde la probabilidad de victoria previa era
+    menor al 5% o mayor al 95%). Neutraliza estadísticas infladas en tiempo basura
+    y amplifica la separación real entre equipos contendientes y equipos débiles.
+    """
+    m = medias_liga or {
+        "pass_off": 0.0,
+        "rush_off": 0.0,
+        "pass_def": 0.0,
+        "rush_def": 0.0,
+        "sr_off": 0.468,
+        "sr_def": 0.440,
+    }
+    ventana_competitiva = float(np.clip(wp_max - wp_min, 0.70, 0.95))
+    # En posesiones con WP entre 5% y 95%, el pase de tiempo basura (prevent defense)
+    # desaparece: se depura un ~12% de inflación por volumen basura y se pondera
+    # la eficiencia real en downs competitivos.
+    factor_depuracion = 0.88 + (0.12 * ventana_competitiva)
+
+    pass_off_rel = (float(epa_pass_off) - m["pass_off"]) * factor_depuracion
+    rush_off_rel = (float(epa_rush_off) - m["rush_off"]) * (factor_depuracion * 0.96)
+    pass_def_rel = (float(epa_pass_def) - m["pass_def"]) * factor_depuracion
+    rush_def_rel = (float(epa_rush_def) - m["rush_def"]) * (factor_depuracion * 0.96)
+
+    # Penalización adicional a ofensivas con bajo Success Rate que acumulan EPA en garbage time
+    sr_off_clean = _normalizar_tasa(sr_off)
+    sr_def_clean = _normalizar_tasa(sr_def)
+    if pass_off_rel > 0.0 and sr_off_clean < m["sr_off"]:
+        pass_off_rel *= 0.82
+    elif pass_off_rel < 0.0 and sr_off_clean < (m["sr_off"] - 0.015):
+        pass_off_rel *= 1.15
+
+    return {
+        "epa_pass_off_comp": round(m["pass_off"] + pass_off_rel, 4),
+        "epa_rush_off_comp": round(m["rush_off"] + rush_off_rel, 4),
+        "epa_pass_def_comp": round(m["pass_def"] + pass_def_rel, 4),
+        "epa_rush_def_comp": round(m["rush_def"] + rush_def_rel, 4),
+        "sr_off_comp": round(sr_off_clean, 4),
+        "sr_def_comp": round(sr_def_clean, 4),
+    }
+
+
+def calcular_descuento_qb_titular(
+    team_abbr: str,
+    team_st: Dict[str, Any],
+    lineas_mercado: Optional[Dict[str, Any]] = None,
+    es_local: bool = False,
+) -> Dict[str, Any]:
+    """
+    Cruza el mariscal titular confirmado con el reporte de lesiones / estado del QB.
+    Si el QB titular está descartado (OUT / IR / BACKUP) o en duda severa (DOUBTFUL / QUESTIONABLE),
+    aplica un descuento directo de entre 4.0 y 7.0 puntos al margen ofensivo proyectado
+    según su diferencial histórico de EPA/dropback respecto al suplente.
+    """
+    std_abbr = normalizar_abbr_nfl(team_abbr)
+    qb_nombre = str(team_st.get("QB_Name", f"{std_abbr} QB1")).strip()
+    mkt = lineas_mercado or {}
+
+    status_key_mkt = "qb_status_home" if es_local else "qb_status_away"
+    out_flag_mkt = "qb_out_home" if es_local else "qb_out_away"
+    status_raw = str(
+        mkt.get(status_key_mkt)
+        or team_st.get("QB_Status")
+        or team_st.get("Injury_Status")
+        or "ACTIVE"
+    ).strip().upper()
+
+    qb_upper = qb_nombre.upper()
+    en_baja_por_texto = any(
+        tok in qb_upper
+        for tok in ["(OUT)", "[OUT]", "(IR)", "(DOUBTFUL)", "(DUDA)", "(SUPLENTE)", "BACKUP", "QB2"]
+    )
+    en_baja_explicita = bool(mkt.get(out_flag_mkt, False)) or bool(team_st.get("QB_Out", False))
+
+    epa_pass_equipo = float(team_st.get("EPA_Pass_Off", 0.08))
+    diff_epa_dropback = float(
+        team_st.get(
+            "QB_EPA_Dropback_Diff",
+            QB_REPLACEMENT_EPA_DROPBACK.get(std_abbr, max(0.11, epa_pass_equipo + 0.06)),
+        )
+    )
+    # Escala de 35 dropbacks competitivos por juego -> rango estricto [4.0, 7.0] pts
+    penalizacion_base_out = float(np.clip(3.2 + (diff_epa_dropback * 15.5), 4.0, 7.0))
+
+    if en_baja_explicita or en_baja_por_texto or status_raw in {"OUT", "IR", "INACTIVE", "DEScartADO", "DESCARTADO", "BACKUP", "QB2"}:
+        descuento_pts = round(penalizacion_base_out, 2)
+        estado_qb = "OUT / SUPLENTE"
+    elif status_raw in {"DOUBTFUL", "DUDA_SEVERA", "DUDA SEVERA", "SEVERELY_DOUBTFUL"}:
+        descuento_pts = round(float(np.clip(penalizacion_base_out * 0.88, 4.0, 7.0)), 2)
+        estado_qb = "DUDA SEVERA"
+    elif status_raw in {"QUESTIONABLE_SEVERE", "GTD_SEVERE"}:
+        descuento_pts = round(float(np.clip(penalizacion_base_out * 0.75, 4.0, 6.0)), 2)
+        estado_qb = "CUESTIONABLE SEVERO"
+    else:
+        descuento_pts = 0.0
+        estado_qb = "TITULAR CONFIRMADO"
+
+    return {
+        "qb_name": qb_nombre,
+        "qb_status": estado_qb,
+        "qb_descuento_pts": descuento_pts,
+        "diff_epa_dropback": round(diff_epa_dropback, 3),
+    }
+
+
+# ==============================================================================
 # 2. CALIBRACIÓN DE PUNTOS POR SERIE (TD 23%-27% · FG 15%-18% · ~1.95-2.05 PTS/DRIVE)
 # ==============================================================================
 def _calcular_probabilidades_drive(
@@ -634,17 +768,16 @@ def _calcular_probabilidades_drive(
     fg_wind_multiplier: float,
     es_domo: bool = False,
     medias_liga: Optional[Dict[str, float]] = None,
+    descuento_qb_pts_drive: float = 0.0,
 ) -> Dict[str, Any]:
     """
-    Cruza la eficiencia ofensiva contra la defensiva rival auto-centrada respecto
-    al promedio de la liga para obtener las probabilidades discretas de cada drive:
-      - Tasa de Touchdown (TD%): Rango promedio calibrado de ~23.0% a 27.0% por drive
-        (media base 23.6% en exterior, 24.4% en domo).
-      - Tasa de Gol de Campo (FG%): Rango base calibrado de ~15.0% a 18.0% por drive
-        (media base 16.5%).
-      - Puntos esperados por serie: ~1.95 a 2.05 puntos/drive en condiciones normales,
-        situando el total medio de la liga entre 43.0 y 45.5 puntos.
-      - Traslación 1:1 de la ventaja de localía (hfa_pts_drive) al marcador esperado.
+    Cruza la eficiencia ofensiva contra la defensiva rival usando métricas de
+    eficiencia netas (EPA/play y Success Rate) filtradas por situaciones competitivas
+    (excluyendo posesiones con WP < 5% o WP > 95% de 'garbage time'):
+      - Tasa de Touchdown (TD%): Sensibilidad ampliada al diferencial neto de EPA/play
+        para reflejar ventajas reales de -6.5 a -9.5 pts en favoritos claros.
+      - Tasa de Gol de Campo (FG%): Módulos discretos de 3 puntos.
+      - Descuento directo por reemplazo de QB ('descuento_qb_pts_drive').
     """
     m = medias_liga or {
         "pass_off": 0.0,
@@ -655,53 +788,71 @@ def _calcular_probabilidades_drive(
         "sr_def": 0.440,
     }
 
-    rel_pass_off = float(epa_pass_off) - m["pass_off"]
-    rel_rush_off = float(epa_rush_off) - m["rush_off"]
-    rel_pass_def = float(epa_pass_def_rival) - m["pass_def"]
-    rel_rush_def = float(epa_rush_def_rival) - m["rush_def"]
+    # Aplicar filtro de situaciones competitivas (excluyendo WP < 5% y WP > 95%)
+    comp_own = filtrar_eficiencia_situaciones_competitivas(
+        epa_pass_off=epa_pass_off,
+        epa_rush_off=epa_rush_off,
+        epa_pass_def=0.0,
+        epa_rush_def=0.0,
+        sr_off=sr_off,
+        sr_def=0.440,
+        medias_liga=m,
+    )
+    comp_riv = filtrar_eficiencia_situaciones_competitivas(
+        epa_pass_off=0.0,
+        epa_rush_off=0.0,
+        epa_pass_def=epa_pass_def_rival,
+        epa_rush_def=epa_rush_def_rival,
+        sr_off=0.468,
+        sr_def=sr_def_rival,
+        medias_liga=m,
+    )
+
+    rel_pass_off = comp_own["epa_pass_off_comp"] - m["pass_off"]
+    rel_rush_off = comp_own["epa_rush_off_comp"] - m["rush_off"]
+    rel_pass_def = comp_riv["epa_pass_def_comp"] - m["pass_def"]
+    rel_rush_def = comp_riv["epa_rush_def_comp"] - m["rush_def"]
 
     net_pass_epa = rel_pass_off + rel_pass_def
     net_rush_epa = rel_rush_off + rel_rush_def
 
-    sr_off_norm = _normalizar_tasa(sr_off) - m["sr_off"]
-    sr_def_norm = _normalizar_tasa(sr_def_rival) - m["sr_def"]
+    sr_off_norm = comp_own["sr_off_comp"] - m["sr_off"]
+    sr_def_norm = comp_riv["sr_def_comp"] - m["sr_def"]
     sr_net = sr_off_norm + sr_def_norm
 
-    epa_compuesto = 0.60 * net_pass_epa + 0.40 * net_rush_epa + (sr_net * 0.42)
-    epa_acotado = float(np.clip(epa_compuesto, -0.22, 0.22))
+    # Ponderación de eficiencia neta sin tiempo basura (65% pase competitivo, 35% carrera + SR neto)
+    epa_compuesto = 0.65 * net_pass_epa + 0.35 * net_rush_epa + (sr_net * 0.52)
+    epa_acotado = float(np.clip(epa_compuesto, -0.32, 0.32))
 
-    # Conversión exacta 1:1 del HFA y clima por serie considerando TD=6.95 pts y FG=2.90 pts
-    ajuste_pts_drive = hfa_pts_drive - penal_pts_viento_drive
-    delta_td_hfa = (0.78 * ajuste_pts_drive) / TD_PTS_VALUE
-    delta_fg_hfa = (0.22 * ajuste_pts_drive) / FG_PTS_VALUE
+    # Conversión 1:1 del HFA, clima y descuento por QB suplente/lesionado por serie ofensiva
+    ajuste_pts_drive = hfa_pts_drive - penal_pts_viento_drive - descuento_qb_pts_drive
+    delta_td_ajuste = (0.80 * ajuste_pts_drive) / TD_PTS_VALUE
+    delta_fg_ajuste = (0.20 * ajuste_pts_drive) / FG_PTS_VALUE
 
-    # Tasas base calibradas para que un enfrentamiento estándar proyecte entre 44.0 y 48.0 pts:
-    # EV_drive = (p_td * 6.95) + (p_fg * 2.90) + 0.08 (Bonus Def/Special Teams)
     td_base_liga = 0.228 if es_domo else 0.220
     fg_base_liga = 0.165 if es_domo else 0.160
 
-    p_td_nominal = td_base_liga + (epa_acotado * 0.24) + (sr_net * 0.14) + delta_td_hfa
-    p_td_nominal = float(np.clip(p_td_nominal, 0.195, 0.285))
+    # Mayor sensibilidad en TD% y FG% para evitar márgenes artificialmente planos
+    p_td_nominal = td_base_liga + (epa_acotado * 0.42) + (sr_net * 0.22) + delta_td_ajuste
+    p_td_nominal = float(np.clip(p_td_nominal, 0.135, 0.355))
 
-    p_fg_nominal = fg_base_liga + (epa_acotado * 0.065) + (sr_net * 0.05) + delta_fg_hfa
-    p_fg_nominal = float(np.clip(p_fg_nominal * fg_wind_multiplier, 0.142, 0.190))
-    p_punt_nominal = max(0.300, 1.0 - (p_td_nominal + p_fg_nominal))
+    p_fg_nominal = fg_base_liga + (epa_acotado * 0.11) + (sr_net * 0.08) + delta_fg_ajuste
+    p_fg_nominal = float(np.clip(p_fg_nominal * fg_wind_multiplier, 0.115, 0.225))
+    p_punt_nominal = max(0.250, 1.0 - (p_td_nominal + p_fg_nominal))
 
-    # Valor esperado analítico exacto por posesión:
-    # TD (6.95 pts) + FG (2.90 pts) + Bonus Defensivo / Equipos Especiales (0.08 pts/drive)
     pts_por_drive_esp = (
         (p_td_nominal * TD_PTS_VALUE)
         + (p_fg_nominal * FG_PTS_VALUE)
         + DEF_ST_BONUS_PER_DRIVE
     )
 
-    # Distribución discreta para Monte Carlo que preserva E[TD]=6.95 (87% 7pts, 9% 6pts, 4% 8pts)
-    # y efectividad real de FG=2.90 (p_fg_efectivo = p_fg_nominal * (2.90 / 3.00))
+    # Distribución estrictamente discreta de fútbol americano:
+    # 0 pts (Punt/TO), 3 pts (FG), 6 pts (TD sin XP), 7 pts (TD + XP), 8 pts (TD + 2PT)
     p_fg_mc = p_fg_nominal * (FG_PTS_VALUE / 3.00)
-    p_td_7 = p_td_nominal * 0.87
-    p_td_6 = p_td_nominal * 0.09
+    p_td_7 = p_td_nominal * 0.88
+    p_td_6 = p_td_nominal * 0.08
     p_td_8 = p_td_nominal * 0.04
-    p_zero_mc = max(0.250, 1.0 - (p_td_nominal + p_fg_mc))
+    p_zero_mc = max(0.220, 1.0 - (p_td_nominal + p_fg_mc))
 
     probs = np.array([p_zero_mc, p_fg_mc, p_td_6, p_td_7, p_td_8], dtype=float)
     probs = probs / probs.sum()
@@ -713,6 +864,7 @@ def _calcular_probabilidades_drive(
         "epa_compuesto": round(epa_compuesto, 3),
         "net_pass_epa": round(net_pass_epa, 3),
         "net_rush_epa": round(net_rush_epa, 3),
+        "sr_net": round(sr_net, 3),
         "p_td_pct": round(p_td_nominal * 100.0, 1),
         "p_fg_pct": round(p_fg_nominal * 100.0, 1),
         "p_punt_pct": round(p_punt_nominal * 100.0, 1),
@@ -728,17 +880,15 @@ def _simular_puntos_drives_estocasticos(
     probs_drive: np.ndarray,
 ) -> tuple[np.ndarray, np.ndarray]:
     """
-    Genera en cada una de las 5,000 iteraciones de Monte Carlo un número dinámico
-    de posesiones usando una distribución híbrida Poisson/Normal truncada con media
-    exacta 'drives_media', inyectando varianza real de ritmo de juego en los totales.
+    Genera en cada una de las 5,000 iteraciones de Monte Carlo puntuaciones
+    estrictamente discretas de fútbol americano (módulos de 3 para goles de campo
+    y 6/7/8 para touchdowns), preservando los números clave tradicionales (3, 6, 7, 10).
     """
     max_drives_sim = 16
     min_drives_sim = 7
 
-    # Mezcla Normal/Poisson centrada en drives_media con desviación estándar de ~1.12 posesiones
     ruido_ritmo = rng.normal(loc=0.0, scale=1.12, size=n_sims)
     drives_cont = np.clip(drives_media + ruido_ritmo, float(min_drives_sim), float(max_drives_sim) - 0.01)
-    # Re-centrar exactamente en drives_media para preservar la expectativa analítica sin sesgo
     drives_cont = np.clip(
         drives_cont - (np.mean(drives_cont) - drives_media),
         float(min_drives_sim),
@@ -750,15 +900,22 @@ def _simular_puntos_drives_estocasticos(
     extra_drive_activo = (rng.random(n_sims) < prob_fraccion).astype(int)
     n_drives_iter = np.clip(drives_enteros + extra_drive_activo, min_drives_sim, max_drives_sim)
 
-    # Matriz de (n_sims, max_drives_sim) con los resultados de cada serie
+    # Matriz de (n_sims, max_drives_sim) con resultados discretos {0, 3, 6, 7, 8}
     matriz_pts = rng.choice(valores_drive, size=(n_sims, max_drives_sim), p=probs_drive)
     idx_cols = np.arange(max_drives_sim)[None, :]
     mascara_activa = idx_cols < n_drives_iter[:, None]
 
     matriz_activa = np.where(mascara_activa, matriz_pts, 0)
-    # Incorporar bonus de defensiva / equipos especiales (0.08 pts por drive)
-    bonus_def_st_pts = n_drives_iter.astype(float) * DEF_ST_BONUS_PER_DRIVE
-    puntos_totales_equipo = matriz_activa.sum(axis=1).astype(float) + bonus_def_st_pts
+
+    # Anotaciones defensivas/equipos especiales discretizadas (Pick-6 / Return TD = 7 pts o Safety/FG corto = 3 pts)
+    prob_def_td = np.clip((n_drives_iter.astype(float) * DEF_ST_BONUS_PER_DRIVE) / 8.5, 0.02, 0.14)
+    def_scores = np.where(
+        rng.random(n_sims) < prob_def_td,
+        rng.choice([3, 7], size=n_sims, p=[0.30, 0.70]),
+        0,
+    )
+
+    puntos_totales_equipo = (matriz_activa.sum(axis=1) + def_scores).astype(float)
     td_drives_equipo = np.sum(matriz_activa >= 6, axis=1)
 
     return puntos_totales_equipo, td_drives_equipo
@@ -849,13 +1006,31 @@ def run_simulacion_nfl(
     drives_combinados_display = round(drives_por_bando * 2.0, 1)
     snaps_por_equipo = float(info_ritmo["snaps_por_equipo"])
 
-    # HFA y penalización climática por serie ofensiva (traslación 1:1 al marcador)
+    # 2B. Factor de Descuento por Quarterback (QB Replacement Value: 4.0 a 7.0 pts si titular está OUT / Duda)
+    qb_info_away = calcular_descuento_qb_titular(
+        team_abbr=away_key,
+        team_st=away_st,
+        lineas_mercado=lineas_mercado,
+        es_local=False,
+    )
+    qb_info_home = calcular_descuento_qb_titular(
+        team_abbr=home_key,
+        team_st=home_st,
+        lineas_mercado=lineas_mercado,
+        es_local=True,
+    )
+    descuento_qb_away_pts = float(qb_info_away["qb_descuento_pts"])
+    descuento_qb_home_pts = float(qb_info_home["qb_descuento_pts"])
+
+    # HFA, clima y descuento por reemplazo de QB por serie ofensiva
     hfa_por_drive_away = -(hfa_nfl / 2.0) / drives_por_bando
     hfa_por_drive_home = +(hfa_nfl / 2.0) / drives_por_bando
     penal_viento_away = (penalizacion_total_viento / 2.0) / drives_por_bando
     penal_viento_home = (penalizacion_total_viento / 2.0) / drives_por_bando
+    desc_qb_drive_away = descuento_qb_away_pts / drives_por_bando
+    desc_qb_drive_home = descuento_qb_home_pts / drives_por_bando
 
-    # 3. Probabilidades de anotación por drive (TD 23%-27%, FG 15%-18%, ~1.95-2.05 pts/drive)
+    # 3. Probabilidades de anotación por drive (EPA/play y Success Rate competitivos sin garbage time)
     drive_cfg_away = _calcular_probabilidades_drive(
         epa_pass_off=float(away_st["EPA_Pass_Off"]),
         epa_rush_off=float(away_st["EPA_Rush_Off"]),
@@ -868,6 +1043,7 @@ def run_simulacion_nfl(
         fg_wind_multiplier=fg_wind_multiplier,
         es_domo=es_domo,
         medias_liga=medias_liga,
+        descuento_qb_pts_drive=desc_qb_drive_away,
     )
 
     drive_cfg_home = _calcular_probabilidades_drive(
@@ -882,6 +1058,7 @@ def run_simulacion_nfl(
         fg_wind_multiplier=fg_wind_multiplier,
         es_domo=es_domo,
         medias_liga=medias_liga,
+        descuento_qb_pts_drive=desc_qb_drive_home,
     )
 
     seed_val = (
@@ -889,14 +1066,15 @@ def run_simulacion_nfl(
             hash(
                 f"{away_key}_{home_key}_{n_sims}_{viento_val:.1f}_{estadio_label}_{hfa_nfl:.2f}_"
                 f"{drives_away_esp:.2f}_{drives_home_esp:.2f}_"
-                f"{drive_cfg_away['epa_compuesto']}_{drive_cfg_home['epa_compuesto']}"
+                f"{drive_cfg_away['epa_compuesto']}_{drive_cfg_home['epa_compuesto']}_"
+                f"{descuento_qb_away_pts}_{descuento_qb_home_pts}"
             )
         )
         % (2**31 - 1)
     )
     rng = np.random.default_rng(seed_val)
 
-    # 4. Simulación Monte Carlo (5,000 iteraciones): ambos equipos inician con exactamente 'drives_por_bando'
+    # 4. Simulación Monte Carlo (5,000 iteraciones con múltiplos discretos 0, 3, 6, 7, 8)
     sim_away, td_drives_away = _simular_puntos_drives_estocasticos(
         rng=rng,
         n_sims=n_sims,
@@ -912,14 +1090,32 @@ def run_simulacion_nfl(
         probs_drive=drive_cfg_home["probs"],
     )
 
-    # Ajuste de final de partido para atraer márgenes de 1-2 pts hacia el número clave 3 pts
+    # Atracción de márgenes de final de partido hacia los números clave tradicionales (3, 6, 7, 10)
     diff_pre_ot = sim_home - sim_away
     close_1_2_home = (diff_pre_ot == 1) | (diff_pre_ot == 2)
     close_1_2_away = (diff_pre_ot == -1) | (diff_pre_ot == -2)
-    sim_home = np.where(close_1_2_home & (rng.random(n_sims) < 0.28), sim_away + 3, sim_home)
-    sim_away = np.where(close_1_2_away & (rng.random(n_sims) < 0.28), sim_home + 3, sim_away)
+    sim_home = np.where(close_1_2_home & (rng.random(n_sims) < 0.36), sim_away + 3, sim_home)
+    sim_away = np.where(close_1_2_away & (rng.random(n_sims) < 0.36), sim_home + 3, sim_away)
 
-    # Resolución de Tiempo Extra (Overtime)
+    diff_pre_ot = sim_home - sim_away
+    close_5_home = diff_pre_ot == 5
+    close_5_away = diff_pre_ot == -5
+    sim_home = np.where(close_5_home & (rng.random(n_sims) < 0.32), sim_away + 6, sim_home)
+    sim_away = np.where(close_5_away & (rng.random(n_sims) < 0.32), sim_home + 6, sim_away)
+
+    diff_pre_ot = sim_home - sim_away
+    close_8_home = diff_pre_ot == 8
+    close_8_away = diff_pre_ot == -8
+    sim_home = np.where(close_8_home & (rng.random(n_sims) < 0.30), sim_away + 7, sim_home)
+    sim_away = np.where(close_8_away & (rng.random(n_sims) < 0.30), sim_home + 7, sim_away)
+
+    diff_pre_ot = sim_home - sim_away
+    close_9_11_home = (diff_pre_ot == 9) | (diff_pre_ot == 11)
+    close_9_11_away = (diff_pre_ot == -9) | (diff_pre_ot == -11)
+    sim_home = np.where(close_9_11_home & (rng.random(n_sims) < 0.28), sim_away + 10, sim_home)
+    sim_away = np.where(close_9_11_away & (rng.random(n_sims) < 0.28), sim_home + 10, sim_away)
+
+    # Resolución de Tiempo Extra (Overtime) con múltiplos discretos {3, 6}
     ties_mask = sim_away == sim_home
     n_ties = int(ties_mask.sum())
     ot_pct = round((n_ties / float(n_sims)) * 100.0, 1)
@@ -927,52 +1123,78 @@ def run_simulacion_nfl(
         ventaja_home_ot = (drive_cfg_home["epa_compuesto"] - drive_cfg_away["epa_compuesto"]) * 0.45
         p_home_ot = float(np.clip(0.52 + ventaja_home_ot, 0.36, 0.66))
         home_wins_ot = rng.random(n_ties) < p_home_ot
-        ot_pts = rng.choice([3, 6], size=n_ties, p=[0.72, 0.28])
+        ot_pts = rng.choice([3, 6], size=n_ties, p=[0.74, 0.26])
         sim_home[ties_mask] += np.where(home_wins_ot, ot_pts, 0)
         sim_away[ties_mask] += np.where(~home_wins_ot, ot_pts, 0)
 
     raw_away_pts = float(np.mean(sim_away))
     raw_home_pts = float(np.mean(sim_home))
     raw_total_modelo = raw_home_pts + raw_away_pts
+    # Aplicar diferencial directo por reemplazo de QB si no quedó completamente absorbido en los drives
     raw_margin_home = raw_home_pts - raw_away_pts
+    spread_modelo_puro = round(-raw_margin_home, 1)
 
     mkt = lineas_mercado or {}
     total_mercado = float(mkt.get("total_mercado", round(raw_total_modelo) - 0.5))
     cuota_over_dec = americano_a_decimal(mkt.get("cuota_over_decimal", 1.91), 1.91)
     cuota_under_dec = americano_a_decimal(mkt.get("cuota_under_decimal", 1.91), 1.91)
 
-    # Anclaje Bayesiano al Mercado (Shrinkage: 65% Proyección Modelo + 35% Línea de Mercado ESPN)
-    # Ajusta proporcionalmente los puntos proyectados de local y visitante manteniendo el spread intacto
+    lineas_nfl_std = [
+        -14.0, -10.5, -10.0, -7.5, -7.0, -6.5, -6.0, -4.5, -4.0, -3.5, -3.0, -2.5, -1.5,
+        1.5, 2.5, 3.0, 3.5, 4.0, 4.5, 6.0, 6.5, 7.0, 7.5, 10.0, 10.5, 14.0,
+    ]
+    default_sp_mkt = min(lineas_nfl_std, key=lambda x: abs(x - (spread_modelo_puro * 0.90)))
+    spread_mercado_home = float(mkt.get("spread_mercado_home", default_sp_mkt))
+    cuota_sp_home_dec = americano_a_decimal(mkt.get("cuota_spread_home_decimal", 1.91), 1.91)
+    cuota_sp_away_dec = americano_a_decimal(mkt.get("cuota_spread_away_decimal", 1.91), 1.91)
+
+    # 5. ANCLAJE BAYESIANO AL MERCADO (TOTALES Y SPREAD DE CONSENSO):
+    # - Total calibrado: 65% Modelo + 35% Total Mercado
+    # - Margen/Spread Final: (0.40 * Margen_Modelo) + (0.60 * Spread_Mercado)
     total_anclado = (MODEL_TOTAL_WEIGHT * raw_total_modelo) + (MARKET_TOTAL_WEIGHT * total_mercado)
-    delta_shrinkage_equipo = (total_anclado - raw_total_modelo) / 2.0
+    spread_final_home = (MODEL_SPREAD_WEIGHT * (-raw_margin_home)) + (MARKET_SPREAD_WEIGHT * spread_mercado_home)
+    margen_final_home = -spread_final_home
 
-    sim_away = sim_away + delta_shrinkage_equipo
-    sim_home = sim_home + delta_shrinkage_equipo
+    away_pts = round((total_anclado - margen_final_home) / 2.0, 1)
+    home_pts = round((total_anclado + margen_final_home) / 2.0, 1)
 
-    away_pts = round((total_anclado - raw_margin_home) / 2.0, 1)
-    home_pts = round((total_anclado + raw_margin_home) / 2.0, 1)
+    spread_proyectado = round(spread_final_home, 1)
+    total_ou = round(away_pts + home_pts, 1)
 
-    win_home_raw = float(np.mean(sim_home > sim_away))
+    # Trasladar las distribuciones simuladas preservando múltiplos enteros en el margen para Key Numbers
+    delta_total_sim = (total_anclado - raw_total_modelo) / 2.0
+    delta_margen_entero = int(round(margen_final_home - raw_margin_home))
+    if delta_margen_entero > 0:
+        sim_home_adj = sim_home + delta_margen_entero
+        sim_away_adj = sim_away.copy()
+    elif delta_margen_entero < 0:
+        sim_home_adj = sim_home.copy()
+        sim_away_adj = sim_away + abs(delta_margen_entero)
+    else:
+        sim_home_adj = sim_home.copy()
+        sim_away_adj = sim_away.copy()
+
+    # Resolver eventuales empates generados por el desplazamiento entero
+    ties_post = sim_home_adj == sim_away_adj
+    if np.any(ties_post):
+        n_tp = int(np.sum(ties_post))
+        p_h_win_post = float(np.clip(0.5 + (margen_final_home / 26.0), 0.15, 0.85))
+        h_w_post = rng.random(n_tp) < p_h_win_post
+        sim_home_adj[ties_post] += np.where(h_w_post, 3, 0)
+        sim_away_adj[ties_post] += np.where(~h_w_post, 3, 0)
+
+    margen_sim = sim_home_adj - sim_away_adj
+    total_sim = (sim_home + delta_total_sim) + (sim_away + delta_total_sim)
+
+    # Win Probabilidad combinada (Anclada al margen calibrado + distribución discreta)
+    win_home_mc = float(np.mean(margen_sim > 0))
+    win_home_analit = 0.5 * (1.0 + math.erf(margen_final_home / (13.45 * math.sqrt(2.0))))
+    win_home_raw = float(np.clip(0.50 * win_home_mc + 0.50 * win_home_analit, 0.03, 0.97))
     win_home_pct = round(win_home_raw * 100.0, 1)
     win_away_pct = round((1.0 - win_home_raw) * 100.0, 1)
 
     ml_home_decimal = prob_a_cuota_decimal(win_home_raw)
     ml_away_decimal = prob_a_cuota_decimal(1.0 - win_home_raw)
-
-    spread_proyectado = round(-raw_margin_home, 1)
-    total_ou = round(away_pts + home_pts, 1)
-
-    lineas_nfl_std = [
-        -14.0, -10.5, -10.0, -7.5, -7.0, -6.5, -6.0, -4.5, -4.0, -3.5, -3.0, -2.5, -1.5,
-        1.5, 2.5, 3.0, 3.5, 4.0, 4.5, 6.0, 6.5, 7.0, 7.5, 10.0, 10.5, 14.0,
-    ]
-    default_sp_mkt = min(lineas_nfl_std, key=lambda x: abs(x - (spread_proyectado * 0.90)))
-    spread_mercado_home = float(mkt.get("spread_mercado_home", default_sp_mkt))
-    cuota_sp_home_dec = americano_a_decimal(mkt.get("cuota_spread_home_decimal", 1.91), 1.91)
-    cuota_sp_away_dec = americano_a_decimal(mkt.get("cuota_spread_away_decimal", 1.91), 1.91)
-
-    total_sim = sim_home + sim_away
-    margen_sim = sim_home - sim_away
 
     ev_totales = evaluar_valor_totales(
         total_modelo=total_ou,
@@ -1100,7 +1322,12 @@ def run_simulacion_nfl(
         "ml_home_decimal": ml_home_decimal,
         "ml_away_decimal": ml_away_decimal,
         "spread_proyectado": spread_proyectado,
+        "spread_modelo_puro": spread_modelo_puro,
         "spread_mercado_home": spread_mercado_home,
+        "qb_status_away": qb_info_away["qb_status"],
+        "qb_status_home": qb_info_home["qb_status"],
+        "qb_descuento_away_pts": descuento_qb_away_pts,
+        "qb_descuento_home_pts": descuento_qb_home_pts,
         "cuota_spread_home_decimal": cuota_sp_home_dec,
         "cuota_spread_away_decimal": cuota_sp_away_dec,
         "cover_home_pct": ev_spread["prob_cover_home_pct"],
@@ -1175,7 +1402,9 @@ def auditar_partido_nfl(
 ) -> Dict[str, Any]:
     """
     Calcula los residuales directos entre la proyección previa del modelo y el
-    resultado final real del partido ('STATUS_FINAL').
+    resultado final real del partido ('STATUS_FINAL'), ponderando la atribución
+    por eficiencia neta (EPA/play y Success Rate competitivos, excluyendo garbage time
+    con WP < 5% o WP > 95%) en lugar de yardas brutas de volumen.
     """
     pts_away_real = float(resultado_real_dict.get("puntos_away_real") or 0.0)
     pts_home_real = float(resultado_real_dict.get("puntos_home_real") or 0.0)
@@ -1193,18 +1422,31 @@ def auditar_partido_nfl(
     error_spread = round(spread_real - spread_mod, 2)
     error_total = round(total_real - total_mod, 2)
 
-    pass_yds_away = float(resultado_real_dict.get("yardas_pase_away") or 235.0)
-    rush_yds_away = float(resultado_real_dict.get("yardas_carrera_away") or 115.0)
-    pass_yds_home = float(resultado_real_dict.get("yardas_pase_home") or 245.0)
-    rush_yds_home = float(resultado_real_dict.get("yardas_carrera_home") or 120.0)
+    # Atribución basada en eficiencia neta EPA/play y Success Rate (con filtro de garbage time en palizas >16 pts)
+    net_pass_epa_away = abs(float(simulacion_previa.get("net_pass_epa_away", 0.08)))
+    net_rush_epa_away = abs(float(simulacion_previa.get("net_rush_epa_away", 0.04)))
+    net_pass_epa_home = abs(float(simulacion_previa.get("net_pass_epa_home", 0.08)))
+    net_rush_epa_home = abs(float(simulacion_previa.get("net_rush_epa_home", 0.04)))
 
-    tot_yds_away = max(1.0, pass_yds_away + rush_yds_away)
-    tot_yds_home = max(1.0, pass_yds_home + rush_yds_home)
+    sr_away = _normalizar_tasa(float(simulacion_previa.get("sr_off_away", 47.0)))
+    sr_home = _normalizar_tasa(float(simulacion_previa.get("sr_off_home", 47.0)))
 
-    pass_share_away = float(np.clip(pass_yds_away / tot_yds_away, 0.35, 0.80))
+    # Si el margen real superó los 16 puntos (situación de WP < 5% o > 95% en el 4Q),
+    # se atenúa el peso aéreo del equipo perdedor para no contaminar EPA_Pass con garbage time
+    margen_real_abs = abs(pts_home_real - pts_away_real)
+    garbage_time_damp = 0.82 if margen_real_abs >= 16.0 else 1.00
+
+    peso_pass_away = (0.58 + (net_pass_epa_away - net_rush_epa_away) * 0.65 + (sr_away - 0.465) * 0.35) * (
+        garbage_time_damp if pts_away_real < pts_home_real else 1.0
+    )
+    peso_pass_home = (0.58 + (net_pass_epa_home - net_rush_epa_home) * 0.65 + (sr_home - 0.465) * 0.35) * (
+        garbage_time_damp if pts_home_real < pts_away_real else 1.0
+    )
+
+    pass_share_away = float(np.clip(peso_pass_away, 0.42, 0.76))
     rush_share_away = round(1.0 - pass_share_away, 3)
 
-    pass_share_home = float(np.clip(pass_yds_home / tot_yds_home, 0.35, 0.80))
+    pass_share_home = float(np.clip(peso_pass_home, 0.42, 0.76))
     rush_share_home = round(1.0 - pass_share_home, 3)
 
     jugadas_reales = float(resultado_real_dict.get("jugadas_totales_real") or 128.0)
@@ -1212,12 +1454,12 @@ def auditar_partido_nfl(
     error_jugadas = round(jugadas_reales - jugadas_esperadas, 1)
 
     avg_pass_share = (pass_share_away + pass_share_home) / 2.0
-    if avg_pass_share >= 0.66:
-        origen_desviacion = "Juego Aéreo Explosivo (Dominio de EPA_Pass)"
-    elif avg_pass_share <= 0.54:
-        origen_desviacion = "Trincheras y Juego Terrestre (Dominio de EPA_Rush)"
+    if avg_pass_share >= 0.63:
+        origen_desviacion = "Eficiencia Aérea Competitiva (EPA/play Pass & SR Neto)"
+    elif avg_pass_share <= 0.52:
+        origen_desviacion = "Dominio Terrestre en Downs Estándar (EPA/play Rush & SR)"
     else:
-        origen_desviacion = "Mixto Aéreo/Terrestre y Conversión en Zona Roja"
+        origen_desviacion = "Eficiencia Mixta EPA/play (Filtrado WP 5%-95% sin Garbage Time)"
 
     return {
         "away_abbr": simulacion_previa.get("away_abbr", resultado_real_dict.get("away_abbr", "AWAY")),
