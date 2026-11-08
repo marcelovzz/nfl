@@ -514,8 +514,10 @@ PREDICCIONES_EXPORT_COLUMNS: List[str] = [
     "ML_Away_Justa",
     "ML_Home_Justa",
     "Senal_Total",
+    "% Cubre Total",
     "EV_Total_%",
     "Senal_Spread",
+    "% Cubre Spread",
     "EV_Spread_%",
     "Pace_Sec",
 ]
@@ -548,11 +550,8 @@ def construir_dataframe_predicciones(
     semana: Optional[int] = None,
 ) -> pd.DataFrame:
     """
-    Construye un DataFrame limpio con las columnas exactas:
-    ['Semana', 'Visitante', 'Local', 'Pts_Away_Proy', 'Pts_Home_Proy',
-     'Total_Proy', 'Spread_Proy', 'Drives_Partido', 'ML_Away_Justa',
-     'ML_Home_Justa', 'Senal_Total', 'EV_Total_%', 'Senal_Spread',
-     'EV_Spread_%', 'Pace_Sec']
+    Construye un DataFrame limpio incluyendo '% Cubre Spread' y '% Cubre Total'
+    y el formato explícito de cobertura en 'Senal_Spread' y 'Senal_Total'.
     """
     sem_default = int(semana if semana is not None else st.session_state.get("semana_actual", 8))
     filas: List[Dict[str, Any]] = []
@@ -566,16 +565,36 @@ def construir_dataframe_predicciones(
         ev_tot = sim.get("ev_totales", {}) or {}
         ev_spr = sim.get("ev_spread", {}) or {}
 
-        senal_tot = (
-            f"VALOR: {ev_tot.get('recomendacion', '')}"
-            if ev_tot.get("hay_valor")
-            else f"SIN VALOR ({ev_tot.get('lado', '')} {ev_tot.get('total_mercado', 0.0):.1f})"
+        sp_cov_pct = float(
+            sim.get(
+                "spread_cover_pct",
+                ev_spr.get("spread_cover_pct", ev_spr.get("prob_mejor_pct", 50.0)),
+            )
         )
-        senal_spr = (
-            f"VALOR: {ev_spr.get('recomendacion', '')}"
-            if ev_spr.get("hay_valor")
-            else f"SIN VALOR ({ev_spr.get('recomendacion', '')})"
+        tot_cov_pct = float(
+            sim.get(
+                "total_cover_pct",
+                ev_tot.get("total_cover_pct", ev_tot.get("prob_mejor_pct", 50.0)),
+            )
         )
+        tot_lado = str(ev_tot.get("lado", "OVER"))
+        tot_linea = float(ev_tot.get("total_mercado", sim.get("total_mercado", 44.5)))
+        tot_odds = float(ev_tot.get("cuota_mercado_decimal", 1.91))
+        tot_ev = float(ev_tot.get("ev_pct", 0.0))
+
+        sp_pick = str(ev_spr.get("recomendacion", ""))
+        sp_odds = float(ev_spr.get("cuota_mercado_decimal", 1.91))
+        sp_ev = float(ev_spr.get("ev_pct", 0.0))
+
+        if ev_tot.get("hay_valor"):
+            senal_tot = f"🔥 {tot_lado} {tot_linea:.1f} ({tot_odds:.2f}) | Cubre: {tot_cov_pct:.1f}% | EV: {tot_ev:+.1f}%"
+        else:
+            senal_tot = f"⚪ {tot_lado} {tot_linea:.1f} | Cubre: {tot_cov_pct:.1f}%"
+
+        if ev_spr.get("hay_valor"):
+            senal_spr = f"🔥 {sp_pick} ({sp_odds:.2f}) | Cubre: {sp_cov_pct:.1f}% | EV: {sp_ev:+.1f}%"
+        else:
+            senal_spr = f"⚪ {sp_pick} | Cubre: {sp_cov_pct:.1f}%"
 
         pace_comb = float(
             sim.get(
@@ -598,9 +617,11 @@ def construir_dataframe_predicciones(
                 "ML_Away_Justa": round(float(sim.get("ml_away_decimal", 1.91)), 2),
                 "ML_Home_Justa": round(float(sim.get("ml_home_decimal", 1.91)), 2),
                 "Senal_Total": senal_tot,
-                "EV_Total_%": round(float(ev_tot.get("ev_pct", 0.0)), 1),
+                "% Cubre Total": round(tot_cov_pct, 1),
+                "EV_Total_%": round(tot_ev, 1),
                 "Senal_Spread": senal_spr,
-                "EV_Spread_%": round(float(ev_spr.get("ev_pct", 0.0)), 1),
+                "% Cubre Spread": round(sp_cov_pct, 1),
+                "EV_Spread_%": round(sp_ev, 1),
                 "Pace_Sec": round(pace_comb, 2),
             }
         )
@@ -616,15 +637,12 @@ def exportar_predicciones_a_excel(
 ) -> bytes:
     """
     Utiliza io.BytesIO() y openpyxl para generar el archivo Excel (.xlsx) en
-    memoria sin escribir archivos temporales en disco.
+    memoria sin escribir archivos temporales en disco, incluyendo tanto la hoja
+    general como 'Ranking_Alta_Probabilidad' con '% Cubre Spread' y '% Cubre Total'.
     """
     sem_num = int(semana if semana is not None else st.session_state.get("semana_actual", 8))
-    df_export = construir_dataframe_predicciones(partidos_simulados, semana=sem_num)
-    buffer = io.BytesIO()
-    with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
-        df_export.to_excel(writer, index=False, sheet_name=f"Semana_{sem_num}")
-    buffer.seek(0)
-    return buffer.getvalue()
+    df_export = build_nfl_predictions_export_df(partidos_simulados, semana=sem_num)
+    return export_nfl_excel_bytes(df_export).getvalue()
 
 
 def exportar_predicciones_a_csv(
@@ -1097,35 +1115,37 @@ def render_vista_cartelera() -> None:
                         ev_tot = sim["ev_totales"]
                         ev_spr = sim["ev_spread"]
 
-                        # Cintillo 1: Auditoría de TOTALES (Over / Under en Cuota Decimal con Shrinkage)
+                        tot_cov_card = float(ev_tot.get("total_cover_pct", ev_tot.get("prob_mejor_pct", 50.0)))
+                        spr_cov_card = float(ev_spr.get("spread_cover_pct", ev_spr.get("prob_mejor_pct", 50.0)))
+
+                        # Cintillo 1: Auditoría de TOTALES (con % de cobertura en 5,000 simulaciones)
                         if ev_tot["hay_valor"]:
                             tot_badge_html = (
                                 f'<div class="ev-badge-positive">'
-                                f'<span>🔥 VALOR: {ev_tot["recomendacion"]} ({ev_tot["cuota_mercado_decimal"]:.2f})</span>'
-                                f'<span class="ev-pct-pill">EV: +{ev_tot["ev_pct"]:.1f}%</span>'
+                                f'<span>🔥 {ev_tot["lado"]} {ev_tot["total_mercado"]:.1f} ({ev_tot["cuota_mercado_decimal"]:.2f}) | Cubre: {tot_cov_card:.1f}%</span>'
+                                f'<span class="ev-pct-pill">EV: {ev_tot["ev_pct"]:+.1f}%</span>'
                                 f'</div>'
                             )
                         else:
                             tot_badge_html = (
                                 f'<div class="ev-badge-neutral">'
-                                f'<span>⚖️ TOTAL {ev_tot["total_mercado"]:.1f}</span>'
+                                f'<span>⚪ {ev_tot["lado"]} {ev_tot["total_mercado"]:.1f} | Cubre: {tot_cov_card:.1f}%</span>'
                                 f'<span class="ev-pct-pill-gray">⚪ LÍNEA SIN EDGE</span>'
                                 f'</div>'
                             )
 
-                        # Cintillo 2: Auditoría de HÁNDICAP / SPREAD (en Cuota Decimal con Shrinkage)
+                        # Cintillo 2: Auditoría de HÁNDICAP / SPREAD (con % de cobertura en 5,000 simulaciones)
                         if ev_spr["hay_valor"]:
                             spr_badge_html = (
                                 f'<div class="ev-badge-positive">'
-                                f'<span>🔥 VALOR: {ev_spr["recomendacion"]} ({ev_spr["cuota_mercado_decimal"]:.2f})</span>'
-                                f'<span class="ev-pct-pill">EV: +{ev_spr["ev_pct"]:.1f}%</span>'
+                                f'<span>🔥 {ev_spr["recomendacion"]} ({ev_spr["cuota_mercado_decimal"]:.2f}) | Cubre: {spr_cov_card:.1f}%</span>'
+                                f'<span class="ev-pct-pill">EV: {ev_spr["ev_pct"]:+.1f}%</span>'
                                 f'</div>'
                             )
                         else:
-                            spr_home_fmt = f"{home} {ev_spr['spread_mercado_home']:+.1f}"
                             spr_badge_html = (
                                 f'<div class="ev-badge-neutral">'
-                                f'<span>⚖️ SPREAD ({spr_home_fmt})</span>'
+                                f'<span>⚪ {ev_spr["recomendacion"]} | Cubre: {spr_cov_card:.1f}%</span>'
                                 f'<span class="ev-pct-pill-gray">⚪ LÍNEA SIN EDGE</span>'
                                 f'</div>'
                             )
@@ -1213,6 +1233,42 @@ def render_vista_cartelera() -> None:
                         ):
                             st.session_state.partido_seleccionado = partido
                             st.rerun()
+
+            if partidos_con_sim:
+                st.markdown("<br>", unsafe_allow_html=True)
+                st.markdown("#### 📋 Tabla Principal de Proyecciones y Auditoría de Líneas (5,000 Simulaciones)")
+                filas_auditoria_lineas = []
+                for p_row, s_row in partidos_con_sim:
+                    aw_r = p_row["away_abbr"]
+                    hm_r = p_row["home_abbr"]
+                    ev_sp_r = s_row["ev_spread"]
+                    ev_to_r = s_row["ev_totales"]
+                    sp_cov_r = float(s_row.get("spread_cover_pct", ev_sp_r.get("spread_cover_pct", ev_sp_r.get("prob_mejor_pct", 50.0))))
+                    to_cov_r = float(s_row.get("total_cover_pct", ev_to_r.get("total_cover_pct", ev_to_r.get("prob_mejor_pct", 50.0))))
+
+                    if ev_sp_r["hay_valor"]:
+                        senal_sp_r = f"🔥 {ev_sp_r['recomendacion']} ({ev_sp_r['cuota_mercado_decimal']:.2f}) | Cubre: {sp_cov_r:.1f}% | EV: {ev_sp_r['ev_pct']:+.1f}%"
+                    else:
+                        senal_sp_r = f"⚪ {ev_sp_r['recomendacion']} | Cubre: {sp_cov_r:.1f}%"
+
+                    if ev_to_r["hay_valor"]:
+                        senal_to_r = f"🔥 {ev_to_r['lado']} {ev_to_r['total_mercado']:.1f} ({ev_to_r['cuota_mercado_decimal']:.2f}) | Cubre: {to_cov_r:.1f}% | EV: {ev_to_r['ev_pct']:+.1f}%"
+                    else:
+                        senal_to_r = f"⚪ {ev_to_r['lado']} {ev_to_r['total_mercado']:.1f} | Cubre: {to_cov_r:.1f}%"
+
+                    filas_auditoria_lineas.append(
+                        {
+                            "Partido": f"{aw_r} @ {hm_r}",
+                            "Proyección": f"{aw_r} {s_row['away_pts']:.1f} - {s_row['home_pts']:.1f} {hm_r}",
+                            "Spread (Mod / Mkt)": f"{hm_r} {s_row['spread_proyectado']:+.1f} / {s_row['spread_mercado_home']:+.1f}",
+                            "Señal Spread (+EV)": senal_sp_r,
+                            "% Cubre Spread": f"{sp_cov_r:.1f}%",
+                            "Total (Mod / Mkt)": f"{s_row['total_ou']:.1f} / {s_row['total_mercado']:.1f}",
+                            "Señal Totales (+EV)": senal_to_r,
+                            "% Cubre Total": f"{to_cov_r:.1f}%",
+                        }
+                    )
+                st.dataframe(pd.DataFrame(filas_auditoria_lineas), use_container_width=True, hide_index=True)
 
     # --------------------------------------------------------------------------
     # PESTAÑA 2: AUDITORÍA & CALIBRACIÓN MASIVA (SIN BADGES DE APUESTAS)
@@ -1522,44 +1578,60 @@ def render_vista_detalle(partido: Dict[str, Any]) -> None:
 
     # En la vista detallada, solo mostramos la tabla de apuestas activas si el partido NO ha finalizado
     if not es_final:
-        st.markdown("#### 💹 Auditoría de Valor Esperado (+EV con Shrinkage Bayesiano) y Probabilidad de Push")
+        st.markdown("#### 💹 Auditoría de Valor Esperado (+EV con Shrinkage Bayesiano) y Porcentaje de Cobertura")
         df_ev_audit = pd.DataFrame(
             [
                 {
                     "Mercado": f"TOTALES: OVER {ev_tot['total_mercado']:.1f}",
-                    "Prob. Modelo (Shrunk %)": f"{ev_tot['prob_over_pct']:.1f}%",
+                    "% Cubre (5,000 Sims)": f"{ev_tot['prob_over_pct']:.1f}%",
                     "Prob. Push (%)": f"{ev_tot['prob_push_pct']:.1f}%",
                     "Cuota Justa (Fair Decimal)": f"{ev_tot['fair_over_decimal']:.2f}",
                     "Cuota Casa (Decimal)": f"{ev_tot['cuota_over_decimal']:.2f}",
-                    "EV Matemático (%)": f"{ev_tot['ev_over_pct']:+.2f}%",
-                    "Señal Cuantitativa": "🔥 +EV DETECTADO" if (ev_tot["hay_valor"] and ev_tot["lado"] == "OVER") else "⚖️ Sin Ventaja",
+                    "EV Matemático (%)": f"{ev_tot['ev_over_pct']:+.1f}%",
+                    "Señal Totales / Spread (+EV)": (
+                        f"🔥 OVER {ev_tot['total_mercado']:.1f} ({ev_tot['cuota_over_decimal']:.2f}) | Cubre: {ev_tot['prob_over_pct']:.1f}% | EV: {ev_tot['ev_over_pct']:+.1f}%"
+                        if (ev_tot["hay_valor"] and ev_tot["lado"] == "OVER")
+                        else f"⚪ OVER {ev_tot['total_mercado']:.1f} | Cubre: {ev_tot['prob_over_pct']:.1f}%"
+                    ),
                 },
                 {
                     "Mercado": f"TOTALES: UNDER {ev_tot['total_mercado']:.1f}",
-                    "Prob. Modelo (Shrunk %)": f"{ev_tot['prob_under_pct']:.1f}%",
+                    "% Cubre (5,000 Sims)": f"{ev_tot['prob_under_pct']:.1f}%",
                     "Prob. Push (%)": f"{ev_tot['prob_push_pct']:.1f}%",
                     "Cuota Justa (Fair Decimal)": f"{ev_tot['fair_under_decimal']:.2f}",
                     "Cuota Casa (Decimal)": f"{ev_tot['cuota_under_decimal']:.2f}",
-                    "EV Matemático (%)": f"{ev_tot['ev_under_pct']:+.2f}%",
-                    "Señal Cuantitativa": "🔥 +EV DETECTADO" if (ev_tot["hay_valor"] and ev_tot["lado"] == "UNDER") else "⚖️ Sin Ventaja",
+                    "EV Matemático (%)": f"{ev_tot['ev_under_pct']:+.1f}%",
+                    "Señal Totales / Spread (+EV)": (
+                        f"🔥 UNDER {ev_tot['total_mercado']:.1f} ({ev_tot['cuota_under_decimal']:.2f}) | Cubre: {ev_tot['prob_under_pct']:.1f}% | EV: {ev_tot['ev_under_pct']:+.1f}%"
+                        if (ev_tot["hay_valor"] and ev_tot["lado"] == "UNDER")
+                        else f"⚪ UNDER {ev_tot['total_mercado']:.1f} | Cubre: {ev_tot['prob_under_pct']:.1f}%"
+                    ),
                 },
                 {
                     "Mercado": f"SPREAD: {home} {ev_spr['spread_mercado_home']:+.1f}",
-                    "Prob. Modelo (Shrunk %)": f"{ev_spr['prob_cover_home_pct']:.1f}%",
+                    "% Cubre (5,000 Sims)": f"{ev_spr['prob_cover_home_pct']:.1f}%",
                     "Prob. Push (%)": f"{ev_spr['prob_push_pct']:.1f}%",
                     "Cuota Justa (Fair Decimal)": f"{ev_spr['fair_home_decimal']:.2f}",
                     "Cuota Casa (Decimal)": f"{ev_spr['cuota_spread_home_decimal']:.2f}",
-                    "EV Matemático (%)": f"{ev_spr['ev_home_pct']:+.2f}%",
-                    "Señal Cuantitativa": "🔥 +EV DETECTADO" if (ev_spr["hay_valor"] and ev_spr["lado"] == "HOME") else "⚖️ Sin Ventaja",
+                    "EV Matemático (%)": f"{ev_spr['ev_home_pct']:+.1f}%",
+                    "Señal Totales / Spread (+EV)": (
+                        f"🔥 {home} {ev_spr['spread_mercado_home']:+.1f} ({ev_spr['cuota_spread_home_decimal']:.2f}) | Cubre: {ev_spr['prob_cover_home_pct']:.1f}% | EV: {ev_spr['ev_home_pct']:+.1f}%"
+                        if (ev_spr["hay_valor"] and ev_spr["lado"] == "HOME")
+                        else f"⚪ {home} {ev_spr['spread_mercado_home']:+.1f} | Cubre: {ev_spr['prob_cover_home_pct']:.1f}%"
+                    ),
                 },
                 {
                     "Mercado": f"SPREAD: {away} {ev_spr['spread_mercado_away']:+.1f}",
-                    "Prob. Modelo (Shrunk %)": f"{ev_spr['prob_cover_away_pct']:.1f}%",
+                    "% Cubre (5,000 Sims)": f"{ev_spr['prob_cover_away_pct']:.1f}%",
                     "Prob. Push (%)": f"{ev_spr['prob_push_pct']:.1f}%",
                     "Cuota Justa (Fair Decimal)": f"{ev_spr['fair_away_decimal']:.2f}",
                     "Cuota Casa (Decimal)": f"{ev_spr['cuota_spread_away_decimal']:.2f}",
-                    "EV Matemático (%)": f"{ev_spr['ev_away_pct']:+.2f}%",
-                    "Señal Cuantitativa": "🔥 +EV DETECTADO" if (ev_spr["hay_valor"] and ev_spr["lado"] == "AWAY") else "⚖️ Sin Ventaja",
+                    "EV Matemático (%)": f"{ev_spr['ev_away_pct']:+.1f}%",
+                    "Señal Totales / Spread (+EV)": (
+                        f"🔥 {away} {ev_spr['spread_mercado_away']:+.1f} ({ev_spr['cuota_spread_away_decimal']:.2f}) | Cubre: {ev_spr['prob_cover_away_pct']:.1f}% | EV: {ev_spr['ev_away_pct']:+.1f}%"
+                        if (ev_spr["hay_valor"] and ev_spr["lado"] == "AWAY")
+                        else f"⚪ {away} {ev_spr['spread_mercado_away']:+.1f} | Cubre: {ev_spr['prob_cover_away_pct']:.1f}%"
+                    ),
                 },
             ]
         )

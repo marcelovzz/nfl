@@ -231,6 +231,19 @@ def ejecutar_pipeline_simulaciones_nfl(
             ml_mkt_prob = float(sim["casas_away_pct"])
 
         ml_edge_pct = round(ml_prob - ml_mkt_prob, 1)
+        sp_cov_pct = round(float(sim.get("spread_cover_pct", ev_spr.get("spread_cover_pct", ev_spr["prob_mejor_pct"]))), 1)
+        tot_cov_pct = round(float(sim.get("total_cover_pct", ev_tot.get("total_cover_pct", ev_tot["prob_mejor_pct"]))), 1)
+
+        if ev_spr["hay_valor"]:
+            senal_sp_str = f"🔥 {ev_spr['recomendacion']} ({ev_spr['cuota_mercado_decimal']:.2f}) | Cubre: {sp_cov_pct:.1f}% | EV: {ev_spr['ev_pct']:+.1f}%"
+        else:
+            senal_sp_str = f"⚪ {ev_spr['recomendacion']} | Cubre: {sp_cov_pct:.1f}%"
+
+        if ev_tot["hay_valor"]:
+            senal_tot_str = f"🔥 {ev_tot['lado']} {ev_tot['total_mercado']:.1f} ({ev_tot['cuota_mercado_decimal']:.2f}) | Cubre: {tot_cov_pct:.1f}% | EV: {ev_tot['ev_pct']:+.1f}%"
+        else:
+            senal_tot_str = f"⚪ {ev_tot['lado']} {ev_tot['total_mercado']:.1f} | Cubre: {tot_cov_pct:.1f}%"
+
         filas_ranking.append(
             {
                 "Semana": semana_activa,
@@ -239,6 +252,8 @@ def ejecutar_pipeline_simulaciones_nfl(
                 "Mercado": "MONEYLINE",
                 "Seleccion": ml_pick,
                 "Probabilidad_%": round(ml_prob, 1),
+                "% Cubre Spread": sp_cov_pct,
+                "% Cubre Total": tot_cov_pct,
                 "Cuota_Justa_Dec": round(ml_fair, 2),
                 "Cuota_Mercado_Dec": round(100.0 / max(5.0, ml_mkt_prob), 2),
                 "EV_%": ml_edge_pct,
@@ -255,11 +270,13 @@ def ejecutar_pipeline_simulaciones_nfl(
                 "Horario": sim_record["hora"],
                 "Mercado": "SPREAD (HÁNDICAP)",
                 "Seleccion": f"{ev_spr['recomendacion']} (Mod: {sim['spread_proyectado']:+.1f})",
-                "Probabilidad_%": round(float(ev_spr["prob_mejor_pct"]), 1),
+                "Probabilidad_%": sp_cov_pct,
+                "% Cubre Spread": sp_cov_pct,
+                "% Cubre Total": tot_cov_pct,
                 "Cuota_Justa_Dec": round(float(ev_spr["fair_decimal"]), 2),
                 "Cuota_Mercado_Dec": round(float(ev_spr["cuota_mercado_decimal"]), 2),
                 "EV_%": round(float(ev_spr["ev_pct"]), 1),
-                "Señal_Cuantitativa": "🔥 +EV ACTIVO" if ev_spr["hay_valor"] else "⚪ LÍNEA SIN EDGE",
+                "Señal_Cuantitativa": senal_sp_str,
                 "Marcador_Proyectado": marcador_proy,
             }
         )
@@ -272,11 +289,13 @@ def ejecutar_pipeline_simulaciones_nfl(
                 "Horario": sim_record["hora"],
                 "Mercado": "TOTALES (O/U)",
                 "Seleccion": f"{ev_tot['lado']} {ev_tot['total_mercado']:.1f} (Proy: {sim['total_ou']:.1f})",
-                "Probabilidad_%": round(float(ev_tot["prob_mejor_pct"]), 1),
+                "Probabilidad_%": tot_cov_pct,
+                "% Cubre Spread": sp_cov_pct,
+                "% Cubre Total": tot_cov_pct,
                 "Cuota_Justa_Dec": round(float(ev_tot["fair_decimal"]), 2),
                 "Cuota_Mercado_Dec": round(float(ev_tot["cuota_mercado_decimal"]), 2),
                 "EV_%": round(float(ev_tot["ev_pct"]), 1),
-                "Señal_Cuantitativa": "🔥 +EV ACTIVO" if ev_tot["hay_valor"] else "⚪ LÍNEA SIN EDGE",
+                "Señal_Cuantitativa": senal_tot_str,
                 "Marcador_Proyectado": marcador_proy,
             }
         )
@@ -489,26 +508,29 @@ def construir_html_reporte_nfl(
         ev_sp = s["ev_spread"]
         ev_to = s["ev_totales"]
 
+        sp_cov_html = float(s.get("spread_cover_pct", ev_sp.get("spread_cover_pct", ev_sp.get("prob_mejor_pct", 50.0))))
+        to_cov_html = float(s.get("total_cover_pct", ev_to.get("total_cover_pct", ev_to.get("prob_mejor_pct", 50.0))))
+
         if ev_sp["hay_valor"]:
             sp_cell = (
                 f'<span style="color:#00ffcc; font-weight:700;">🔥 {ev_sp["recomendacion"]} '
-                f'({ev_sp["cuota_mercado_decimal"]:.2f}) | +{ev_sp["ev_pct"]:.1f}%</span>'
+                f'({ev_sp["cuota_mercado_decimal"]:.2f}) | Cubre: {sp_cov_html:.1f}% | EV: {ev_sp["ev_pct"]:+.1f}%</span>'
             )
         else:
             sp_cell = (
-                f'<span style="color:#94a3b8;">⚪ {home} {ev_sp["spread_mercado_home"]:+.1f} '
-                f'(LÍNEA SIN EDGE)</span>'
+                f'<span style="color:#94a3b8;">⚪ {ev_sp["recomendacion"]} '
+                f'| Cubre: {sp_cov_html:.1f}%</span>'
             )
 
         if ev_to["hay_valor"]:
             to_cell = (
-                f'<span style="color:#00ffcc; font-weight:700;">🔥 {ev_to["recomendacion"]} '
-                f'({ev_to["cuota_mercado_decimal"]:.2f}) | +{ev_to["ev_pct"]:.1f}%</span>'
+                f'<span style="color:#00ffcc; font-weight:700;">🔥 {ev_to["lado"]} {ev_to["total_mercado"]:.1f} '
+                f'({ev_to["cuota_mercado_decimal"]:.2f}) | Cubre: {to_cov_html:.1f}% | EV: {ev_to["ev_pct"]:+.1f}%</span>'
             )
         else:
             to_cell = (
-                f'<span style="color:#94a3b8;">⚪ O/U {ev_to["total_mercado"]:.1f} '
-                f'(LÍNEA SIN EDGE)</span>'
+                f'<span style="color:#94a3b8;">⚪ {ev_to["lado"]} {ev_to["total_mercado"]:.1f} '
+                f'| Cubre: {to_cov_html:.1f}%</span>'
             )
 
         filas_tabla_html += (

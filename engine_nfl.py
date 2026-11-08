@@ -261,6 +261,7 @@ def evaluar_valor_totales(
     p_mkt_over = imp_o / (imp_o + imp_u)
 
     prob_over_emp: Optional[float] = None
+    prob_under_emp: Optional[float] = None
     if scores_total_sim is not None and len(scores_total_sim) > 0:
         n_total = float(len(scores_total_sim))
         push_mask = scores_total_sim == t_mkt
@@ -268,6 +269,7 @@ def evaluar_valor_totales(
         no_push = scores_total_sim[~push_mask]
         if len(no_push) > 0:
             prob_over_emp = float(np.mean(no_push > t_mkt))
+            prob_under_emp = float(np.mean(no_push < t_mkt))
     else:
         prob_push = 0.0
 
@@ -280,6 +282,11 @@ def evaluar_valor_totales(
     )
     prob_under = float(np.clip(1.0 - prob_over, 0.05, 0.95))
 
+    over_cover_pct = round(prob_over * 100.0, 1)
+    under_cover_pct = round(prob_under * 100.0, 1)
+    over_mc_raw_pct = round((prob_over_emp if prob_over_emp is not None else prob_over) * 100.0, 1)
+    under_mc_raw_pct = round((prob_under_emp if prob_under_emp is not None else prob_under) * 100.0, 1)
+
     fair_over_decimal = prob_a_cuota_decimal(prob_over)
     fair_under_decimal = prob_a_cuota_decimal(prob_under)
 
@@ -288,25 +295,28 @@ def evaluar_valor_totales(
 
     if ev_over_pct >= ev_under_pct:
         lado_mejor = "OVER"
-        prob_mejor_pct = round(prob_over * 100.0, 1)
+        prob_mejor_pct = over_cover_pct
         cuota_mkt_mejor = c_over
         fair_mejor_dec = fair_over_decimal
         ev_mejor_pct = ev_over_pct
     else:
         lado_mejor = "UNDER"
-        prob_mejor_pct = round(prob_under * 100.0, 1)
+        prob_mejor_pct = under_cover_pct
         cuota_mkt_mejor = c_under
         fair_mejor_dec = fair_under_decimal
         ev_mejor_pct = ev_under_pct
 
+    total_cover_pct = prob_mejor_pct
     hay_valor = ev_mejor_pct >= EV_THRESHOLD_PCT
+    recomendacion = f"{lado_mejor} {t_mkt:.1f}"
 
     if hay_valor:
-        recomendacion = f"{lado_mejor} {t_mkt:.1f}"
-        etiqueta_ev = f"🔥 +EV {lado_mejor} {t_mkt:.1f} @ {cuota_mkt_mejor:.2f} (EV {ev_mejor_pct:+.1f}%)"
+        etiqueta_ev = (
+            f"🔥 {lado_mejor} {t_mkt:.1f} ({cuota_mkt_mejor:.2f}) | "
+            f"Cubre: {total_cover_pct:.1f}% | EV: {ev_mejor_pct:+.1f}%"
+        )
     else:
-        recomendacion = f"⚪ LÍNEA SIN EDGE ({lado_mejor} {t_mkt:.1f})"
-        etiqueta_ev = "⚪ LÍNEA SIN EDGE"
+        etiqueta_ev = f"⚪ {lado_mejor} {t_mkt:.1f} | Cubre: {total_cover_pct:.1f}%"
 
     return {
         "hay_valor": hay_valor,
@@ -316,8 +326,13 @@ def evaluar_valor_totales(
         "total_modelo": round(t_mod, 1),
         "total_mercado": round(t_mkt, 1),
         "edge_pts": diff_pts,
-        "prob_over_pct": round(prob_over * 100.0, 1),
-        "prob_under_pct": round(prob_under * 100.0, 1),
+        "over_cover_pct": over_cover_pct,
+        "under_cover_pct": under_cover_pct,
+        "total_cover_pct": total_cover_pct,
+        "over_mc_raw_pct": over_mc_raw_pct,
+        "under_mc_raw_pct": under_mc_raw_pct,
+        "prob_over_pct": over_cover_pct,
+        "prob_under_pct": under_cover_pct,
         "prob_push_pct": round(prob_push * 100.0, 1),
         "prob_mejor_pct": prob_mejor_pct,
         "cuota_over_decimal": c_over,
@@ -407,13 +422,17 @@ def evaluar_valor_spread(
         ev_mejor_pct = ev_away_pct
         edge_pts_pick = round(-edge_pts_home, 1)
 
+    spread_cover_pct = prob_mejor_pct
     hay_valor = ev_mejor_pct >= EV_THRESHOLD_PCT
     pick_corto = f"{equipo_pick} {linea_pick:+.1f}"
 
     if hay_valor:
-        etiqueta_ev = f"🔥 +EV {pick_corto} @ {cuota_mkt_mejor:.2f} (EV {ev_mejor_pct:+.1f}%)"
+        etiqueta_ev = (
+            f"🔥 {pick_corto} ({cuota_mkt_mejor:.2f}) | "
+            f"Cubre: {spread_cover_pct:.1f}% | EV: {ev_mejor_pct:+.1f}%"
+        )
     else:
-        etiqueta_ev = "⚪ LÍNEA SIN EDGE"
+        etiqueta_ev = f"⚪ {pick_corto} | Cubre: {spread_cover_pct:.1f}%"
 
     return {
         "hay_valor": hay_valor,
@@ -426,6 +445,7 @@ def evaluar_valor_spread(
         "spread_mercado_home": round(sp_mkt_h, 1),
         "spread_mercado_away": round(sp_mkt_a, 1),
         "edge_pts": edge_pts_pick,
+        "spread_cover_pct": spread_cover_pct,
         "prob_cover_home_pct": round(prob_cover_home * 100.0, 1),
         "prob_cover_away_pct": round(prob_cover_away * 100.0, 1),
         "prob_push_pct": round(prob_push_raw * 100.0, 1),
@@ -1317,6 +1337,12 @@ def run_simulacion_nfl(
         "spread_pick_name": spread_pick_name,
         "spread_pick_line": spread_pick_line,
         "spread_pick_cover_pct": spread_pick_cover_pct,
+        "spread_cover_pct": ev_spread["spread_cover_pct"],
+        "over_cover_pct": ev_totales["over_cover_pct"],
+        "under_cover_pct": ev_totales["under_cover_pct"],
+        "total_cover_pct": ev_totales["total_cover_pct"],
+        "senal_spread_str": ev_spread["etiqueta_ev"],
+        "senal_totales_str": ev_totales["etiqueta_ev"],
         "spread_summary_str": spread_summary_str,
         "total_summary_str": total_summary_str,
         "ml_home_decimal": ml_home_decimal,
@@ -1596,9 +1622,11 @@ PREDICCIONES_EXPORT_COLUMNS: List[str] = [
     "ESPN_FPI_%",
     "Desglose_Spread",
     "Spread_Cubre_%",
+    "% Cubre Spread",
     "Linea_Total_OU",
     "Over_%",
     "Under_%",
+    "% Cubre Total",
     "Desglose_Total",
     "ML_Away_Justa",
     "ML_Home_Justa",
@@ -1628,16 +1656,36 @@ def build_nfl_predictions_export_df(
         ev_tot = sim.get("ev_totales", {}) or {}
         ev_spr = sim.get("ev_spread", {}) or {}
 
-        senal_tot = (
-            f"VALOR: {ev_tot.get('recomendacion', '')}"
-            if ev_tot.get("hay_valor")
-            else f"SIN VALOR ({ev_tot.get('lado', '')} {ev_tot.get('total_mercado', 0.0):.1f})"
+        sp_cov_pct = float(
+            sim.get(
+                "spread_cover_pct",
+                ev_spr.get("spread_cover_pct", ev_spr.get("prob_mejor_pct", 50.0)),
+            )
         )
-        senal_spr = (
-            f"VALOR: {ev_spr.get('recomendacion', '')}"
-            if ev_spr.get("hay_valor")
-            else f"SIN VALOR ({ev_spr.get('recomendacion', '')})"
+        tot_cov_pct = float(
+            sim.get(
+                "total_cover_pct",
+                ev_tot.get("total_cover_pct", ev_tot.get("prob_mejor_pct", 50.0)),
+            )
         )
+        tot_lado = str(ev_tot.get("lado", "OVER"))
+        tot_linea = float(ev_tot.get("total_mercado", sim.get("total_mercado", 44.5)))
+        tot_odds = float(ev_tot.get("cuota_mercado_decimal", 1.91))
+        tot_ev = float(ev_tot.get("ev_pct", 0.0))
+
+        sp_pick = str(ev_spr.get("recomendacion", ""))
+        sp_odds = float(ev_spr.get("cuota_mercado_decimal", 1.91))
+        sp_ev = float(ev_spr.get("ev_pct", 0.0))
+
+        if ev_tot.get("hay_valor"):
+            senal_tot = f"🔥 {tot_lado} {tot_linea:.1f} ({tot_odds:.2f}) | Cubre: {tot_cov_pct:.1f}% | EV: {tot_ev:+.1f}%"
+        else:
+            senal_tot = f"⚪ {tot_lado} {tot_linea:.1f} | Cubre: {tot_cov_pct:.1f}%"
+
+        if ev_spr.get("hay_valor"):
+            senal_spr = f"🔥 {sp_pick} ({sp_odds:.2f}) | Cubre: {sp_cov_pct:.1f}% | EV: {sp_ev:+.1f}%"
+        else:
+            senal_spr = f"⚪ {sp_pick} | Cubre: {sp_cov_pct:.1f}%"
 
         pace_comb = float(
             sim.get(
@@ -1662,17 +1710,19 @@ def build_nfl_predictions_export_df(
                 "ML_Casas_NoVig_%": round(float(sim.get("ml_fav_casas_pct", 50.0)), 1),
                 "ESPN_FPI_%": round(float(sim.get("ml_fav_fpi_pct", 50.0)), 1),
                 "Desglose_Spread": str(sim.get("spread_summary_str", "")),
-                "Spread_Cubre_%": round(float(sim.get("spread_pick_cover_pct", 50.0)), 1),
-                "Linea_Total_OU": round(float(sim.get("total_mercado", 44.5)), 1),
-                "Over_%": round(float(sim.get("over_pct", 50.0)), 1),
-                "Under_%": round(float(sim.get("under_pct", 50.0)), 1),
+                "Spread_Cubre_%": round(sp_cov_pct, 1),
+                "% Cubre Spread": round(sp_cov_pct, 1),
+                "Linea_Total_OU": round(tot_linea, 1),
+                "Over_%": round(float(sim.get("over_cover_pct", sim.get("over_pct", 50.0))), 1),
+                "Under_%": round(float(sim.get("under_cover_pct", sim.get("under_pct", 50.0))), 1),
+                "% Cubre Total": round(tot_cov_pct, 1),
                 "Desglose_Total": str(sim.get("total_summary_str", "")),
                 "ML_Away_Justa": round(float(sim.get("ml_away_decimal", 1.91)), 2),
                 "ML_Home_Justa": round(float(sim.get("ml_home_decimal", 1.91)), 2),
                 "Senal_Total": senal_tot,
-                "EV_Total_%": round(float(ev_tot.get("ev_pct", 0.0)), 1),
+                "EV_Total_%": round(tot_ev, 1),
                 "Senal_Spread": senal_spr,
-                "EV_Spread_%": round(float(ev_spr.get("ev_pct", 0.0)), 1),
+                "EV_Spread_%": round(sp_ev, 1),
                 "Pace_Sec": round(pace_comb, 2),
             }
         )
@@ -1682,14 +1732,98 @@ def build_nfl_predictions_export_df(
     return pd.DataFrame(filas, columns=PREDICCIONES_EXPORT_COLUMNS)
 
 
+def build_nfl_high_prob_ranking_from_export_df(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Construye la hoja 'Ranking_Alta_Probabilidad' ordenada de mayor a menor
+    probabilidad, incluyendo explícitamente '% Cubre Spread' y '% Cubre Total'.
+    """
+    if df is None or df.empty:
+        return pd.DataFrame(
+            columns=[
+                "Rank",
+                "Semana",
+                "Partido",
+                "Mercado",
+                "Seleccion",
+                "Probabilidad_%",
+                "% Cubre Spread",
+                "% Cubre Total",
+                "EV_%",
+                "Señal_Cuantitativa",
+            ]
+        )
+
+    filas_rk: List[Dict[str, Any]] = []
+    for _, row in df.iterrows():
+        sem = row.get("Semana", 8)
+        partido_lbl = f"{row.get('Visitante', '')} @ {row.get('Local', '')}"
+        sp_cov = round(float(row.get("% Cubre Spread", row.get("Spread_Cubre_%", 50.0))), 1)
+        tot_cov = round(float(row.get("% Cubre Total", 50.0)), 1)
+        ml_prob = round(float(row.get("ML_Modelo_%", 50.0)), 1)
+        ml_edge = round(ml_prob - float(row.get("ML_Casas_NoVig_%", 50.0)), 1)
+
+        filas_rk.append(
+            {
+                "Semana": sem,
+                "Partido": partido_lbl,
+                "Mercado": "MONEYLINE",
+                "Seleccion": f"{row.get('ML_Favorito', '')} ML",
+                "Probabilidad_%": ml_prob,
+                "% Cubre Spread": sp_cov,
+                "% Cubre Total": tot_cov,
+                "EV_%": ml_edge,
+                "Señal_Cuantitativa": f"🔥 {row.get('ML_Favorito', '')} ML | Prob: {ml_prob:.1f}%"
+                if ml_prob >= 60.0
+                else f"⚪ {row.get('ML_Favorito', '')} ML | Prob: {ml_prob:.1f}%",
+            }
+        )
+        filas_rk.append(
+            {
+                "Semana": sem,
+                "Partido": partido_lbl,
+                "Mercado": "SPREAD (HÁNDICAP)",
+                "Seleccion": str(row.get("Senal_Spread", "")),
+                "Probabilidad_%": sp_cov,
+                "% Cubre Spread": sp_cov,
+                "% Cubre Total": tot_cov,
+                "EV_%": round(float(row.get("EV_Spread_%", 0.0)), 1),
+                "Señal_Cuantitativa": str(row.get("Senal_Spread", "")),
+            }
+        )
+        filas_rk.append(
+            {
+                "Semana": sem,
+                "Partido": partido_lbl,
+                "Mercado": "TOTALES (O/U)",
+                "Seleccion": str(row.get("Senal_Total", "")),
+                "Probabilidad_%": tot_cov,
+                "% Cubre Spread": sp_cov,
+                "% Cubre Total": tot_cov,
+                "EV_%": round(float(row.get("EV_Total_%", 0.0)), 1),
+                "Señal_Cuantitativa": str(row.get("Senal_Total", "")),
+            }
+        )
+
+    df_rk = pd.DataFrame(filas_rk)
+    if not df_rk.empty:
+        df_rk = df_rk.sort_values(
+            by=["Probabilidad_%", "EV_%"], ascending=[False, False]
+        ).reset_index(drop=True)
+        df_rk.insert(0, "Rank", range(1, len(df_rk) + 1))
+    return df_rk
+
+
 def export_nfl_excel_bytes(df: pd.DataFrame) -> io.BytesIO:
     """
     Compila el DataFrame de proyecciones NFL en memoria usando io.BytesIO y
-    openpyxl, retornando el buffer listo para st.download_button.
+    openpyxl, incluyendo la hoja general y la hoja 'Ranking_Alta_Probabilidad'
+    con las columnas '% Cubre Spread' y '% Cubre Total'.
     """
+    df_ranking = build_nfl_high_prob_ranking_from_export_df(df)
     buffer = io.BytesIO()
     with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
         df.to_excel(writer, index=False, sheet_name="NFL_Quant_Predictions")
+        df_ranking.to_excel(writer, index=False, sheet_name="Ranking_Alta_Probabilidad")
     buffer.seek(0)
     return buffer
 
