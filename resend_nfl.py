@@ -39,6 +39,11 @@ from engine_nfl import (
     run_simulacion_nfl,
     validar_y_parsear_excel_nfl,
 )
+from engine_props_nfl import (
+    build_player_props_ranking_export_df,
+    obtener_top_3_player_props_jornada,
+    simular_player_props_jornada,
+)
 
 RESEND_API_URL = "https://api.resend.com/emails"
 ESPN_NFL_INJURIES_URL = "https://site.api.espn.com/apis/site/v2/sports/football/nfl/injuries"
@@ -314,18 +319,22 @@ def ejecutar_pipeline_simulaciones_nfl(
 def empaquetar_excel_en_memoria(
     df_general: pd.DataFrame,
     df_ranking: pd.DataFrame,
+    df_props_ranking: Optional[pd.DataFrame] = None,
 ) -> Tuple[bytes, str]:
     """
     Genera el archivo Excel ('nfl_quant_projections.xlsx') en memoria con openpyxl
     incluyendo las hojas:
       1) 'Proyecciones_Generales'
       2) 'Ranking_Alta_Probabilidad' (ordenada estrictamente de mayor a menor probabilidad)
+      3) 'Player_Props_Ranking' (ordenada estrictamente descendente por '% Cubre')
     Retorna los bytes crudos y la cadena codificada en base64 para la API de Resend.
     """
     buffer = io.BytesIO()
     with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
         df_general.to_excel(writer, index=False, sheet_name="Proyecciones_Generales")
         df_ranking.to_excel(writer, index=False, sheet_name="Ranking_Alta_Probabilidad")
+        if df_props_ranking is not None and not df_props_ranking.empty:
+            df_props_ranking.to_excel(writer, index=False, sheet_name="Player_Props_Ranking")
     buffer.seek(0)
     raw_bytes = buffer.getvalue()
     b64_str = base64.b64encode(raw_bytes).decode("utf-8")
@@ -464,6 +473,7 @@ def construir_html_reporte_nfl(
     resultados_simulados: List[Dict[str, Any]],
     top_3_picks: List[Dict[str, Any]],
     df_ranking: pd.DataFrame,
+    top_3_props: Optional[List[Dict[str, Any]]] = None,
 ) -> str:
     """
     Construye el reporte ejecutivo HTML con estética institucional oscura (#0d1117),
@@ -553,6 +563,37 @@ def construir_html_reporte_nfl(
             f'</tr>'
         )
 
+    bloques_top3_props_html = ""
+    if top_3_props:
+        items_props_html = ""
+        for idx_p, prop in enumerate(top_3_props, start=1):
+            items_props_html += (
+                f'<div style="background-color:#131922; border:1px solid rgba(0,255,204,0.35); '
+                f'border-left:4px solid #00ffcc; border-radius:8px; padding:12px 15px; margin-bottom:10px;">'
+                f'<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">'
+                f'<span style="color:#00ffcc; font-family:monospace; font-size:13px; font-weight:800;">'
+                f'PROP #{idx_p} · {prop["jugador"]} ({prop["equipo"]} — {prop["posicion"]} · {prop["metrica"]}) | {prop["partido"]}'
+                f'</span>'
+                f'<span style="background:rgba(0,255,204,0.14); color:#00ffcc; border:1px solid #00ffcc; '
+                f'padding:2px 8px; border-radius:4px; font-family:monospace; font-size:12px; font-weight:700;">'
+                f'{prop["senal_ev"]}'
+                f'</span>'
+                f'</div>'
+                f'<div style="color:#e2e8f0; font-family:monospace; font-size:12px;">'
+                f'Línea: <b style="color:#f8fafc;">{prop["lado"]} {prop["linea"]:.1f}</b> · '
+                f'Mediana Proyectada: <b style="color:#10b981;">{prop["mediana_proy"]:.1f}</b> (±{prop["std_dev"]:.1f}) · '
+                f'Simulación Monte Carlo: <b style="color:#00ffcc;">{prop["pct_cubre"]:.1f}% cubre</b> · '
+                f'Factor DvP Defensivo ({prop["rival"]}): <b style="color:#38bdf8;">{prop["factor_dvp"]:.3f}x</b>'
+                f'</div>'
+                f'</div>'
+            )
+        bloques_top3_props_html = (
+            f'<h2 style="font-family:monospace; font-size:15px; color:#00ffcc; text-transform:uppercase; margin:22px 0 10px 0;">'
+            f'🎯 Top 3 Player Props & Matchups Defensivos (5,000 Simulaciones Log-Normal)'
+            f'</h2>'
+            f'{items_props_html}'
+        )
+
     filas_top_prob_html = ""
     if not df_ranking.empty:
         for _, r in df_ranking.head(8).iterrows():
@@ -627,8 +668,9 @@ def construir_html_reporte_nfl(
         f'<tbody>{filas_top_prob_html}</tbody>'
         f'</table>'
         f'</div>'
+        f'{bloques_top3_props_html}'
         f'<div style="margin-top:18px; padding-top:12px; border-top:1px solid #1e293b; color:#64748b; font-size:11px; font-family:monospace;">'
-        f'Adjunto: <b>{ATTACHMENT_FILENAME}</b> (Hojas: Proyecciones_Generales y Ranking_Alta_Probabilidad). '
+        f'Adjunto: <b>{ATTACHMENT_FILENAME}</b> (Hojas: Proyecciones_Generales, Ranking_Alta_Probabilidad y Player_Props_Ranking). '
         f'Generado automáticamente por el pipeline desatendido de TERMINAL SHARP: NFL QUANT.'
         f'</div>'
         f'</div>'
@@ -643,13 +685,21 @@ def enviar_reporte_resend_nfl(semana: Optional[int] = None) -> Dict[str, Any]:
     despacho vía POST a 'https://api.resend.com/emails'.
     """
     sem, resultados, df_general, df_ranking, nfl_stats = ejecutar_pipeline_simulaciones_nfl(semana=semana)
-    _, excel_b64 = empaquetar_excel_en_memoria(df_general, df_ranking)
-    top_3 = generar_memorando_ejecutivo_top3(resultados, nfl_stats, semana=sem)
-    html_body = construir_html_reporte_nfl(sem, resultados, top_3, df_ranking)
+    df_props_raw = simular_player_props_jornada(resultados, incluir_anytime_td=False)
+    df_props_ranking = build_player_props_ranking_export_df(df_props_raw)
+    top_3_props = obtener_top_3_player_props_jornada(df_props_raw)
 
-    print(f"[TERMINAL SHARP NFL] Semana {sem} | Partidos simulados: {len(resultados)}")
+    _, excel_b64 = empaquetar_excel_en_memoria(df_general, df_ranking, df_props_ranking)
+    top_3 = generar_memorando_ejecutivo_top3(resultados, nfl_stats, semana=sem)
+    html_body = construir_html_reporte_nfl(sem, resultados, top_3, df_ranking, top_3_props=top_3_props)
+
+    print(f"[TERMINAL SHARP NFL] Semana {sem} | Partidos simulados: {len(resultados)} | Player Props: {len(df_props_ranking)}")
     for idx, pick in enumerate(top_3, start=1):
         print(f"  Top #{idx}: {pick['partido']} -> {pick['pick']} (Prob: {pick['prob_pct']:.1f}% | EV: {pick['ev_pct']:+.1f}%)")
+    for idx_p, prop in enumerate(top_3_props, start=1):
+        print(
+            f"  Prop #{idx_p}: {prop['jugador']} ({prop['partido']}) -> {prop['senal_ev']} | DvP: {prop['factor_dvp']:.3f}x"
+        )
 
     resend_api_key = os.environ.get("RESEND_API_KEY", "").strip()
     to_email_raw = os.environ.get("TO_EMAIL", "").strip()

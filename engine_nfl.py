@@ -1813,17 +1813,42 @@ def build_nfl_high_prob_ranking_from_export_df(df: pd.DataFrame) -> pd.DataFrame
     return df_rk
 
 
-def export_nfl_excel_bytes(df: pd.DataFrame) -> io.BytesIO:
+def export_nfl_excel_bytes(
+    df: pd.DataFrame,
+    df_props_ranking: Optional[pd.DataFrame] = None,
+) -> io.BytesIO:
     """
     Compila el DataFrame de proyecciones NFL en memoria usando io.BytesIO y
-    openpyxl, incluyendo la hoja general y la hoja 'Ranking_Alta_Probabilidad'
-    con las columnas '% Cubre Spread' y '% Cubre Total'.
+    openpyxl, incluyendo la hoja general, 'Ranking_Alta_Probabilidad' y
+    'Player_Props_Ranking' (ordenada de forma estrictamente descendente por '% Cubre').
     """
     df_ranking = build_nfl_high_prob_ranking_from_export_df(df)
+    if df_props_ranking is None:
+        try:
+            from engine_props_nfl import (
+                build_player_props_ranking_export_df,
+                simular_player_props_jornada,
+            )
+            partidos_ref = []
+            if df is not None and not df.empty:
+                for _, r in df.iterrows():
+                    partidos_ref.append(
+                        {
+                            "away_abbr": str(r.get("Visitante", "")),
+                            "home_abbr": str(r.get("Local", "")),
+                        }
+                    )
+            df_raw_props = simular_player_props_jornada(partidos_ref, incluir_anytime_td=False)
+            df_props_ranking = build_player_props_ranking_export_df(df_raw_props)
+        except Exception:
+            df_props_ranking = pd.DataFrame()
+
     buffer = io.BytesIO()
     with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
         df.to_excel(writer, index=False, sheet_name="NFL_Quant_Predictions")
         df_ranking.to_excel(writer, index=False, sheet_name="Ranking_Alta_Probabilidad")
+        if df_props_ranking is not None and not df_props_ranking.empty:
+            df_props_ranking.to_excel(writer, index=False, sheet_name="Player_Props_Ranking")
     buffer.seek(0)
     return buffer
 

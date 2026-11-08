@@ -41,6 +41,11 @@ from engine_nfl import (
     run_simulacion_nfl,
     validar_y_parsear_excel_nfl,
 )
+from engine_props_nfl import (
+    build_player_props_ranking_export_df,
+    obtener_top_3_player_props_jornada,
+    simular_player_props_jornada,
+)
 
 # ==============================================================================
 # CONFIGURACIÓN DE PÁGINA Y ESTILOS CSS (CYBER-QUANT / GLASSMORPHISM)
@@ -995,8 +1000,12 @@ def render_vista_cartelera() -> None:
         )
 
     # SEPARACIÓN DE VISTAS MEDIANTE ST.TABS
-    tab_vivo, tab_auditoria = st.tabs(
-        ["🏈 Cartelera & Momios en Vivo", "📈 Auditoría & Calibración"]
+    tab_vivo, tab_props, tab_auditoria = st.tabs(
+        [
+            "🏈 Cartelera & Momios en Vivo",
+            "🎯 Player Props & Matchups",
+            "📈 Auditoría & Calibración",
+        ]
     )
 
     # --------------------------------------------------------------------------
@@ -1271,7 +1280,199 @@ def render_vista_cartelera() -> None:
                 st.dataframe(pd.DataFrame(filas_auditoria_lineas), use_container_width=True, hide_index=True)
 
     # --------------------------------------------------------------------------
-    # PESTAÑA 2: AUDITORÍA & CALIBRACIÓN MASIVA (SIN BADGES DE APUESTAS)
+    # PESTAÑA 2: PLAYER PROPS & MATCHUPS DEFENSIVOS (5,000 SIMULACIONES LOG-NORMAL)
+    # --------------------------------------------------------------------------
+    with tab_props:
+        st.markdown(
+            "#### 🎯 Simulación de Player Props & Matchups Defensivos (`Def_DvP` · 5,000 Iteraciones Log-Normal)"
+        )
+        df_props_jornada = simular_player_props_jornada(
+            partidos,
+            incluir_anytime_td=True,
+        )
+
+        if df_props_jornada.empty:
+            st.info("No hay datos de Player Props disponibles para los partidos seleccionados.")
+        else:
+            partidos_opciones = ["Todos los partidos"] + sorted(
+                df_props_jornada["Partido"].unique().tolist()
+            )
+            posiciones_opciones = ["Todas", "QB", "RB", "WR", "TE"]
+            metricas_opciones = [
+                "Yardas Individuales (Pass / Rush / Rec)",
+                "Todas las Métricas (Incluye Anytime TD)",
+                "Pass Yds",
+                "Rush Yds",
+                "Rec Yds",
+                "Anytime TD",
+            ]
+
+            fp_col1, fp_col2, fp_col3, fp_col4 = st.columns([1.4, 1.0, 1.5, 1.3])
+            with fp_col1:
+                filtro_partido_prop = st.selectbox(
+                    "🏈 Filtrar por Partido",
+                    options=partidos_opciones,
+                    index=0,
+                    key="sb_prop_partido_nfl",
+                )
+            with fp_col2:
+                filtro_pos_prop = st.selectbox(
+                    "🎽 Posición",
+                    options=posiciones_opciones,
+                    index=0,
+                    key="sb_prop_pos_nfl",
+                )
+            with fp_col3:
+                filtro_metrica_prop = st.selectbox(
+                    "📏 Métrica Prop",
+                    options=metricas_opciones,
+                    index=0,
+                    key="sb_prop_metrica_nfl",
+                )
+            with fp_col4:
+                orden_prop = st.selectbox(
+                    "📊 Ordenar por",
+                    options=[
+                        "Mayor % Cubre (Descendente)",
+                        "Mayor Valor Esperado (+EV %)",
+                        "Mayor Factor DvP Rival",
+                        "Mayor Proyección Mediana",
+                    ],
+                    index=0,
+                    key="sb_prop_orden_nfl",
+                )
+
+            df_filtrado_props = df_props_jornada.copy()
+            if filtro_partido_prop != "Todos los partidos":
+                df_filtrado_props = df_filtrado_props[
+                    df_filtrado_props["Partido"] == filtro_partido_prop
+                ]
+            if filtro_pos_prop != "Todas":
+                df_filtrado_props = df_filtrado_props[
+                    df_filtrado_props["Posición"] == filtro_pos_prop
+                ]
+            if filtro_metrica_prop == "Yardas Individuales (Pass / Rush / Rec)":
+                df_filtrado_props = df_filtrado_props[
+                    df_filtrado_props["Métrica"].isin(["Pass Yds", "Rush Yds", "Rec Yds"])
+                ]
+            elif filtro_metrica_prop in ("Pass Yds", "Rush Yds", "Rec Yds", "Anytime TD"):
+                df_filtrado_props = df_filtrado_props[
+                    df_filtrado_props["Métrica"] == filtro_metrica_prop
+                ]
+
+            if orden_prop == "Mayor % Cubre (Descendente)":
+                df_filtrado_props = df_filtrado_props.sort_values(
+                    by=["% Cubre", "EV_%"], ascending=[False, False]
+                )
+            elif orden_prop == "Mayor Valor Esperado (+EV %)":
+                df_filtrado_props = df_filtrado_props.sort_values(
+                    by=["EV_%", "% Cubre"], ascending=[False, False]
+                )
+            elif orden_prop == "Mayor Factor DvP Rival":
+                df_filtrado_props = df_filtrado_props.sort_values(
+                    by=["Factor DvP Rival", "% Cubre"], ascending=[False, False]
+                )
+            elif orden_prop == "Mayor Proyección Mediana":
+                df_filtrado_props = df_filtrado_props.sort_values(
+                    by=["Proyección Mediana", "% Cubre"], ascending=[False, False]
+                )
+
+            df_filtrado_props = df_filtrado_props.reset_index(drop=True)
+
+            # Top 3 Picks de Player Props destacados en tarjetas neón (#0d1117 / #00ffcc)
+            top_3_props_ui = obtener_top_3_player_props_jornada(df_filtrado_props)
+            if top_3_props_ui:
+                p_cols = st.columns(len(top_3_props_ui))
+                for idx_p, item_p in enumerate(top_3_props_ui):
+                    with p_cols[idx_p]:
+                        card_prop_html = (
+                            f'<div style="background-color:#0d1117; border:1px solid #00ffcc; '
+                            f'border-left:4px solid #00ffcc; border-radius:10px; padding:12px 14px; margin-bottom:12px;">'
+                            f'<div style="font-family:JetBrains Mono,monospace; font-size:0.75rem; color:#00ffcc; font-weight:800;">'
+                            f'TOP PROP #{idx_p + 1} · {item_p["partido"]} · {item_p["posicion"]} ({item_p["metrica"]})'
+                            f'</div>'
+                            f'<div style="font-size:1.05rem; font-weight:800; color:#f8fafc; margin:4px 0;">'
+                            f'{item_p["jugador"]} ({item_p["equipo"]})'
+                            f'</div>'
+                            f'<div style="font-family:JetBrains Mono,monospace; font-size:0.80rem; color:#94a3b8; margin-bottom:6px;">'
+                            f'Mediana Proy: <b style="color:#10b981;">{item_p["mediana_proy"]:.1f}</b> (±{item_p["std_dev"]:.1f}) · '
+                            f'DvP Rival: <b style="color:#38bdf8;">{item_p["factor_dvp"]:.3f}x</b>'
+                            f'</div>'
+                            f'<div style="background:rgba(0,255,204,0.12); border:1px solid rgba(0,255,204,0.45); '
+                            f'border-radius:6px; padding:5px 8px; font-family:JetBrains Mono,monospace; font-size:0.78rem; color:#00ffcc; font-weight:700;">'
+                            f'{item_p["senal_ev"]}'
+                            f'</div>'
+                            f'</div>'
+                        )
+                        st.markdown(card_prop_html, unsafe_allow_html=True)
+
+            columnas_tabla_props = [
+                "Partido",
+                "Jugador",
+                "Posición",
+                "Métrica",
+                "Proyección Mediana",
+                "Factor DvP Rival",
+                "Línea Mercado",
+                "% Cubre Over",
+                "% Cubre Under",
+                "Señal EV",
+            ]
+            df_vista_props = df_filtrado_props[columnas_tabla_props].copy()
+
+            # Tabla HTML institucional oscura (#0d1117) con acentos neón (#00ffcc)
+            filas_props_html = ""
+            for _, r_p in df_vista_props.iterrows():
+                senal_txt = str(r_p["Señal EV"])
+                es_fuego = senal_txt.startswith("🔥")
+                color_senal = "#00ffcc" if es_fuego else "#94a3b8"
+                peso_senal = "700" if es_fuego else "400"
+                dvp_val = float(r_p["Factor DvP Rival"])
+                color_dvp = "#10b981" if dvp_val >= 1.05 else ("#f59e0b" if dvp_val <= 0.92 else "#e2e8f0")
+
+                filas_props_html += (
+                    f'<tr style="border-bottom:1px solid #1e293b;">'
+                    f'<td style="padding:8px 10px; font-family:JetBrains Mono,monospace; color:#f8fafc; font-weight:700;">{r_p["Partido"]}</td>'
+                    f'<td style="padding:8px 10px; color:#f8fafc; font-weight:700;">{r_p["Jugador"]}</td>'
+                    f'<td style="padding:8px 10px; font-family:JetBrains Mono,monospace; color:#38bdf8;">{r_p["Posición"]}</td>'
+                    f'<td style="padding:8px 10px; font-family:JetBrains Mono,monospace; color:#cbd5e1;">{r_p["Métrica"]}</td>'
+                    f'<td style="padding:8px 10px; font-family:JetBrains Mono,monospace; color:#10b981; font-weight:700;">{float(r_p["Proyección Mediana"]):.1f}</td>'
+                    f'<td style="padding:8px 10px; font-family:JetBrains Mono,monospace; color:{color_dvp}; font-weight:700;">{dvp_val:.3f}x</td>'
+                    f'<td style="padding:8px 10px; font-family:JetBrains Mono,monospace; color:#f8fafc;">{float(r_p["Línea Mercado"]):.1f}</td>'
+                    f'<td style="padding:8px 10px; font-family:JetBrains Mono,monospace; color:#e2e8f0;">{float(r_p["% Cubre Over"]):.1f}%</td>'
+                    f'<td style="padding:8px 10px; font-family:JetBrains Mono,monospace; color:#e2e8f0;">{float(r_p["% Cubre Under"]):.1f}%</td>'
+                    f'<td style="padding:8px 10px; font-family:JetBrains Mono,monospace; color:{color_senal}; font-weight:{peso_senal};">{senal_txt}</td>'
+                    f'</tr>'
+                )
+
+            tabla_props_neon_html = (
+                f'<div style="background-color:#0d1117; border:1px solid #00ffcc; border-radius:10px; padding:12px; margin-bottom:14px; overflow-x:auto;">'
+                f'<table style="width:100%; border-collapse:collapse; font-size:0.83rem;">'
+                f'<thead>'
+                f'<tr style="background-color:#131b29; color:#00ffcc; font-family:JetBrains Mono,monospace; text-align:left; border-bottom:1px solid #00ffcc;">'
+                f'<th style="padding:9px 10px;">Partido</th>'
+                f'<th style="padding:9px 10px;">Jugador</th>'
+                f'<th style="padding:9px 10px;">Posición</th>'
+                f'<th style="padding:9px 10px;">Métrica</th>'
+                f'<th style="padding:9px 10px;">Proyección Mediana</th>'
+                f'<th style="padding:9px 10px;">Factor DvP Rival</th>'
+                f'<th style="padding:9px 10px;">Línea Mercado</th>'
+                f'<th style="padding:9px 10px;">% Cubre Over</th>'
+                f'<th style="padding:9px 10px;">% Cubre Under</th>'
+                f'<th style="padding:9px 10px;">Señal EV</th>'
+                f'</tr>'
+                f'</thead>'
+                f'<tbody>{filas_props_html}</tbody>'
+                f'</table>'
+                f'</div>'
+            )
+            st.markdown(tabla_props_neon_html, unsafe_allow_html=True)
+
+            with st.expander("🔎 Explorador Interactivo / Ordenamiento por Columna (DataFrame)", expanded=False):
+                st.dataframe(df_vista_props, use_container_width=True, hide_index=True)
+
+    # --------------------------------------------------------------------------
+    # PESTAÑA 3: AUDITORÍA & CALIBRACIÓN MASIVA (SIN BADGES DE APUESTAS)
     # --------------------------------------------------------------------------
     with tab_auditoria:
         st.markdown("#### 📈 Auditoría Post-Partido (`STATUS_FINAL`) y Calibración Bayesiana / Kalman")
