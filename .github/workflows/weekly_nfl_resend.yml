@@ -1,0 +1,44 @@
+name: Weekly NFL Quant Simulations & Resend Report
+
+on:
+  schedule:
+    # Jueves (Thursday Night Football): 22:30 UTC (~4:30 PM Monterrey/CDMX)
+    - cron: '30 22 * * 4'
+    # Domingos (Cartelera principal mediodía/tarde): 16:30 UTC (~10:30 AM Monterrey/CDMX)
+    - cron: '30 16 * * 0'
+    # Lunes (Monday Night Football): 22:30 UTC (~4:30 PM Monterrey/CDMX)
+    - cron: '30 22 * * 1'
+  workflow_dispatch:
+    inputs:
+      nfl_week:
+        description: 'Semana NFL opcional (1-18). Si se deja vacío, se detecta automáticamente.'
+        required: false
+        default: ''
+
+jobs:
+  run-nfl-quant-resend:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Execute NFL Monte Carlo Simulations and Send Resend Executive Report
+        env:
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+          TO_EMAIL: ${{ secrets.TO_EMAIL }}
+          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+          NFL_WEEK: ${{ github.event.inputs.nfl_week }}
+        run: |
+          python resend_nfl.py
