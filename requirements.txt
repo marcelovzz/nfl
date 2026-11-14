@@ -5,3 +5,5 @@ plotly
 pyarrow
 requests
 openpyxl
+fpdf2
+reportlab

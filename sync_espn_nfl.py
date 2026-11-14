@@ -216,28 +216,39 @@ def americano_a_decimal(momio: Any, default_decimal: float = 1.91) -> float:
     return round(1.0 + (100.0 / abs(val)), 2)
 
 
-def obtener_url_escudo_nfl(team_abbr: str) -> str:
+def get_team_logo_url(team_abbr: str) -> str:
     """
-    Limpia la abreviatura, mapea casos especiales (WAS -> wsh, LA -> lar, JAX -> jax)
-    y retorna la URL directa del escudo oficial en el CDN de ESPN:
-    'https://a.espncdn.com/i/teamlogos/nfl/500/{abbr}.png'
+    Recibe la abreviatura del equipo (ej. 'DAL', 'IND', 'KC', 'WAS', 'LA', 'JAC')
+    y devuelve su URL oficial del CDN de ESPN en alta resolución:
+    'https://a.espncdn.com/i/teamlogos/nfl/500/{abbr_lower}.png'
+    Incluye el mapeo de normalización para las excepciones de ESPN:
+      - 'WAS' / 'WSH' -> 'wsh'
+      - 'LA' / 'LAR'  -> 'lar'
+      - 'JAC' / 'JAX' -> 'jax'
     """
     raw_clean = str(team_abbr or "").strip().upper()
-    casos_especiales_cdn = {
+    excepciones_espn = {
         "WAS": "wsh",
         "WSH": "wsh",
         "LA": "lar",
         "LAR": "lar",
         "STL": "lar",
-        "JAX": "jax",
         "JAC": "jax",
+        "JAX": "jax",
     }
-    if raw_clean in casos_especiales_cdn:
-        cdn_slug = casos_especiales_cdn[raw_clean]
+    if raw_clean in excepciones_espn:
+        abbr_lower = excepciones_espn[raw_clean]
     else:
         std_abbr = normalizar_abbr_nfl(raw_clean)
-        cdn_slug = STANDARD_TO_ESPN_CDN_SLUG.get(std_abbr, std_abbr.lower())
-    return ESPN_NFL_LOGO_CDN.format(abbr=cdn_slug)
+        abbr_lower = STANDARD_TO_ESPN_CDN_SLUG.get(std_abbr, std_abbr.lower())
+    return f"https://a.espncdn.com/i/teamlogos/nfl/500/{abbr_lower}.png"
+
+
+def obtener_url_escudo_nfl(team_abbr: str) -> str:
+    """
+    Alias compatible con get_team_logo_url(team_abbr).
+    """
+    return get_team_logo_url(team_abbr)
 
 
 def obtener_logo_nfl(team_abbr: str, size: int = 32) -> str:

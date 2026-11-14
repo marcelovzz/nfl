@@ -26,6 +26,7 @@ import streamlit as st
 
 from sync_espn_nfl import (
     NFL_FRANCHISE_NAMES,
+    get_team_logo_url,
     obtener_calendario_nfl_semana,
     obtener_lineas_mercado_nfl,
     obtener_logo_nfl,
@@ -1269,6 +1270,8 @@ def render_vista_cartelera() -> None:
 
                     filas_auditoria_lineas.append(
                         {
+                            "Escudo Vis": get_team_logo_url(aw_r),
+                            "Escudo Loc": get_team_logo_url(hm_r),
                             "Partido": f"{aw_r} @ {hm_r}",
                             "Proyección": f"{aw_r} {s_row['away_pts']:.1f} - {s_row['home_pts']:.1f} {hm_r}",
                             "Spread (Mod / Mkt)": f"{hm_r} {s_row['spread_proyectado']:+.1f} / {s_row['spread_mercado_home']:+.1f}",
@@ -1279,7 +1282,15 @@ def render_vista_cartelera() -> None:
                             "% Cubre Total": f"{to_cov_r:.1f}%",
                         }
                     )
-                st.dataframe(pd.DataFrame(filas_auditoria_lineas), use_container_width=True, hide_index=True)
+                st.dataframe(
+                    pd.DataFrame(filas_auditoria_lineas),
+                    use_container_width=True,
+                    hide_index=True,
+                    column_config={
+                        "Escudo Vis": st.column_config.ImageColumn("Vis", width="small"),
+                        "Escudo Loc": st.column_config.ImageColumn("Loc", width="small"),
+                    },
+                )
 
     # --------------------------------------------------------------------------
     # PESTAÑA 2: PLAYER PROPS & MATCHUPS DEFENSIVOS (5,000 SIMULACIONES LOG-NORMAL)
@@ -1398,20 +1409,22 @@ def render_vista_cartelera() -> None:
 
             df_filtrado_props = df_filtrado_props.reset_index(drop=True)
 
-            # Top 3 Picks de Player Props destacados en tarjetas neón (#0d1117 / #00ffcc)
+            # Top 3 Picks de Player Props destacados en tarjetas neón (#0d1117 / #00ffcc) con escudo oficial
             top_3_props_ui = obtener_top_3_player_props_jornada(df_filtrado_props)
             if top_3_props_ui:
                 p_cols = st.columns(len(top_3_props_ui))
                 for idx_p, item_p in enumerate(top_3_props_ui):
                     with p_cols[idx_p]:
+                        logo_prop_url = get_team_logo_url(item_p["equipo"])
                         card_prop_html = (
                             f'<div style="background-color:#0d1117; border:1px solid #00ffcc; '
                             f'border-left:4px solid #00ffcc; border-radius:10px; padding:12px 14px; margin-bottom:12px;">'
                             f'<div style="font-family:JetBrains Mono,monospace; font-size:0.75rem; color:#00ffcc; font-weight:800;">'
                             f'TOP PROP #{idx_p + 1} · {item_p["partido"]} · {item_p["posicion"]} ({item_p["metrica"]})'
                             f'</div>'
-                            f'<div style="font-size:1.05rem; font-weight:800; color:#f8fafc; margin:4px 0;">'
-                            f'{item_p["jugador"]} ({item_p["equipo"]})'
+                            f'<div style="font-size:1.05rem; font-weight:800; color:#f8fafc; margin:4px 0; display:flex; align-items:center; gap:6px;">'
+                            f'<img src="{logo_prop_url}" alt="{item_p["equipo"]}" width="22" height="22" style="width:22px; height:22px; vertical-align:middle;">'
+                            f'<span>{item_p["jugador"]} ({item_p["equipo"]})</span>'
                             f'</div>'
                             f'<div style="font-family:JetBrains Mono,monospace; font-size:0.80rem; color:#94a3b8; margin-bottom:6px;">'
                             f'Mediana Proy: <b style="color:#10b981;">{item_p["mediana_proy"]:.1f}</b> (±{item_p["std_dev"]:.1f}) · '
@@ -1427,10 +1440,15 @@ def render_vista_cartelera() -> None:
 
             if "Kickoff" not in df_filtrado_props.columns:
                 df_filtrado_props["Kickoff"] = "DOM"
+            if "Equipo" not in df_filtrado_props.columns:
+                df_filtrado_props["Equipo"] = df_filtrado_props["Partido"].apply(
+                    lambda x: str(x).split("@")[0].strip() if "@" in str(x) else str(x)
+                )
 
             columnas_tabla_props = [
                 "Kickoff",
                 "Partido",
+                "Equipo",
                 "Jugador",
                 "Posición",
                 "Métrica",
@@ -1443,7 +1461,7 @@ def render_vista_cartelera() -> None:
             ]
             df_vista_props = df_filtrado_props[columnas_tabla_props].copy().reset_index(drop=True)
 
-            # Tabla HTML institucional oscura (#0d1117) con separación visual y sombreado alternado por Partido
+            # Tabla HTML institucional oscura (#0d1117) con separación visual, escudos oficiales y sombreado alternado por Partido
             filas_props_html = ""
             total_filas_vista = len(df_vista_props)
             partido_prev_ui = None
@@ -1452,6 +1470,8 @@ def render_vista_cartelera() -> None:
             for idx_vp, r_p in df_vista_props.iterrows():
                 partido_actual = str(r_p["Partido"])
                 kickoff_actual = str(r_p["Kickoff"])
+                eq_jug = str(r_p.get("Equipo", "")).strip()
+                logo_jug_url = get_team_logo_url(eq_jug)
                 partido_siguiente = (
                     str(df_vista_props.iloc[idx_vp + 1]["Partido"])
                     if (idx_vp + 1) < total_filas_vista
@@ -1461,10 +1481,23 @@ def render_vista_cartelera() -> None:
                 if partido_actual != partido_prev_ui:
                     bloque_juego_idx += 1
                     cnt_props_juego = int((df_vista_props["Partido"] == partido_actual).sum())
+                    partes_p = [x.strip() for x in partido_actual.split("@")]
+                    aw_hdr = partes_p[0] if len(partes_p) >= 1 else ""
+                    hm_hdr = partes_p[1] if len(partes_p) >= 2 else ""
+                    img_aw_hdr = (
+                        f'<img src="{get_team_logo_url(aw_hdr)}" alt="{aw_hdr}" width="20" height="20" '
+                        f'style="width:20px; height:20px; vertical-align:middle; margin-right:5px;">'
+                        if aw_hdr else ""
+                    )
+                    img_hm_hdr = (
+                        f'<img src="{get_team_logo_url(hm_hdr)}" alt="{hm_hdr}" width="20" height="20" '
+                        f'style="width:20px; height:20px; vertical-align:middle; margin-left:5px; margin-right:6px;">'
+                        if hm_hdr else ""
+                    )
                     filas_props_html += (
                         f'<tr style="background-color:#162235; border-top:2px solid #00ffcc; border-bottom:1px solid rgba(0,255,204,0.45);">'
                         f'<td colspan="11" style="padding:7px 10px; font-family:JetBrains Mono,monospace; color:#00ffcc; font-weight:800; font-size:0.78rem;">'
-                        f'🏈 {partido_actual} · Horario: {kickoff_actual} — {cnt_props_juego} Props listados (Ordenados por Mayor % Cubre)'
+                        f'{img_aw_hdr}{partido_actual}{img_hm_hdr} · Horario: {kickoff_actual} — {cnt_props_juego} Props listados (Ordenados por Mayor % Cubre)'
                         f'</td></tr>'
                     )
                     partido_prev_ui = partido_actual
@@ -1487,7 +1520,9 @@ def render_vista_cartelera() -> None:
                     f'<tr style="background-color:{bg_fila}; border-bottom:{borde_inferior_fila};">'
                     f'<td style="padding:8px 10px; font-family:JetBrains Mono,monospace; color:#94a3b8; font-size:0.78rem;">{kickoff_actual}</td>'
                     f'<td style="padding:8px 10px; font-family:JetBrains Mono,monospace; color:#f8fafc; font-weight:700;">{partido_actual}</td>'
-                    f'<td style="padding:8px 10px; color:#f8fafc; font-weight:700;">{r_p["Jugador"]}</td>'
+                    f'<td style="padding:8px 10px; color:#f8fafc; font-weight:700;">'
+                    f'<img src="{logo_jug_url}" alt="{eq_jug}" width="18" height="18" style="width:18px; height:18px; vertical-align:middle; margin-right:6px;">'
+                    f'{r_p["Jugador"]}</td>'
                     f'<td style="padding:8px 10px; font-family:JetBrains Mono,monospace; color:#38bdf8;">{r_p["Posición"]}</td>'
                     f'<td style="padding:8px 10px; font-family:JetBrains Mono,monospace; color:#cbd5e1;">{r_p["Métrica"]}</td>'
                     f'<td style="padding:8px 10px; font-family:JetBrains Mono,monospace; color:#10b981; font-weight:700;">{float(r_p["Proyección Mediana"]):.1f}</td>'
@@ -1524,7 +1559,16 @@ def render_vista_cartelera() -> None:
             st.markdown(tabla_props_neon_html, unsafe_allow_html=True)
 
             with st.expander("🔎 Explorador Interactivo / Ordenamiento por Columna (DataFrame)", expanded=False):
-                st.dataframe(df_vista_props, use_container_width=True, hide_index=True)
+                df_exp_props = df_vista_props.copy()
+                df_exp_props.insert(0, "Escudo", df_exp_props["Equipo"].map(get_team_logo_url))
+                st.dataframe(
+                    df_exp_props,
+                    use_container_width=True,
+                    hide_index=True,
+                    column_config={
+                        "Escudo": st.column_config.ImageColumn("Escudo", width="small"),
+                    },
+                )
 
     # --------------------------------------------------------------------------
     # PESTAÑA 3: AUDITORÍA & CALIBRACIÓN MASIVA (SIN BADGES DE APUESTAS)

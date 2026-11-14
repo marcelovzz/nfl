@@ -2,11 +2,11 @@ name: Weekly NFL Quant Simulations & Resend Report
 
 on:
   schedule:
-    # Jueves (Thursday Night Football): 22:30 UTC (~4:30 PM Monterrey/CDMX)
+    # Jueves (Thursday Night Football): 22:30 UTC (~4:30 PM Monterrey/CDMX CST)
     - cron: '30 22 * * 4'
-    # Domingos (Cartelera principal mediodía/tarde): 16:30 UTC (~10:30 AM Monterrey/CDMX)
+    # Domingos (Cartelera principal mediodía/tarde): 16:30 UTC (~10:30 AM Monterrey/CDMX CST)
     - cron: '30 16 * * 0'
-    # Lunes (Monday Night Football): 22:30 UTC (~4:30 PM Monterrey/CDMX)
+    # Lunes (Monday Night Football): 22:30 UTC (~4:30 PM Monterrey/CDMX CST)
     - cron: '30 22 * * 1'
   workflow_dispatch:
     inputs:
@@ -29,12 +29,12 @@ jobs:
           python-version: '3.11'
           cache: 'pip'
 
-      - name: Install dependencies
+      - name: Install dependencies (including fpdf2 / reportlab for PDF briefing)
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Execute NFL Monte Carlo Simulations and Send Resend Executive Report
+      - name: Execute NFL Monte Carlo Simulations and Send Mobile Briefing + PDF via Resend
         env:
           RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
           TO_EMAIL: ${{ secrets.TO_EMAIL }}

@@ -2,26 +2,32 @@
 # -*- coding: utf-8 -*-
 """
 MÓDULO 4: resend_nfl.py
-Pipeline Automatizado Desatendido de "TERMINAL SHARP: NFL QUANT"
+Pipeline Automatizado Desatendido de "TERMINAL SHARP: NFL QUANT" (Mobile-First Briefing)
   - Consulta la cartelera activa de la semana en curso desde ESPN Scoreboard API / The Odds API
     (vía sync_espn_nfl.py) y audita el reporte oficial de bajas de ESPN (especialmente QBs
     titulares y jugadores clave) para alimentar el factor de reemplazo de QB.
   - Ejecuta las 5,000 simulaciones de Monte Carlo por partido mediante el generador
     discreto de anotaciones (TD=7/6/8, FG=3), filtro de situaciones competitivas (WP 5%-95%)
-    y anclaje bayesiano al spread de consenso (engine_nfl.py).
-  - Construye el DataFrame general de proyecciones y la hoja adicional
-    'Ranking_Alta_Probabilidad' ordenada estrictamente de mayor a menor probabilidad
-    de ocurrencia en los tres mercados principales (Moneyline, Spreads y Totales).
-  - Empaqueta el libro Excel en memoria ('nfl_quant_projections.xlsx') con openpyxl,
-    lo codifica en base64 y redacta un memorando ejecutivo institucional con los 3 mejores
-    picks de la jornada (análisis de EPA/play competitivo, ventaja en trincheras y edge sin vig).
-  - Envía el reporte HTML oscuro (#0d1117 con bordes #00ffcc) mediante un POST a
-    https://api.resend.com/emails usando las variables de entorno RESEND_API_KEY y TO_EMAIL.
+    y anclaje bayesiano al spread de consenso (engine_nfl.py), más las 5,000 simulaciones
+    Log-Normal de Player Props cruzadas con factores defensivos DvP (engine_props_nfl.py).
+  - Rediseña el correo HTML como un Briefing Ejecutivo Mobile-First (estilo Terminal Financiera,
+    max-width: 600px, tarjetas apiladas #161b22 sobre #0d1117 con borde #30363d y escudos
+    oficiales del CDN de ESPN):
+      * SECCIÓN 1 — TOP 5 ANCHORS DE LA JORNADA (borde #00ffcc, combinando Spreads, Totales
+        y Player Props ordenados de mayor a menor % de cubrimiento con escudo 18x18).
+      * SECCIÓN 2 — DESGLOSE POR PARTIDO EN ORDEN CRONOLÓGICO CST (cabecera con escudos 26x26,
+        marcador proyectado, línea de mercado, badges de Spread y Total con % Cubre en 5,000
+        sims y sub-lista compacta de Player Props +EV > 0.0%).
+  - Renderiza el reporte estructurado a un archivo PDF vertical limpio
+    ('Terminal_Sharp_NFL_Briefing.pdf') usando 'fpdf2' o 'reportlab' (con fallback seguro
+    para no detener el flujo si falla el PDF) y lo envía vía la API REST de Resend.
 """
 
 import base64
 import io
 import os
+import re
+import unicodedata
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Tuple
 import pandas as pd
@@ -30,6 +36,7 @@ import requests
 from sync_espn_nfl import (
     ESPN_NFL_SCOREBOARD_URL,
     NFL_FRANCHISE_NAMES,
+    get_team_logo_url as _sync_get_team_logo_url,
     normalizar_abbr_nfl,
     obtener_calendario_nfl_semana,
 )
@@ -43,13 +50,104 @@ from engine_props_nfl import (
     build_player_props_ranking_export_df,
     estilizar_hoja_player_props_openpyxl,
     obtener_top_3_player_props_jornada,
+    ordenar_props_multinivel_por_juego,
     simular_player_props_jornada,
 )
 
 RESEND_API_URL = "https://api.resend.com/emails"
 ESPN_NFL_INJURIES_URL = "https://site.api.espn.com/apis/site/v2/sports/football/nfl/injuries"
 DEFAULT_STATS_FILE = "nfl_stats.xlsx"
-ATTACHMENT_FILENAME = "nfl_quant_projections.xlsx"
+ATTACHMENT_FILENAME = "Terminal_Sharp_NFL_Briefing.pdf"
+
+
+def get_team_logo_url(team_abbr: str) -> str:
+    """
+    Recibe la abreviatura del equipo (ej. 'DAL', 'IND', 'KC', 'WAS', 'LA')
+    y devuelve su URL oficial del CDN de ESPN en alta resolución:
+      'https://a.espncdn.com/i/teamlogos/nfl/500/{abbr_lower}.png'
+    Incluye el mapeo de normalización para las excepciones de ESPN:
+      - 'WAS' -> 'wsh'
+      - 'LA' / 'LAR' -> 'lar'
+      - 'JAC' / 'JAX' -> 'jax'
+    """
+    raw = str(team_abbr or "").strip().upper()
+    mapa_excepciones = {
+        "WAS": "wsh",
+        "WSH": "wsh",
+        "LA": "lar",
+        "LAR": "lar",
+        "STL": "lar",
+        "JAC": "jax",
+        "JAX": "jax",
+    }
+    if raw in mapa_excepciones:
+        abbr_lower = mapa_excepciones[raw]
+        return f"https://a.espncdn.com/i/teamlogos/nfl/500/{abbr_lower}.png"
+    return _sync_get_team_logo_url(raw)
+
+
+def _convertir_hora_a_cst(hora_raw: str) -> Tuple[int, str]:
+    """
+    Convierte una cadena de horario de ESPN (ET / UTC / local) a formato legible CST
+    y devuelve una clave entera (orden_dia * 10000 + hh * 60 + mm) para ordenar
+    cronológicamente los partidos.
+    """
+    txt = str(hora_raw or "DOM 12:00 CST").strip().upper()
+    mapa_dias = {
+        "JUE": 1,
+        "THU": 1,
+        "VIE": 2,
+        "FRI": 2,
+        "SÁB": 3,
+        "SAB": 3,
+        "SAT": 3,
+        "DOM": 4,
+        "SUN": 4,
+        "LUN": 5,
+        "MON": 5,
+        "MAR": 6,
+        "TUE": 6,
+        "MIÉ": 7,
+        "MIE": 7,
+        "WED": 7,
+    }
+    dia_es_label = "DOM"
+    orden_dia = 4
+    for pref, valor in mapa_dias.items():
+        if pref in txt:
+            orden_dia = valor
+            if pref in ("JUE", "THU"):
+                dia_es_label = "JUE"
+            elif pref in ("VIE", "FRI"):
+                dia_es_label = "VIE"
+            elif pref in ("SÁB", "SAB", "SAT"):
+                dia_es_label = "SÁB"
+            elif pref in ("DOM", "SUN"):
+                dia_es_label = "DOM"
+            elif pref in ("LUN", "MON"):
+                dia_es_label = "LUN"
+            break
+
+    m = re.search(r"(\d{1,2}):(\d{2})\s*(AM|PM)?", txt)
+    if not m:
+        return orden_dia * 10000 + 720, f"{dia_es_label} 12:00 CST"
+
+    hh = int(m.group(1))
+    mm = int(m.group(2))
+    ampm = (m.group(3) or "").strip()
+    if ampm == "PM" and hh < 12:
+        hh += 12
+    elif ampm == "AM" and hh == 12:
+        hh = 0
+
+    # Si viene en ET/EDT, restamos 1 hora para CST; si viene en UTC, restamos 6 horas
+    if "UTC" in txt:
+        hh = (hh - 6) % 24
+    elif "ET" in txt or "EDT" in txt or "EST" in txt:
+        hh = (hh - 1) % 24
+
+    clave_sort = orden_dia * 10000 + (hh * 60 + mm)
+    return clave_sort, f"{dia_es_label} {hh:02d}:{mm:02d} CST"
 
 
 def cargar_diccionario_stats_local() -> Dict[str, Dict[str, Any]]:
@@ -210,9 +308,14 @@ def ejecutar_pipeline_simulaciones_nfl(
             tipo_estadio="Auto",
         )
 
+        hora_raw = str(p.get("hora", "DOM 13:00 ET"))
+        kickoff_sort, hora_cst = _convertir_hora_a_cst(hora_raw)
+
         sim_record = dict(sim)
         sim_record["semana"] = semana_activa
-        sim_record["hora"] = p.get("hora", "DOM 13:00 ET")
+        sim_record["hora"] = hora_cst
+        sim_record["hora_raw"] = hora_raw
+        sim_record["_kickoff_sort"] = kickoff_sort
         sim_record["estado"] = p.get("estado", f"Semana {semana_activa}")
         sim_record["fuente_odds"] = lineas_mercado["fuente_odds"]
         sim_record["bajas_clave_away"] = ", ".join(bajas_away.get("bajas_clave", [])) or "Sin bajas críticas QB"
@@ -306,6 +409,11 @@ def ejecutar_pipeline_simulaciones_nfl(
             }
         )
 
+    # Ordenar resultados_simulados cronológicamente en CST y luego por Partido
+    resultados_simulados.sort(
+        key=lambda x: (int(x.get("_kickoff_sort", 40720)), f"{x['away_abbr']} @ {x['home_abbr']}")
+    )
+
     df_general = build_nfl_predictions_export_df(resultados_simulados, semana=semana_activa)
     df_ranking = pd.DataFrame(filas_ranking)
     if not df_ranking.empty:
@@ -323,13 +431,7 @@ def empaquetar_excel_en_memoria(
     df_props_ranking: Optional[pd.DataFrame] = None,
 ) -> Tuple[bytes, str]:
     """
-    Genera el archivo Excel ('nfl_quant_projections.xlsx') en memoria con openpyxl
-    incluyendo las hojas:
-      1) 'Proyecciones_Generales'
-      2) 'Ranking_Alta_Probabilidad' (ordenada estrictamente de mayor a menor probabilidad)
-      3) 'Player_Props_Ranking' (ordenada multinivel: 1. Kickoff ASC, 2. Partido ASC,
-         3. '% Cubre' DESC, con sombreado alternado y borde inferior por juego)
-    Retorna los bytes crudos y la cadena codificada en base64 para la API de Resend.
+    Mantiene compatibilidad con exportaciones Excel en memoria con openpyxl.
     """
     buffer = io.BytesIO()
     with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
@@ -344,6 +446,105 @@ def empaquetar_excel_en_memoria(
     return raw_bytes, b64_str
 
 
+def obtener_top_5_anchors_jornada(
+    resultados_simulados: List[Dict[str, Any]],
+    df_props_ranking: Optional[pd.DataFrame] = None,
+) -> List[Dict[str, Any]]:
+    """
+    Construye el Top 5 Anchors de la jornada combinando Spreads, Totales y Player Props
+    con ventaja matemática positiva (+EV > 0.0%), ordenados estrictamente de mayor a menor
+    porcentaje de cubrimiento (% Cubre en las 5,000 simulaciones de Monte Carlo).
+    """
+    candidatos: List[Dict[str, Any]] = []
+
+    for s in resultados_simulados:
+        away = s["away_abbr"]
+        home = s["home_abbr"]
+        partido_str = f"{away} @ {home}"
+        hora_cst = s.get("hora", "DOM 12:00 CST")
+        ev_sp = s["ev_spread"]
+        ev_to = s["ev_totales"]
+
+        sp_cov = float(s.get("spread_cover_pct", ev_sp.get("spread_cover_pct", ev_sp.get("prob_mejor_pct", 50.0))))
+        sp_ev = float(ev_sp.get("ev_pct", 0.0))
+        sp_odds = float(ev_sp.get("cuota_mercado_decimal", 1.91))
+        lado_sp = str(ev_sp.get("lado", "HOME"))
+        team_sp = home if lado_sp == "HOME" else away
+
+        candidatos.append(
+            {
+                "tipo": "SPREAD",
+                "team_abbr": team_sp,
+                "logo_url": get_team_logo_url(team_sp),
+                "partido": partido_str,
+                "horario": hora_cst,
+                "seleccion": f"{ev_sp['recomendacion']} ({sp_odds:.2f})",
+                "detalle": f"Proy: {away} {s['away_pts']:.1f} - {s['home_pts']:.1f} {home}",
+                "pct_cubre": round(sp_cov, 1),
+                "ev_pct": round(sp_ev, 1),
+                "cuota": sp_odds,
+                "es_ev_pos": sp_ev > 0.0,
+            }
+        )
+
+        to_cov = float(s.get("total_cover_pct", ev_to.get("total_cover_pct", ev_to.get("prob_mejor_pct", 50.0))))
+        to_ev = float(ev_to.get("ev_pct", 0.0))
+        to_odds = float(ev_to.get("cuota_mercado_decimal", 1.91))
+        team_to = home if s.get("win_home_pct", 50.0) >= s.get("win_away_pct", 50.0) else away
+
+        candidatos.append(
+            {
+                "tipo": "TOTAL",
+                "team_abbr": team_to,
+                "logo_url": get_team_logo_url(team_to),
+                "partido": partido_str,
+                "horario": hora_cst,
+                "seleccion": f"{ev_to['lado']} {ev_to['total_mercado']:.1f} ({to_odds:.2f})",
+                "detalle": f"Total Proy: {s['total_ou']:.1f} pts ({partido_str})",
+                "pct_cubre": round(to_cov, 1),
+                "ev_pct": round(to_ev, 1),
+                "cuota": to_odds,
+                "es_ev_pos": to_ev > 0.0,
+            }
+        )
+
+    if df_props_ranking is not None and not df_props_ranking.empty:
+        for _, rp in df_props_ranking.iterrows():
+            ev_val = float(rp.get("EV_%", 0.0))
+            cov_val = float(rp.get("% Cubre", 50.0))
+            eq_abbr = str(rp.get("Equipo", "")).strip().upper()
+            partido_p = str(rp.get("Partido", ""))
+            if not eq_abbr and "@" in partido_p:
+                eq_abbr = partido_p.split("@")[0].strip()
+            jug = str(rp.get("Jugador", ""))
+            pos = str(rp.get("Posición", ""))
+            met = str(rp.get("Métrica", ""))
+            lado_p = str(rp.get("Lado_Recom", "OVER"))
+            linea_p = float(rp.get("Línea Mercado", 0.0))
+            med_p = float(rp.get("Proyección Mediana", 0.0))
+
+            candidatos.append(
+                {
+                    "tipo": f"PROP · {pos}",
+                    "team_abbr": eq_abbr,
+                    "logo_url": get_team_logo_url(eq_abbr),
+                    "partido": partido_p,
+                    "horario": str(rp.get("Kickoff", "DOM 12:00 CST")),
+                    "seleccion": f"{jug} ({pos}) — {lado_p} {linea_p:.1f} {met}",
+                    "detalle": f"Proy: {med_p:.1f} | {partido_p}",
+                    "pct_cubre": round(cov_val, 1),
+                    "ev_pct": round(ev_val, 1),
+                    "cuota": 1.91,
+                    "es_ev_pos": ev_val > 0.0 and cov_val >= 54.5,
+                }
+            )
+
+    positivos = [c for c in candidatos if c["es_ev_pos"]]
+    pool = positivos if len(positivos) >= 5 else candidatos
+    pool.sort(key=lambda x: (x["pct_cubre"], x["ev_pct"]), reverse=True)
+    return pool[:5]
+
+
 def generar_memorando_ejecutivo_top3(
     resultados_simulados: List[Dict[str, Any]],
     nfl_stats: Dict[str, Dict[str, Any]],
@@ -351,11 +552,7 @@ def generar_memorando_ejecutivo_top3(
 ) -> List[Dict[str, Any]]:
     """
     Selecciona los 3 mejores picks cuantitativos de la jornada priorizando el Valor
-    Esperado (+EV %) y la probabilidad calibrada, y redacta un memorando técnico
-    fundamentado en:
-      - EPA/play neto en situaciones competitivas (excluyendo garbage time WP < 5% o > 95%).
-      - Diferencial en trincheras (Success Rate Ofensivo vs Defensivo y EPA Rush).
-      - Valor de mercado desvigilado (No-Vig Fair Odds vs Línea de Consenso).
+    Esperado (+EV %) y la probabilidad calibrada.
     """
     candidatos_picks: List[Dict[str, Any]] = []
 
@@ -367,7 +564,6 @@ def generar_memorando_ejecutivo_top3(
         ev_spr = sim["ev_spread"]
         ev_tot = sim["ev_totales"]
 
-        # Candidato Spread
         lado_sp = ev_spr["lado"]
         eq_pick = home if lado_sp == "HOME" else away
         eq_rival = away if lado_sp == "HOME" else home
@@ -384,23 +580,10 @@ def generar_memorando_ejecutivo_top3(
         sr_pick = float(home_st.get("Success_Rate_Off", 0.48)) * 100.0 if lado_sp == "HOME" else float(away_st.get("Success_Rate_Off", 0.48)) * 100.0
         sr_def_rival = float(away_st.get("Success_Rate_Def", 0.44)) * 100.0 if lado_sp == "HOME" else float(home_st.get("Success_Rate_Def", 0.44)) * 100.0
 
-        qb_nota = ""
-        if sim.get("qb_descuento_away_pts", 0.0) > 0 or sim.get("qb_descuento_home_pts", 0.0) > 0:
-            qb_nota = (
-                f" Ajuste activo por reemplazo de QB titular "
-                f"(Away: -{sim.get('qb_descuento_away_pts', 0.0):.1f} pts | "
-                f"Home: -{sim.get('qb_descuento_home_pts', 0.0):.1f} pts)."
-            )
-
         tesis_spread = (
-            f"En situaciones competitivas (WP 5%–95%, depurando garbage time), {eq_pick} registra un "
-            f"diferencial neto de EPA/dropback de {epa_pass_ventaja:+.3f} frente a la secundaria de {eq_rival}. "
-            f"En las trincheras, la ofensiva de {eq_pick} sostiene un Success Rate de {sr_pick:.1f}% contra "
-            f"{sr_def_rival:.1f}% permitido por la frontal de {eq_rival} (diferencial terrestre EPA/rush {epa_rush_ventaja:+.3f}). "
-            f"Tras aplicar el anclaje bayesiano 40/60 al consenso, el modelo proyecta una línea justa de "
-            f"{home} {sim['spread_proyectado']:+.1f} (cuota justa sin vig {ev_spr['fair_decimal']:.2f} vs mercado "
-            f"{ev_spr['cuota_mercado_decimal']:.2f}), generando un edge de {ev_spr['edge_pts']:+.1f} pts "
-            f"({ev_spr['key_number_tag']}).{qb_nota}"
+            f"En situaciones competitivas (WP 5%–95%), {eq_pick} registra diferencial EPA/dropback "
+            f"{epa_pass_ventaja:+.3f} y Success Rate de {sr_pick:.1f}% vs {sr_def_rival:.1f}% ({epa_rush_ventaja:+.3f} EPA/rush). "
+            f"Línea justa proyectada: {home} {sim['spread_proyectado']:+.1f} (No-Vig {ev_spr['fair_decimal']:.2f})."
         )
 
         candidatos_picks.append(
@@ -418,20 +601,10 @@ def generar_memorando_ejecutivo_top3(
             }
         )
 
-        # Candidato Totales
         lado_tot = ev_tot["lado"]
-        ritmo_desc = (
-            f"ritmo combinado de {sim['pace_combinado']:.1f}s/play ({sim['drives_combinados']:.1f} series totales)"
-        )
         tesis_total = (
-            f"El cruce de eficiencia neta sin tiempo basura proyecta {sim['pts_por_drive_away']:.2f} pts/serie para {away} "
-            f"(TD {sim['drive_td_pct_away']:.1f}%) y {sim['pts_por_drive_home']:.2f} pts/serie para {home} "
-            f"(TD {sim['drive_td_pct_home']:.1f}%) bajo un {ritmo_desc}. "
-            f"En trincheras y conversión de 3er down, el Success Rate combinado ({sim['sr_off_away']:.1f}% / {sim['sr_off_home']:.1f}%) "
-            f"sitúa la media Monte Carlo en {sim['total_ou']:.1f} puntos frente a la línea de {ev_tot['total_mercado']:.1f} "
-            f"(desviación de {ev_tot['edge_pts']:+.1f} pts). La probabilidad calibrada de {lado_tot} es de "
-            f"{ev_tot['prob_mejor_pct']:.1f}% (cuota justa desvigilada {ev_tot['fair_decimal']:.2f} vs "
-            f"{ev_tot['cuota_mercado_decimal']:.2f})."
+            f"Media Monte Carlo en {sim['total_ou']:.1f} pts vs línea {ev_tot['total_mercado']:.1f} "
+            f"(desviación {ev_tot['edge_pts']:+.1f} pts, ritmo {sim['pace_combinado']:.1f}s/play)."
         )
 
         candidatos_picks.append(
@@ -450,8 +623,6 @@ def generar_memorando_ejecutivo_top3(
         )
 
     candidatos_picks.sort(key=lambda x: (x["ev_pct"], x["prob_pct"]), reverse=True)
-
-    # Garantizar 3 partidos distintos en el Top 3 Ejecutivo
     top_3: List[Dict[str, Any]] = []
     partidos_usados = set()
     for cand in candidatos_picks:
@@ -460,14 +631,12 @@ def generar_memorando_ejecutivo_top3(
             partidos_usados.add(cand["partido"])
         if len(top_3) == 3:
             break
-
     if len(top_3) < 3:
         for cand in candidatos_picks:
             if cand not in top_3:
                 top_3.append(cand)
             if len(top_3) == 3:
                 break
-
     return top_3
 
 
@@ -478,11 +647,16 @@ def construir_html_reporte_nfl(
     df_ranking: pd.DataFrame,
     top_3_props: Optional[List[Dict[str, Any]]] = None,
     df_props_ranking: Optional[pd.DataFrame] = None,
+    top_5_anchors: Optional[List[Dict[str, Any]]] = None,
 ) -> str:
     """
-    Construye el reporte ejecutivo HTML con estética institucional oscura (#0d1117),
-    bordes en #00ffcc, memorando analítico de los Top 3 Picks y tabla completa
-    de proyecciones y señales +EV (>= 4.0%).
+    Construye el Briefing Ejecutivo Mobile-First (estilo Terminal Financiera) usando
+    tarjetas verticales apiladas (max-width: 600px, centrado, fondo #0d1117, tarjetas
+    #161b22 con borde sutil #30363d) e incorporando los escudos oficiales de la NFL:
+      - SECCIÓN 1: TOP 5 ANCHORS DE LA JORNADA (borde #00ffcc, escudos 18x18).
+      - SECCIÓN 2: DESGLOSE POR PARTIDO EN ORDEN CRONOLÓGICO CST (escudos 26x26,
+        marcador proyectado, línea de mercado, badges de Spread y Total con % Cubre
+        en 5,000 sims y sub-lista compacta de Player Props +EV > 0.0%).
     """
     fecha_utc = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
     total_partidos = len(resultados_simulados)
@@ -491,263 +665,215 @@ def construir_html_reporte_nfl(
         for s in resultados_simulados
         if s["ev_spread"]["hay_valor"] or s["ev_totales"]["hay_valor"]
     )
+    total_props_ev = len(df_props_ranking) if (df_props_ranking is not None and not df_props_ranking.empty) else 0
 
-    bloques_top3_html = ""
-    for idx, item in enumerate(top_3_picks, start=1):
-        ev_badge_color = "#00ffcc" if item["ev_pct"] >= 4.0 else "#38bdf8"
-        bloques_top3_html += (
-            f'<div style="background-color:#131922; border:1px solid rgba(0,255,204,0.35); '
-            f'border-left:4px solid #00ffcc; border-radius:8px; padding:14px 16px; margin-bottom:12px;">'
-            f'<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">'
-            f'<span style="color:#00ffcc; font-family:monospace; font-size:13px; font-weight:800;">'
-            f'PICK #{idx} · {item["partido"]} ({item["horario"]}) — {item["mercado"]}'
-            f'</span>'
-            f'<span style="background:rgba(0,255,204,0.14); color:{ev_badge_color}; border:1px solid {ev_badge_color}; '
-            f'padding:2px 8px; border-radius:4px; font-family:monospace; font-size:12px; font-weight:700;">'
-            f'{item["pick"]} | Prob: {item["prob_pct"]:.1f}% | EV: {item["ev_pct"]:+.1f}%'
-            f'</span>'
+    if top_5_anchors is None:
+        top_5_anchors = obtener_top_5_anchors_jornada(resultados_simulados, df_props_ranking)
+
+    # --------------------------------------------------------------------------
+    # SECCIÓN 1 — TOP 5 ANCHORS DE LA JORNADA
+    # --------------------------------------------------------------------------
+    filas_anchors_html = ""
+    for idx_a, anc in enumerate(top_5_anchors, start=1):
+        logo_18 = (
+            f'<img src="{anc["logo_url"]}" alt="{anc["team_abbr"]}" width="18" height="18" '
+            f'style="width:18px; height:18px; vertical-align:middle; margin-right:6px; border:0;">'
+        )
+        borde_item = "border-bottom:1px solid #21262d;" if idx_a < len(top_5_anchors) else ""
+        filas_anchors_html += (
+            f'<div style="padding:9px 4px; {borde_item}">'
+            f'<div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">'
+            f'<div style="font-family:monospace; font-size:13px; color:#f0f6fc; font-weight:700;">'
+            f'<span style="color:#00ffcc; font-weight:800; margin-right:5px;">#{idx_a}</span>'
+            f'{logo_18}'
+            f'<span>{anc["seleccion"]}</span>'
             f'</div>'
-            f'<div style="color:#94a3b8; font-family:monospace; font-size:12px; margin-bottom:6px;">'
-            f'Proyección Calibrada: <b style="color:#f8fafc;">{item["marcador_proy"]}</b> · '
-            f'Cuota Justa No-Vig: <b style="color:#00ffcc;">{item["fair_odds"]:.2f}</b> vs Casa: <b>{item["mkt_odds"]:.2f}</b>'
+            f'<div style="background:rgba(0,255,204,0.12); border:1px solid #00ffcc; color:#00ffcc; '
+            f'border-radius:4px; padding:2px 7px; font-family:monospace; font-size:11px; font-weight:700;">'
+            f'Cubre: {anc["pct_cubre"]:.1f}% | {anc["ev_pct"]:+.1f}% EV'
             f'</div>'
-            f'<p style="color:#e6edf3; font-size:13px; line-height:1.5; margin:0;">{item["tesis"]}</p>'
+            f'</div>'
+            f'<div style="font-family:monospace; font-size:11px; color:#8b949e; margin-top:3px; padding-left:24px;">'
+            f'[{anc["tipo"]}] · {anc["partido"]} ({anc["horario"]}) · {anc["detalle"]}'
+            f'</div>'
             f'</div>'
         )
 
-    filas_tabla_html = ""
-    for s in resultados_simulados:
+    seccion_top5_html = (
+        f'<div style="background-color:#161b22; border:2px solid #00ffcc; border-radius:10px; '
+        f'padding:14px 16px; margin-bottom:20px; box-shadow:0 4px 16px rgba(0,255,204,0.08);">'
+        f'<div style="font-family:monospace; font-size:13px; font-weight:800; color:#00ffcc; '
+        f'letter-spacing:0.6px; text-transform:uppercase; border-bottom:1px solid #30363d; '
+        f'padding-bottom:8px; margin-bottom:6px;">'
+        f'⚡ SECCIÓN 1 — TOP 5 ANCHORS DE LA JORNADA (MAYOR % CUBRE · 5,000 SIMS)'
+        f'</div>'
+        f'{filas_anchors_html}'
+        f'</div>'
+    )
+
+    # --------------------------------------------------------------------------
+    # SECCIÓN 2 — DESGLOSE POR PARTIDO (ORDEN CRONOLÓGICO CST)
+    # --------------------------------------------------------------------------
+    partidos_ordenados = sorted(
+        resultados_simulados,
+        key=lambda x: (int(x.get("_kickoff_sort", 40720)), f"{x['away_abbr']} @ {x['home_abbr']}"),
+    )
+
+    tarjetas_partidos_html = ""
+    for s in partidos_ordenados:
         away = s["away_abbr"]
         home = s["home_abbr"]
+        partido_key = f"{away} @ {home}"
+        hora_cst = s.get("hora", "DOM 12:00 CST")
+        away_full = NFL_FRANCHISE_NAMES.get(away, away)
+        home_full = NFL_FRANCHISE_NAMES.get(home, home)
+
+        logo_away_26 = (
+            f'<img src="{get_team_logo_url(away)}" alt="{away}" width="26" height="26" '
+            f'style="width:26px; height:26px; vertical-align:middle; margin-right:6px; border:0;">'
+        )
+        logo_home_26 = (
+            f'<img src="{get_team_logo_url(home)}" alt="{home}" width="26" height="26" '
+            f'style="width:26px; height:26px; vertical-align:middle; margin-left:6px; margin-right:6px; border:0;">'
+        )
+
         ev_sp = s["ev_spread"]
         ev_to = s["ev_totales"]
+        sp_cov = float(s.get("spread_cover_pct", ev_sp.get("spread_cover_pct", ev_sp.get("prob_mejor_pct", 50.0))))
+        to_cov = float(s.get("total_cover_pct", ev_to.get("total_cover_pct", ev_to.get("prob_mejor_pct", 50.0))))
+        sp_ev = float(ev_sp.get("ev_pct", 0.0))
+        to_ev = float(ev_to.get("ev_pct", 0.0))
+        sp_odds = float(ev_sp.get("cuota_mercado_decimal", 1.91))
+        to_odds = float(ev_to.get("cuota_mercado_decimal", 1.91))
 
-        sp_cov_html = float(s.get("spread_cover_pct", ev_sp.get("spread_cover_pct", ev_sp.get("prob_mejor_pct", 50.0))))
-        to_cov_html = float(s.get("total_cover_pct", ev_to.get("total_cover_pct", ev_to.get("prob_mejor_pct", 50.0))))
-
-        if ev_sp["hay_valor"]:
-            sp_cell = (
-                f'<span style="color:#00ffcc; font-weight:700;">🔥 {ev_sp["recomendacion"]} '
-                f'({ev_sp["cuota_mercado_decimal"]:.2f}) | Cubre: {sp_cov_html:.1f}% | EV: {ev_sp["ev_pct"]:+.1f}%</span>'
-            )
+        # Badges para Spread y Total
+        if ev_sp["hay_valor"] or sp_ev > 0.0:
+            sp_badge_style = "background:rgba(0,255,204,0.10); border:1px solid #00ffcc; color:#00ffcc;"
+            sp_icon = "🔥"
         else:
-            sp_cell = (
-                f'<span style="color:#94a3b8;">⚪ {ev_sp["recomendacion"]} '
-                f'| Cubre: {sp_cov_html:.1f}%</span>'
-            )
+            sp_badge_style = "background:#0d1117; border:1px solid #30363d; color:#8b949e;"
+            sp_icon = "⚪"
 
-        if ev_to["hay_valor"]:
-            to_cell = (
-                f'<span style="color:#00ffcc; font-weight:700;">🔥 {ev_to["lado"]} {ev_to["total_mercado"]:.1f} '
-                f'({ev_to["cuota_mercado_decimal"]:.2f}) | Cubre: {to_cov_html:.1f}% | EV: {ev_to["ev_pct"]:+.1f}%</span>'
-            )
+        if ev_to["hay_valor"] or to_ev > 0.0:
+            to_badge_style = "background:rgba(0,255,204,0.10); border:1px solid #00ffcc; color:#00ffcc;"
+            to_icon = "🔥"
         else:
-            to_cell = (
-                f'<span style="color:#94a3b8;">⚪ {ev_to["lado"]} {ev_to["total_mercado"]:.1f} '
-                f'| Cubre: {to_cov_html:.1f}%</span>'
-            )
+            to_badge_style = "background:#0d1117; border:1px solid #30363d; color:#8b949e;"
+            to_icon = "⚪"
 
-        filas_tabla_html += (
-            f'<tr style="border-bottom:1px solid #1e293b;">'
-            f'<td style="padding:10px 8px; font-family:monospace; color:#f8fafc; font-weight:700;">'
-            f'{away} @ {home}<br><span style="font-size:11px; color:#64748b; font-weight:400;">{s.get("hora", "")}</span></td>'
-            f'<td style="padding:10px 8px; font-family:monospace; color:#10b981; font-weight:700;">'
-            f'{away} {s["away_pts"]:.1f} - {s["home_pts"]:.1f} {home}</td>'
-            f'<td style="padding:10px 8px; font-family:monospace; color:#e2e8f0;">'
-            f'{home} {s["spread_proyectado"]:+.1f}<br>'
-            f'<span style="font-size:11px; color:#94a3b8;">Mkt: {home} {s["spread_mercado_home"]:+.1f}</span></td>'
-            f'<td style="padding:10px 8px; font-family:monospace; color:#e2e8f0;">'
-            f'{s["total_ou"]:.1f} pts<br>'
-            f'<span style="font-size:11px; color:#94a3b8;">Mkt: {s["total_mercado"]:.1f}</span></td>'
-            f'<td style="padding:10px 8px; font-family:monospace; color:#38bdf8;">'
-            f'{s["ml_fav_abbr"]} {s["ml_fav_model_pct"]:.1f}%<br>'
-            f'<span style="font-size:11px; color:#94a3b8;">Fair: {min(s["ml_home_decimal"], s["ml_away_decimal"]):.2f}</span></td>'
-            f'<td style="padding:10px 8px; font-family:monospace; font-size:12px;">{sp_cell}</td>'
-            f'<td style="padding:10px 8px; font-family:monospace; font-size:12px;">{to_cell}</td>'
-            f'</tr>'
+        badge_spread_html = (
+            f'<div style="{sp_badge_style} border-radius:6px; padding:7px 10px; margin-bottom:6px; '
+            f'font-family:monospace; font-size:12px; font-weight:700;">'
+            f'🛡️ SPREAD: {sp_icon} {ev_sp["recomendacion"]} | Cuota: {sp_odds:.2f} | '
+            f'{sp_cov:.1f}% Cubre (5,000 sims) | {sp_ev:+.1f}% EV'
+            f'</div>'
+        )
+        badge_total_html = (
+            f'<div style="{to_badge_style} border-radius:6px; padding:7px 10px; margin-bottom:10px; '
+            f'font-family:monospace; font-size:12px; font-weight:700;">'
+            f'🎯 TOTAL: {to_icon} {ev_to["lado"]} {ev_to["total_mercado"]:.1f} | Cuota: {to_odds:.2f} | '
+            f'{to_cov:.1f}% Cubre (5,000 sims) | {to_ev:+.1f}% EV'
+            f'</div>'
         )
 
-    bloques_top3_props_html = ""
-    if top_3_props:
-        items_props_html = ""
-        for idx_p, prop in enumerate(top_3_props, start=1):
-            items_props_html += (
-                f'<div style="background-color:#131922; border:1px solid rgba(0,255,204,0.35); '
-                f'border-left:4px solid #00ffcc; border-radius:8px; padding:12px 15px; margin-bottom:10px;">'
-                f'<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">'
-                f'<span style="color:#00ffcc; font-family:monospace; font-size:13px; font-weight:800;">'
-                f'PROP #{idx_p} · {prop["jugador"]} ({prop["equipo"]} — {prop["posicion"]} · {prop["metrica"]}) | {prop["partido"]}'
-                f'</span>'
-                f'<span style="background:rgba(0,255,204,0.14); color:#00ffcc; border:1px solid #00ffcc; '
-                f'padding:2px 8px; border-radius:4px; font-family:monospace; font-size:12px; font-weight:700;">'
-                f'{prop["senal_ev"]}'
-                f'</span>'
-                f'</div>'
-                f'<div style="color:#e2e8f0; font-family:monospace; font-size:12px;">'
-                f'Línea: <b style="color:#f8fafc;">{prop["lado"]} {prop["linea"]:.1f}</b> · '
-                f'Mediana Proyectada: <b style="color:#10b981;">{prop["mediana_proy"]:.1f}</b> (±{prop["std_dev"]:.1f}) · '
-                f'Simulación Monte Carlo: <b style="color:#00ffcc;">{prop["pct_cubre"]:.1f}% cubre</b> · '
-                f'Factor DvP Defensivo ({prop["rival"]}): <b style="color:#38bdf8;">{prop["factor_dvp"]:.3f}x</b>'
-                f'</div>'
-                f'</div>'
-            )
-        filas_cartera_props_html = ""
+        # Sub-lista compacta de Player Props (+EV > 0.0%) de este partido ordenados de mayor a menor % Cubre
+        props_lineas_html = ""
         if df_props_ranking is not None and not df_props_ranking.empty:
-            df_pr_iter = df_props_ranking.reset_index(drop=True)
-            total_pr = len(df_pr_iter)
-            partido_prev = None
-            bloque_idx = -1
-            for idx_r, rp in df_pr_iter.iterrows():
-                partido_act = str(rp.get("Partido", ""))
-                kickoff_act = str(rp.get("Kickoff", "DOM"))
-                partido_sig = (
-                    str(df_pr_iter.iloc[idx_r + 1].get("Partido", ""))
-                    if (idx_r + 1) < total_pr
-                    else None
-                )
-                if partido_act != partido_prev:
-                    bloque_idx += 1
-                    n_juego = int((df_pr_iter["Partido"] == partido_act).sum())
-                    filas_cartera_props_html += (
-                        f'<tr style="background-color:#162235; border-top:2px solid #00ffcc; border-bottom:1px solid rgba(0,255,204,0.4);">'
-                        f'<td colspan="9" style="padding:6px 10px; font-family:monospace; color:#00ffcc; font-weight:800; font-size:11px;">'
-                        f'🏈 {partido_act} · Kickoff: {kickoff_act} — {n_juego} Props con Ventaja Matemática (+EV)'
-                        f'</td></tr>'
-                    )
-                    partido_prev = partido_act
+            df_juego_props = df_props_ranking[
+                (df_props_ranking["Partido"] == partido_key)
+                & (df_props_ranking["EV_%"] > 0.0)
+            ].sort_values(by=["% Cubre", "EV_%"], ascending=[False, False])
 
-                bg_row = "#0b0f17" if (bloque_idx % 2 == 0) else "#111827"
-                borde_inf = (
-                    "2px solid #00ffcc"
-                    if (partido_sig != partido_act)
-                    else "1px solid #1e293b"
-                )
-                filas_cartera_props_html += (
-                    f'<tr style="background-color:{bg_row}; border-bottom:{borde_inf};">'
-                    f'<td style="padding:6px 8px; font-family:monospace; color:#00ffcc; font-weight:700;">#{int(rp["Rank"])}</td>'
-                    f'<td style="padding:6px 8px; font-family:monospace; color:#94a3b8;">{kickoff_act}</td>'
-                    f'<td style="padding:6px 8px; font-family:monospace; color:#f8fafc; font-weight:700;">{partido_act}</td>'
-                    f'<td style="padding:6px 8px; font-family:monospace; color:#f8fafc; font-weight:700;">{rp["Jugador"]} ({rp["Posición"]})</td>'
-                    f'<td style="padding:6px 8px; font-family:monospace; color:#94a3b8;">{rp["Métrica"]}</td>'
-                    f'<td style="padding:6px 8px; font-family:monospace; color:#10b981; font-weight:700;">{float(rp["Proyección Mediana"]):.1f}</td>'
-                    f'<td style="padding:6px 8px; font-family:monospace; color:#e2e8f0;">{float(rp["Línea Mercado"]):.1f} ({float(rp.get("Diferencia_Yds", 0.0)):+.1f})</td>'
-                    f'<td style="padding:6px 8px; font-family:monospace; color:#38bdf8;">{float(rp["Factor DvP Rival"]):.3f}x</td>'
-                    f'<td style="padding:6px 8px; font-family:monospace; color:#00ffcc; font-weight:700;">{rp["Señal EV"]}</td>'
-                    f'</tr>'
+            for _, rp in df_juego_props.iterrows():
+                jug_n = str(rp.get("Jugador", ""))
+                pos_n = str(rp.get("Posición", ""))
+                met_n = str(rp.get("Métrica", ""))
+                lado_n = str(rp.get("Lado_Recom", "OVER"))
+                lin_n = float(rp.get("Línea Mercado", 0.0))
+                med_n = float(rp.get("Proyección Mediana", 0.0))
+                cov_n = float(rp.get("% Cubre", 50.0))
+                ev_n = float(rp.get("EV_%", 0.0))
+                props_lineas_html += (
+                    f'<div style="font-family:monospace; font-size:11.5px; color:#e6edf3; '
+                    f'padding:4px 0; border-bottom:1px dashed #21262d; line-height:1.45;">'
+                    f'• <b style="color:#f0f6fc;">{jug_n}</b> ({pos_n} · {met_n}) — '
+                    f'<span style="color:#00ffcc; font-weight:700;">{lado_n} {lin_n:.1f}</span> | '
+                    f'Proy: <b style="color:#10b981;">{med_n:.1f}</b> | '
+                    f'Cubre: <b style="color:#00ffcc;">{cov_n:.1f}%</b> ({ev_n:+.1f}% EV)'
+                    f'</div>'
                 )
 
-        tabla_cartera_inst_html = ""
-        if filas_cartera_props_html:
-            tabla_cartera_inst_html = (
-                f'<h3 style="font-family:monospace; font-size:13px; color:#38bdf8; text-transform:uppercase; margin:16px 0 8px 0;">'
-                f'📋 Player Props con Valor Positivo (+EV > 0% · Cubre ≥ 54.5%) Agrupados por Juego ({len(df_props_ranking)} Props Activos)'
-                f'</h3>'
-                f'<div style="overflow-x:auto;">'
-                f'<table style="width:100%; border-collapse:collapse; background-color:#0b0f17; border:1px solid rgba(0,255,204,0.25); font-size:11px;">'
-                f'<thead>'
-                f'<tr style="background-color:#131b29; color:#00ffcc; font-family:monospace; text-align:left; border-bottom:1px solid #00ffcc;">'
-                f'<th style="padding:7px 8px;">#</th>'
-                f'<th style="padding:7px 8px;">Kickoff</th>'
-                f'<th style="padding:7px 8px;">Partido</th>'
-                f'<th style="padding:7px 8px;">Jugador</th>'
-                f'<th style="padding:7px 8px;">Métrica</th>'
-                f'<th style="padding:7px 8px;">Mediana Proy.</th>'
-                f'<th style="padding:7px 8px;">Línea (Diff)</th>'
-                f'<th style="padding:7px 8px;">DvP Rival</th>'
-                f'<th style="padding:7px 8px;">Señal Cuantitativa (+EV)</th>'
-                f'</tr>'
-                f'</thead>'
-                f'<tbody>{filas_cartera_props_html}</tbody>'
-                f'</table>'
-                f'</div>'
+        if not props_lineas_html:
+            props_lineas_html = (
+                '<div style="font-family:monospace; font-size:11px; color:#8b949e; padding:3px 0;">'
+                '• Sin Player Props con ventaja matemática (+EV > 0.0%) en este encuentro.'
+                '</div>'
             )
 
-        bloques_top3_props_html = (
-            f'<h2 style="font-family:monospace; font-size:15px; color:#00ffcc; text-transform:uppercase; margin:22px 0 10px 0;">'
-            f'🎯 Top 3 Player Props & Matchups Defensivos (5,000 Simulaciones Log-Normal)'
-            f'</h2>'
-            f'{items_props_html}'
-            f'{tabla_cartera_inst_html}'
+        tarjetas_partidos_html += (
+            f'<div style="background-color:#161b22; border:1px solid #30363d; border-radius:10px; '
+            f'padding:14px 15px; margin-bottom:14px;">'
+            f'<div style="display:flex; justify-content:space-between; align-items:center; '
+            f'border-bottom:1px solid #30363d; padding-bottom:8px; margin-bottom:8px; flex-wrap:wrap; gap:6px;">'
+            f'<div style="font-family:monospace; font-size:15px; font-weight:800; color:#f0f6fc;">'
+            f'{logo_away_26}{away} <span style="color:#8b949e; font-weight:400;">@</span> {logo_home_26}{home}'
+            f'</div>'
+            f'<span style="background:#0d1117; border:1px solid #30363d; color:#58a6ff; '
+            f'padding:2px 8px; border-radius:4px; font-family:monospace; font-size:11px; font-weight:700;">'
+            f'🕒 {hora_cst}'
+            f'</span>'
+            f'</div>'
+            f'<div style="font-family:monospace; font-size:11.5px; color:#8b949e; margin-bottom:4px;">'
+            f'{away_full} en {home_full} · {s.get("tipo_estadio", "Outdoor")}'
+            f'</div>'
+            f'<div style="background:#0d1117; border:1px solid #21262d; border-radius:6px; '
+            f'padding:7px 10px; margin-bottom:9px; font-family:monospace; font-size:12px; color:#e6edf3;">'
+            f'📊 <b>Marcador Proyectado:</b> <span style="color:#10b981; font-weight:800;">{away} {s["away_pts"]:.1f} - {s["home_pts"]:.1f} {home}</span> '
+            f'(Total Mod: {s["total_ou"]:.1f})<br>'
+            f'🏦 <b>Línea de Mercado:</b> Spread {home} {s["spread_mercado_home"]:+.1f} | Total O/U {s["total_mercado"]:.1f} '
+            f'| ML Fav: {s["ml_fav_abbr"]} ({s["ml_fav_model_pct"]:.1f}%)'
+            f'</div>'
+            f'{badge_spread_html}'
+            f'{badge_total_html}'
+            f'<div style="background:#0d1117; border:1px solid #21262d; border-radius:6px; padding:8px 10px;">'
+            f'<div style="font-family:monospace; font-size:11px; font-weight:800; color:#58a6ff; '
+            f'text-transform:uppercase; margin-bottom:4px;">'
+            f'🎯 PLAYER PROPS (+EV > 0.0% · ORDENADOS POR MAYOR % CUBRE)'
+            f'</div>'
+            f'{props_lineas_html}'
+            f'</div>'
+            f'</div>'
         )
-
-    filas_top_prob_html = ""
-    if not df_ranking.empty:
-        for _, r in df_ranking.head(8).iterrows():
-            filas_top_prob_html += (
-                f'<tr style="border-bottom:1px solid #1e293b;">'
-                f'<td style="padding:7px 8px; font-family:monospace; color:#00ffcc; font-weight:700;">#{int(r["Rank"])}</td>'
-                f'<td style="padding:7px 8px; font-family:monospace; color:#f8fafc;">{r["Partido"]}</td>'
-                f'<td style="padding:7px 8px; font-family:monospace; color:#94a3b8;">{r["Mercado"]}</td>'
-                f'<td style="padding:7px 8px; font-family:monospace; color:#e2e8f0; font-weight:700;">{r["Seleccion"]}</td>'
-                f'<td style="padding:7px 8px; font-family:monospace; color:#00ffcc; font-weight:800;">{float(r["Probabilidad_%"]):.1f}%</td>'
-                f'<td style="padding:7px 8px; font-family:monospace; color:#38bdf8;">{float(r["EV_%"]):+.1f}%</td>'
-                f'</tr>'
-            )
 
     html = (
         f'<!DOCTYPE html>'
-        f'<html><head><meta charset="utf-8"></head>'
-        f'<body style="margin:0; padding:20px; background-color:#070a10; color:#e6edf3; font-family:Inter,Segoe UI,Arial,sans-serif;">'
-        f'<div style="max-width:960px; margin:0 auto; background-color:#0d1117; border:2px solid #00ffcc; '
-        f'border-radius:12px; padding:24px; box-shadow:0 12px 32px rgba(0,0,0,0.65);">'
-        f'<div style="border-bottom:1px solid rgba(0,255,204,0.30); padding-bottom:14px; margin-bottom:18px;">'
-        f'<div style="color:#00ffcc; font-family:monospace; font-size:12px; font-weight:700; letter-spacing:1px;">'
-        f'QUANTITATIVE SPORTS MODELING DESK · MONTE CARLO DRIVE ENGINE (5,000 SIMS)'
+        f'<html><head><meta charset="utf-8">'
+        f'<meta name="viewport" content="width=device-width, initial-scale=1.0">'
+        f'</head>'
+        f'<body style="margin:0; padding:12px; background-color:#0d1117; color:#e6edf3; '
+        f'font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial,sans-serif;">'
+        f'<div style="max-width:600px; margin:0 auto; background-color:#0d1117; '
+        f'border:1px solid #30363d; border-radius:12px; padding:16px;">'
+        f'<div style="border-bottom:1px solid #30363d; padding-bottom:12px; margin-bottom:16px;">'
+        f'<div style="color:#00ffcc; font-family:monospace; font-size:11px; font-weight:800; letter-spacing:0.8px;">'
+        f'TERMINAL SHARP: NFL QUANT · MOBILE EXECUTIVE BRIEFING'
         f'</div>'
-        f'<h1 style="margin:6px 0 4px 0; font-family:monospace; font-size:22px; color:#f8fafc;">'
-        f'🏈 TERMINAL SHARP: NFL QUANT — REPORTE EJECUTIVO SEMANA {semana}'
+        f'<h1 style="margin:5px 0 4px 0; font-family:monospace; font-size:19px; color:#f0f6fc;">'
+        f'🏈 NFL QUANT — SEMANA {semana} (5,000 SIMS)'
         f'</h1>'
-        f'<div style="color:#94a3b8; font-size:12px; font-family:monospace;">'
-        f'Generado: {fecha_utc} · Partidos Auditados: {total_partidos} · '
-        f'Señales Activas (+EV ≥ 4.0%): <b style="color:#00ffcc;">{oportunidades_ev}</b> · '
-        f'Anclaje Bayesiano 40/60 + Filtro WP (5%–95%)'
+        f'<div style="color:#8b949e; font-size:11px; font-family:monospace;">'
+        f'{fecha_utc} · {total_partidos} Juegos · {oportunidades_ev} Líneas +EV · {total_props_ev} Player Props +EV'
         f'</div>'
         f'</div>'
-        f'<h2 style="font-family:monospace; font-size:15px; color:#00ffcc; text-transform:uppercase; margin:16px 0 10px 0;">'
-        f'📌 Memorando Analítico: Top 3 Oportunidades Cuantitativas de la Jornada'
-        f'</h2>'
-        f'{bloques_top3_html}'
-        f'<h2 style="font-family:monospace; font-size:15px; color:#00ffcc; text-transform:uppercase; margin:22px 0 10px 0;">'
-        f'📊 Cartelera Completa, Proyecciones Discretas y Auditoría de Líneas (+EV ≥ 4.0%)'
-        f'</h2>'
-        f'<div style="overflow-x:auto;">'
-        f'<table style="width:100%; border-collapse:collapse; background-color:#0b0f17; border:1px solid rgba(0,255,204,0.25); font-size:12px;">'
-        f'<thead>'
-        f'<tr style="background-color:#131b29; color:#00ffcc; font-family:monospace; text-align:left; border-bottom:1px solid #00ffcc;">'
-        f'<th style="padding:10px 8px;">Encuentro</th>'
-        f'<th style="padding:10px 8px;">Marcador Proy.</th>'
-        f'<th style="padding:10px 8px;">Spread (Mod / Mkt)</th>'
-        f'<th style="padding:10px 8px;">Total (Mod / Mkt)</th>'
-        f'<th style="padding:10px 8px;">Moneyline Fav</th>'
-        f'<th style="padding:10px 8px;">Señal Spread (+EV)</th>'
-        f'<th style="padding:10px 8px;">Señal Totales (+EV)</th>'
-        f'</tr>'
-        f'</thead>'
-        f'<tbody>{filas_tabla_html}</tbody>'
-        f'</table>'
+        f'{seccion_top5_html}'
+        f'<div style="font-family:monospace; font-size:13px; font-weight:800; color:#00ffcc; '
+        f'text-transform:uppercase; letter-spacing:0.5px; margin:16px 0 10px 0;">'
+        f'📅 SECCIÓN 2 — DESGLOSE POR PARTIDO (ORDEN CRONOLÓGICO CST)'
         f'</div>'
-        f'<h2 style="font-family:monospace; font-size:15px; color:#00ffcc; text-transform:uppercase; margin:22px 0 10px 0;">'
-        f'🏆 Extracto Hoja "Ranking_Alta_Probabilidad" (Top 8 Selecciones por Probabilidad)'
-        f'</h2>'
-        f'<div style="overflow-x:auto;">'
-        f'<table style="width:100%; border-collapse:collapse; background-color:#0b0f17; border:1px solid rgba(0,255,204,0.25); font-size:12px;">'
-        f'<thead>'
-        f'<tr style="background-color:#131b29; color:#00ffcc; font-family:monospace; text-align:left; border-bottom:1px solid #00ffcc;">'
-        f'<th style="padding:8px;">Rank</th>'
-        f'<th style="padding:8px;">Partido</th>'
-        f'<th style="padding:8px;">Mercado</th>'
-        f'<th style="padding:8px;">Selección</th>'
-        f'<th style="padding:8px;">Probabilidad</th>'
-        f'<th style="padding:8px;">Edge / EV %</th>'
-        f'</tr>'
-        f'</thead>'
-        f'<tbody>{filas_top_prob_html}</tbody>'
-        f'</table>'
-        f'</div>'
-        f'{bloques_top3_props_html}'
-        f'<div style="margin-top:18px; padding-top:12px; border-top:1px solid #1e293b; color:#64748b; font-size:11px; font-family:monospace;">'
-        f'Adjunto: <b>{ATTACHMENT_FILENAME}</b> (Hojas: Proyecciones_Generales, Ranking_Alta_Probabilidad y Player_Props_Ranking). '
-        f'Generado automáticamente por el pipeline desatendido de TERMINAL SHARP: NFL QUANT.'
+        f'{tarjetas_partidos_html}'
+        f'<div style="margin-top:16px; padding-top:10px; border-top:1px solid #30363d; '
+        f'color:#8b949e; font-size:11px; font-family:monospace; text-align:center;">'
+        f'Adjunto: <b>{ATTACHMENT_FILENAME}</b> · TERMINAL SHARP: NFL QUANT'
         f'</div>'
         f'</div>'
         f'</body></html>'
@@ -755,18 +881,247 @@ def construir_html_reporte_nfl(
     return html
 
 
+def _limpiar_ascii_pdf(texto: str) -> str:
+    """Normaliza acentos y símbolos Unicode a Latin-1/ASCII seguro para fuentes base PDF."""
+    reemplazos = {
+        "—": "--",
+        "–": "-",
+        "•": "-",
+        "·": "|",
+        "🔥": "[+EV]",
+        "⚪": "[NEU]",
+        "🏈": "[NFL]",
+        "⚡": "[TOP]",
+        "🛡️": "[SPR]",
+        "🎯": "[TOT]",
+        "🕒": "",
+        "📊": "",
+        "🏦": "",
+        "≥": ">=",
+        "≤": "<=",
+    }
+    res = str(texto or "")
+    for k, v in reemplazos.items():
+        res = res.replace(k, v)
+    res_norm = unicodedata.normalize("NFKD", res)
+    return res_norm.encode("latin-1", errors="ignore").decode("latin-1")
+
+
+def _generar_pdf_fallback_minimo(lineas: List[str]) -> bytes:
+    """
+    Generador PDF 1.4 vertical ligero en Python puro como respaldo en caso de que
+    ni 'fpdf2' ni 'reportlab' estén disponibles en el entorno local.
+    """
+    lineas_por_pag = 48
+    paginas = [lineas[i : i + lineas_por_pag] for i in range(0, max(1, len(lineas)), lineas_por_pag)]
+
+    objetos: List[bytes] = []
+    # Obj 1: Catalog, Obj 2: Pages, Obj 3: Font
+    objetos.append(b"<< /Type /Catalog /Pages 2 0 R >>")
+    kids_refs = " ".join(f"{4 + idx * 2} 0 R" for idx in range(len(paginas)))
+    objetos.append(f"<< /Type /Pages /Kids [{kids_refs}] /Count {len(paginas)} >>".encode("latin-1"))
+    objetos.append(b"<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>")
+
+    for idx, pag_lineas in enumerate(paginas):
+        page_obj_num = 4 + idx * 2
+        content_obj_num = page_obj_num + 1
+        cmd_lines = ["BT", "/F1 8.5 Tf", "36 756 Td", "14 TL"]
+        for ln in pag_lineas:
+            safe_ln = (
+                _limpiar_ascii_pdf(ln)
+                .replace("\\", "\\\\")
+                .replace("(", "\\(")
+                .replace(")", "\\)")
+            )
+            cmd_lines.append(f"({safe_ln[:96]}) Tj T*")
+        cmd_lines.append("ET")
+        stream_bytes = "\n".join(cmd_lines).encode("latin-1", errors="ignore")
+        page_dict = (
+            f"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] "
+            f"/Resources << /Font << /F1 3 0 R >> >> /Contents {content_obj_num} 0 R >>"
+        ).encode("latin-1")
+        content_dict = (
+            f"<< /Length {len(stream_bytes)} >>\nstream\n".encode("latin-1")
+            + stream_bytes
+            + b"\nendstream"
+        )
+        objetos.append(page_dict)
+        objetos.append(content_dict)
+
+    out = bytearray(b"%PDF-1.4\n")
+    offsets: List[int] = []
+    for idx_obj, body in enumerate(objetos, start=1):
+        offsets.append(len(out))
+        out.extend(f"{idx_obj} 0 obj\n".encode("latin-1"))
+        out.extend(body)
+        out.extend(b"\nendobj\n")
+
+    xref_pos = len(out)
+    out.extend(f"xref\n0 {len(objetos) + 1}\n".encode("latin-1"))
+    out.extend(b"0000000000 65535 f \n")
+    for off in offsets:
+        out.extend(f"{off:010d} 00000 n \n".encode("latin-1"))
+    out.extend(
+        f"trailer\n<< /Size {len(objetos) + 1} /Root 1 0 R >>\nstartxref\n{xref_pos}\n%%EOF\n".encode(
+            "latin-1"
+        )
+    )
+    return bytes(out)
+
+
+def generar_pdf_briefing_nfl(
+    semana: int,
+    resultados_simulados: List[Dict[str, Any]],
+    top_5_anchors: List[Dict[str, Any]],
+    df_props_ranking: Optional[pd.DataFrame] = None,
+) -> Tuple[Optional[bytes], Optional[str]]:
+    """
+    Renderiza el Briefing Ejecutivo ('Terminal_Sharp_NFL_Briefing.pdf') en formato
+    vertical limpio usando 'fpdf2' o 'reportlab' (con iniciales estilizadas [DAL] @ [KC]
+    para preservar la maquetación). Si falla cualquier librería, retorna (None, None)
+    sin detener el envío del correo HTML.
+    """
+    fecha_utc = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
+    partidos_ordenados = sorted(
+        resultados_simulados,
+        key=lambda x: (int(x.get("_kickoff_sort", 40720)), f"{x['away_abbr']} @ {x['home_abbr']}"),
+    )
+
+    lineas_doc: List[str] = [
+        f"TERMINAL SHARP: NFL QUANT -- BRIEFING EJECUTIVO SEMANA {semana}",
+        f"Generado: {fecha_utc} | Simulaciones Monte Carlo: 5,000 por partido",
+        "=" * 84,
+        "SECCION 1 -- TOP 5 ANCHORS DE LA JORNADA (MAYOR % DE CUBRIMIENTO)",
+        "-" * 84,
+    ]
+    for idx_a, anc in enumerate(top_5_anchors, start=1):
+        lineas_doc.append(
+            f" #{idx_a} [{anc['team_abbr']}] ({anc['tipo']}) {anc['seleccion']} | "
+            f"Cubre: {anc['pct_cubre']:.1f}% | EV: {anc['ev_pct']:+.1f}% | {anc['partido']} ({anc['horario']})"
+        )
+
+    lineas_doc.append("=" * 84)
+    lineas_doc.append("SECCION 2 -- DESGLOSE POR PARTIDO (ORDEN CRONOLOGICO CST)")
+    lineas_doc.append("-" * 84)
+
+    for s in partidos_ordenados:
+        away = s["away_abbr"]
+        home = s["home_abbr"]
+        partido_key = f"{away} @ {home}"
+        hora_cst = s.get("hora", "DOM 12:00 CST")
+        ev_sp = s["ev_spread"]
+        ev_to = s["ev_totales"]
+        sp_cov = float(s.get("spread_cover_pct", ev_sp.get("spread_cover_pct", ev_sp.get("prob_mejor_pct", 50.0))))
+        to_cov = float(s.get("total_cover_pct", ev_to.get("total_cover_pct", ev_to.get("prob_mejor_pct", 50.0))))
+
+        lineas_doc.append(
+            f"[{away}] @ [{home}] | {hora_cst} | Proy: {away} {s['away_pts']:.1f} - {s['home_pts']:.1f} {home} "
+            f"(Mkt: {home} {s['spread_mercado_home']:+.1f} | O/U {s['total_mercado']:.1f})"
+        )
+        lineas_doc.append(
+            f"  [SPREAD] {ev_sp['recomendacion']} | Cuota: {ev_sp['cuota_mercado_decimal']:.2f} | "
+            f"Cubre: {sp_cov:.1f}% (5,000 sims) | EV: {ev_sp['ev_pct']:+.1f}%"
+        )
+        lineas_doc.append(
+            f"  [TOTAL]  {ev_to['lado']} {ev_to['total_mercado']:.1f} | Cuota: {ev_to['cuota_mercado_decimal']:.2f} | "
+            f"Cubre: {to_cov:.1f}% (5,000 sims) | EV: {ev_to['ev_pct']:+.1f}%"
+        )
+
+        if df_props_ranking is not None and not df_props_ranking.empty:
+            df_jp = df_props_ranking[
+                (df_props_ranking["Partido"] == partido_key)
+                & (df_props_ranking["EV_%"] > 0.0)
+            ].sort_values(by=["% Cubre", "EV_%"], ascending=[False, False])
+            for _, rp in df_jp.iterrows():
+                lineas_doc.append(
+                    f"    - {rp['Jugador']} ({rp['Posición']} {rp['Métrica']}) -- "
+                    f"{rp['Lado_Recom']} {float(rp['Línea Mercado']):.1f} | "
+                    f"Proy: {float(rp['Proyección Mediana']):.1f} | "
+                    f"Cubre: {float(rp['% Cubre']):.1f}% ({float(rp['EV_%']):+.1f}% EV)"
+                )
+        lineas_doc.append("-" * 84)
+
+    # 1) Intento con fpdf2 (FPDF)
+    try:
+        from fpdf import FPDF  # type: ignore
+
+        pdf = FPDF(orientation="P", unit="mm", format="A4")
+        pdf.set_auto_page_break(auto=True, margin=12)
+        pdf.add_page()
+        pdf.set_fill_color(13, 17, 23)
+        pdf.set_text_color(0, 255, 204)
+        pdf.set_font("Courier", "B", 11)
+        pdf.cell(
+            0,
+            9,
+            _limpiar_ascii_pdf(f"TERMINAL SHARP: NFL QUANT - SEMANA {semana} BRIEFING"),
+            ln=True,
+            fill=True,
+        )
+        pdf.ln(2)
+        pdf.set_text_color(20, 24, 30)
+        for ln in lineas_doc[1:]:
+            txt_clean = _limpiar_ascii_pdf(ln)
+            if txt_clean.startswith("SECCION") or txt_clean.startswith("["):
+                pdf.set_font("Courier", "B", 8.5)
+            else:
+                pdf.set_font("Courier", "", 8)
+            pdf.multi_cell(0, 4.5, txt_clean)
+        raw_out = pdf.output(dest="S")
+        pdf_bytes = bytes(raw_out) if isinstance(raw_out, (bytes, bytearray)) else raw_out.encode("latin-1")
+        return pdf_bytes, base64.b64encode(pdf_bytes).decode("utf-8")
+    except Exception:
+        pass
+
+    # 2) Intento con reportlab
+    try:
+        from reportlab.lib.pagesizes import letter  # type: ignore
+        from reportlab.pdfgen import canvas  # type: ignore
+
+        buf_rl = io.BytesIO()
+        c = canvas.Canvas(buf_rl, pagesize=letter)
+        _, height = letter
+        y = height - 36
+        c.setFont("Courier-Bold", 10)
+        for ln in lineas_doc:
+            if y < 40:
+                c.showPage()
+                y = height - 36
+            txt_clean = _limpiar_ascii_pdf(ln)
+            if txt_clean.startswith("SECCION") or txt_clean.startswith("["):
+                c.setFont("Courier-Bold", 8.2)
+            else:
+                c.setFont("Courier", 7.8)
+            c.drawString(30, y, txt_clean[:102])
+            y -= 12
+        c.save()
+        pdf_bytes = buf_rl.getvalue()
+        return pdf_bytes, base64.b64encode(pdf_bytes).decode("utf-8")
+    except Exception:
+        pass
+
+    # 3) Respaldo PDF 1.4 ligero en Python puro
+    try:
+        pdf_bytes = _generar_pdf_fallback_minimo(lineas_doc)
+        return pdf_bytes, base64.b64encode(pdf_bytes).decode("utf-8")
+    except Exception as exc:
+        print(f"[WARN] Falló la generación del PDF ({exc}); se enviará el correo HTML sin adjunto.")
+        return None, None
+
+
 def enviar_reporte_resend_nfl(semana: Optional[int] = None) -> Dict[str, Any]:
     """
-    Ejecuta el flujo completo de simulación, empaquetado Excel en base64 y
-    despacho vía POST a 'https://api.resend.com/emails'.
+    Ejecuta el flujo completo de simulación, construcción del Briefing Ejecutivo Mobile-First
+    con escudos oficiales de la NFL, renderizado del adjunto PDF limpio
+    ('Terminal_Sharp_NFL_Briefing.pdf') y despacho vía POST a 'https://api.resend.com/emails'.
     """
     sem, resultados, df_general, df_ranking, nfl_stats = ejecutar_pipeline_simulaciones_nfl(semana=semana)
     df_props_raw = simular_player_props_jornada(resultados, incluir_anytime_td=False)
     df_props_ranking = build_player_props_ranking_export_df(df_props_raw)
     top_3_props = obtener_top_3_player_props_jornada(df_props_raw)
-
-    _, excel_b64 = empaquetar_excel_en_memoria(df_general, df_ranking, df_props_ranking)
     top_3 = generar_memorando_ejecutivo_top3(resultados, nfl_stats, semana=sem)
+    top_5_anchors = obtener_top_5_anchors_jornada(resultados, df_props_ranking)
+
     html_body = construir_html_reporte_nfl(
         sem,
         resultados,
@@ -774,14 +1129,19 @@ def enviar_reporte_resend_nfl(semana: Optional[int] = None) -> Dict[str, Any]:
         df_ranking,
         top_3_props=top_3_props,
         df_props_ranking=df_props_ranking,
+        top_5_anchors=top_5_anchors,
     )
 
-    print(f"[TERMINAL SHARP NFL] Semana {sem} | Partidos simulados: {len(resultados)} | Player Props: {len(df_props_ranking)}")
-    for idx, pick in enumerate(top_3, start=1):
-        print(f"  Top #{idx}: {pick['partido']} -> {pick['pick']} (Prob: {pick['prob_pct']:.1f}% | EV: {pick['ev_pct']:+.1f}%)")
-    for idx_p, prop in enumerate(top_3_props, start=1):
+    _, pdf_b64 = generar_pdf_briefing_nfl(sem, resultados, top_5_anchors, df_props_ranking)
+
+    print(
+        f"[TERMINAL SHARP NFL] Semana {sem} | Partidos: {len(resultados)} | "
+        f"Top 5 Anchors: {len(top_5_anchors)} | Player Props +EV: {len(df_props_ranking)}"
+    )
+    for idx_a, anc in enumerate(top_5_anchors, start=1):
         print(
-            f"  Prop #{idx_p}: {prop['jugador']} ({prop['partido']}) -> {prop['senal_ev']} | DvP: {prop['factor_dvp']:.3f}x"
+            f"  Anchor #{idx_a}: [{anc['team_abbr']}] {anc['seleccion']} -> "
+            f"Cubre: {anc['pct_cubre']:.1f}% | EV: {anc['ev_pct']:+.1f}%"
         )
 
     resend_api_key = os.environ.get("RESEND_API_KEY", "").strip()
@@ -790,28 +1150,31 @@ def enviar_reporte_resend_nfl(semana: Optional[int] = None) -> Dict[str, Any]:
     if not resend_api_key or not to_email_raw:
         print(
             "[WARN] Variables de entorno RESEND_API_KEY o TO_EMAIL no definidas. "
-            "Simulación y generación de Excel completadas correctamente en modo dry-run."
+            "Simulación, Briefing HTML móvil y PDF completados correctamente en modo dry-run."
         )
         return {
             "enviado": False,
             "semana": sem,
             "partidos": len(resultados),
             "top_3": top_3,
+            "top_5_anchors": top_5_anchors,
+            "pdf_generado": bool(pdf_b64),
         }
 
     destinatarios = [e.strip() for e in to_email_raw.split(",") if e.strip()]
-    payload = {
+    payload: Dict[str, Any] = {
         "from": "Terminal Sharp NFL <onboarding@resend.dev>",
         "to": destinatarios,
-        "subject": f"🏈 TERMINAL SHARP: NFL QUANT — Semana {sem} | Proyecciones Monte Carlo & +EV",
+        "subject": f"🏈 TERMINAL SHARP: NFL QUANT — Semana {sem} | Briefing Móvil & Top 5 Anchors",
         "html": html_body,
-        "attachments": [
+    }
+    if pdf_b64:
+        payload["attachments"] = [
             {
                 "filename": ATTACHMENT_FILENAME,
-                "content": excel_b64,
+                "content": pdf_b64,
             }
-        ],
-    }
+        ]
 
     headers = {
         "Authorization": f"Bearer {resend_api_key}",
@@ -821,12 +1184,13 @@ def enviar_reporte_resend_nfl(semana: Optional[int] = None) -> Dict[str, Any]:
     response = requests.post(RESEND_API_URL, headers=headers, json=payload, timeout=20)
     if response.status_code in (200, 201, 202):
         resp_data = response.json()
-        print(f"[OK] Reporte NFL enviado exitosamente vía Resend. ID: {resp_data.get('id')}")
+        print(f"[OK] Briefing móvil NFL enviado exitosamente vía Resend. ID: {resp_data.get('id')}")
         return {
             "enviado": True,
             "id": resp_data.get("id"),
             "semana": sem,
             "partidos": len(resultados),
+            "pdf_adjunto": bool(pdf_b64),
         }
 
     raise RuntimeError(
