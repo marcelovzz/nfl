@@ -1820,15 +1820,18 @@ def export_nfl_excel_bytes(
     """
     Compila el DataFrame de proyecciones NFL en memoria usando io.BytesIO y
     openpyxl, incluyendo la hoja general, 'Ranking_Alta_Probabilidad' y
-    'Player_Props_Ranking' (ordenada de forma estrictamente descendente por '% Cubre').
+    'Player_Props_Ranking' (ordenada multinivel: 1. Kickoff ASC, 2. Partido ASC,
+    3. '% Cubre' DESC, con sombreado alternado y borde inferior por juego).
     """
+    from engine_props_nfl import (
+        build_player_props_ranking_export_df,
+        estilizar_hoja_player_props_openpyxl,
+        simular_player_props_jornada,
+    )
+
     df_ranking = build_nfl_high_prob_ranking_from_export_df(df)
     if df_props_ranking is None:
         try:
-            from engine_props_nfl import (
-                build_player_props_ranking_export_df,
-                simular_player_props_jornada,
-            )
             partidos_ref = []
             if df is not None and not df.empty:
                 for _, r in df.iterrows():
@@ -1836,6 +1839,7 @@ def export_nfl_excel_bytes(
                         {
                             "away_abbr": str(r.get("Visitante", "")),
                             "home_abbr": str(r.get("Local", "")),
+                            "hora": str(r.get("Horario", r.get("Kickoff", "DOM"))),
                         }
                     )
             df_raw_props = simular_player_props_jornada(partidos_ref, incluir_anytime_td=False)
@@ -1849,6 +1853,7 @@ def export_nfl_excel_bytes(
         df_ranking.to_excel(writer, index=False, sheet_name="Ranking_Alta_Probabilidad")
         if df_props_ranking is not None and not df_props_ranking.empty:
             df_props_ranking.to_excel(writer, index=False, sheet_name="Player_Props_Ranking")
+            estilizar_hoja_player_props_openpyxl(writer.sheets["Player_Props_Ranking"])
     buffer.seek(0)
     return buffer
 

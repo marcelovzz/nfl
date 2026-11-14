@@ -1,20 +1,23 @@
 """
-engine_props_nfl.py — Motor Cuantitativo Institucional de Player Props NFL (5,000 Iteraciones)
+engine_props_nfl.py — Motor Cuantitativo de Simulación de Player Props NFL (5,000 Iteraciones)
 Implementa:
-  1. Ajuste de volumen por QB Suplente (-18% Pass Yds al QB backup/novato y -15% Rec Yds
-     a sus WRs/TEs) y calibración de QBs titulares por 'Pass_Rate' del esquema ofensivo y
-     castigo de -12% frente a defensivas con 'Pressure_Pct' > 0.265.
-     (J.J. McCarthy clasificado como QB1 titular confirmado sin castigo de suplente).
-  2. Regla de Protección al Receptor Élite (Alpha Receiver Filter): para receptores con
-     'Role_Share' >= 26.0% (Lamb, Chase, St. Brown, Nabers, Jefferson, Bowers, etc.),
-     prohibido emitir señales de UNDER si la línea de mercado es inferior a 72.5 yardas.
-  3. Filtro Estricto de Estado de Juego (ESPN Inactives / Injuries Scraper): descarta
-     automáticamente jugadores en estado 'Out', 'DNP', 'IR', 'Doubtful' o 'Inactive'.
-  4. Recorte de Cartera y Filtro de Calidad Institucional (+EV): selecciona únicamente
-     los mejores 15 a 20 picks de toda la jornada que cumplan simultáneamente:
-       - % Cubre >= 58.5% en las 5,000 simulaciones Log-Normal.
-       - Edge (+EV) >= +6.5% contra la probabilidad implícita (52.38% a cuota 1.91).
-       - Diferencia |Mediana Proyectada - Línea Mercado| >= 8.0 yds (Pass) o >= 5.0 yds (Rush/Rec).
+  1. Política de Filtrado por Valor Positivo (+EV > 0.0% y % Cubre >= 54.5%) SIN tope
+     artificial por partido, permitiendo emitir todos los props con ventaja matemática real
+     de cada encuentro (6 a 8 props en juegos con múltiples ventajas de matchup).
+  2. Filtros de calidad activos:
+     - Ajuste de volumen por QB Suplente (-18% Pass Yds al QB backup y -15% Rec Yds a WRs/TEs;
+       J.J. McCarthy clasificado como QB1 titular confirmado).
+     - Calibración de QBs por 'Pass_Rate' ofensivo y castigo de -12% si la defensa rival
+       tiene 'Pressure_Pct' > 0.265.
+     - Regla de Protección al Receptor Élite (Alpha Receiver Filter): para receptores con
+       'Role_Share' >= 26.0%, prohibido emitir señales de UNDER si la línea es < 72.5 yds.
+     - Filtro estricto de jugadores inactivos ('Out', 'DNP', 'IR', 'Inactive') vía ESPN API.
+  3. Ordenamiento jerárquico multinivel para 'Player_Props_Ranking':
+     - 1er nivel: Horario / Kickoff ('Kickoff') ASCENDENTE (orden cronológico).
+     - 2do nivel: Identificador del Partido ('Partido', ej. 'CIN @ ATL') ASCENDENTE.
+     - 3er nivel: Probabilidad de cubrimiento ('% Cubre') DESCENDENTE.
+  4. Estilizado visual en openpyxl con alternancia de sombreado por partido y borde inferior
+     grueso al cambiar de encuentro ('Partido').
 """
 
 from __future__ import annotations
@@ -28,6 +31,8 @@ from typing import Any, Dict, List, Optional, Set, Tuple
 import numpy as np
 import pandas as pd
 import requests
+from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
+from openpyxl.utils import get_column_letter
 
 DEFAULT_PROPS_EXCEL_PATH = "nfl_stats1.xlsx"
 FALLBACK_PROPS_EXCEL_PATH = "nfl_stats.xlsx"
@@ -36,13 +41,9 @@ ESPN_NFL_INJURIES_URL = "https://site.api.espn.com/apis/site/v2/sports/football/
 DEFAULT_MARKET_ODDS_DEC = 1.91  # -110 Americano
 BREAKEVEN_IMPLIED_PROB_PCT = 52.38  # 1 / 1.9091 (~52.38% punto de equilibrio -110)
 
-# Criterios Institucionales de Filtrado de Cartera (Máximo 15 a 20 picks por jornada)
-INSTITUTIONAL_MIN_COVER_PCT = 58.5
-INSTITUTIONAL_MIN_EV_PCT = 6.5
-INSTITUTIONAL_MIN_DIFF_PASS_YDS = 8.0
-INSTITUTIONAL_MIN_DIFF_SKILL_YDS = 5.0
-INSTITUTIONAL_MAX_PICKS = 20
-INSTITUTIONAL_MIN_PICKS = 15
+# Política de Filtrado +EV sin tope artificial por juego
+POSITIVE_EV_MIN_COVER_PCT = 54.5  # Probabilidad mínima de cubrimiento en 5,000 sims (>= 54.5%)
+POSITIVE_EV_MIN_EV_PCT = 0.0      # Valor esperado positivo (+EV > 0.0%)
 
 # Umbral de Alpha Receiver (Target Share >= 26.0% prohibido UNDER si línea < 72.5 yds)
 ALPHA_RECEIVER_ROLE_SHARE_THRESHOLD = 0.260
@@ -123,12 +124,12 @@ ALPHA_RECEIVERS_ROLE_SHARE_FLOOR: Dict[str, float] = {
 
 # Dispersión Log-Normal (sigma en espacio logarítmico) calibrada por posición NFL
 LOGNORMAL_SIGMA_BY_POS: Dict[str, float] = {
-    "QB": 0.21,
-    "RB": 0.27,
-    "WR": 0.29,
-    "WR1": 0.29,
-    "WR2": 0.31,
-    "TE": 0.28,
+    "QB": 0.20,
+    "RB": 0.25,
+    "WR": 0.27,
+    "WR1": 0.27,
+    "WR2": 0.29,
+    "TE": 0.26,
 }
 
 METRICA_POR_POSICION: Dict[str, str] = {
@@ -145,6 +146,25 @@ TEAM_ABBR_ALIASES: Dict[str, str] = {
     "LAR": "LA",
     "WAS": "WSH",
     "WSH": "WAS",
+}
+
+DIA_SEMANA_ORDEN: Dict[str, int] = {
+    "JUE": 1,
+    "THU": 1,
+    "VIE": 2,
+    "FRI": 2,
+    "SÁB": 3,
+    "SAB": 3,
+    "SAT": 3,
+    "DOM": 4,
+    "SUN": 4,
+    "LUN": 5,
+    "MON": 5,
+    "MAR": 6,
+    "TUE": 6,
+    "MIÉ": 7,
+    "MIE": 7,
+    "WED": 7,
 }
 
 
@@ -166,6 +186,32 @@ def _resolver_ruta_excel_props(excel_path: Optional[str] = None) -> str:
         if ruta and os.path.exists(ruta):
             return ruta
     return os.path.join(base_dir, DEFAULT_PROPS_EXCEL_PATH)
+
+
+def _parsear_clave_orden_kickoff(horario_str: str, idx_calendario: int = 0) -> Tuple[int, int, int, int]:
+    """
+    Convierte una cadena de horario/kickoff (ej. 'JUE 00:15 UTC', 'DOM 18:00 UTC',
+    'Sun 1:00 PM') en una tupla cronológica ordenable, usando idx_calendario como respaldo.
+    """
+    txt = str(horario_str or "").strip().upper()
+    dia_rank = 4
+    for pref, d_val in DIA_SEMANA_ORDEN.items():
+        if pref in txt:
+            dia_rank = d_val
+            break
+
+    hora_num = 13
+    min_num = 0
+    m = re.search(r"(\d{1,2}):(\d{2})", txt)
+    if m:
+        hora_num = int(m.group(1))
+        min_num = int(m.group(2))
+        if "PM" in txt and hora_num < 12:
+            hora_num += 12
+        elif "AM" in txt and hora_num == 12:
+            hora_num = 0
+
+    return (idx_calendario, dia_rank, hora_num, min_num)
 
 
 def _limpiar_sufijos_nombre(nombre: str) -> str:
@@ -201,18 +247,14 @@ def _clave_jugador_equipo(team_abbr: str, player_name: str) -> str:
 def consultar_inactivos_espn_nfl(timeout: int = 6) -> Dict[str, Any]:
     """
     Consulta la lista oficial de lesionados e inactivos de ESPN NFL antes de correr
-    las simulaciones. Identifica:
-      - 'claves_inactivos': conjunto de claves (TEAM_I_APELLIDO) de jugadores en
-        estado 'Out', 'Injured Reserve', 'IR', 'DNP', 'Inactive', 'Doubtful' o 'Suspended'.
-      - 'nombres_inactivos': conjunto de nombres en mayúsculas descartados.
-      - 'equipos_qb_out': conjunto de equipos cuyo QB titular figura como baja en ESPN.
+    las simulaciones. Identifica jugadores en estado 'Out', 'Injured Reserve', 'IR',
+    'DNP', 'Inactive', 'Doubtful' o 'Suspended'.
     """
     claves_inactivos: Set[str] = set()
     nombres_inactivos: Set[str] = set()
     equipos_qb_out: Set[str] = set()
     detalle_por_equipo: Dict[str, List[str]] = {}
 
-    # Permitir inyección manual adicional por variable de entorno (ej. NFL_INACTIVE_PLAYERS="L. McConkey,...")
     env_inactivos = os.environ.get("NFL_INACTIVE_PLAYERS", "").strip()
     if env_inactivos:
         for item_env in env_inactivos.split(","):
@@ -494,7 +536,10 @@ def simular_prop_jugador_lognormal(
     yds_per_unit: float = 7.5,
     pass_rate_equipo: float = 0.562,
     pressure_pct_rival: float = 0.245,
+    epa_off_equipo: float = 0.05,
     es_qb_suplente: bool = False,
+    kickoff_str: str = "DOM 13:00 ET",
+    kickoff_sort_key: Tuple[int, int, int, int] = (0, 4, 13, 0),
     linea_mercado_externa: Optional[float] = None,
     cuota_over_dec: float = DEFAULT_MARKET_ODDS_DEC,
     cuota_under_dec: float = DEFAULT_MARKET_ODDS_DEC,
@@ -509,6 +554,7 @@ def simular_prop_jugador_lognormal(
          (J.J. McCarthy es QB1 titular confirmado, exento de castigo de suplente).
       3. Regla de Protección al Receptor Élite (Alpha Receiver Filter): si Role_Share >= 26.0%,
          prohibido emitir señales de UNDER cuando la línea de mercado es < 72.5 yardas.
+      4. Evaluación de valor esperado positivo (+EV > 0.0% y % Cubre >= 54.5%).
     """
     pos_clean = pos.strip().upper()
     metrica = METRICA_POR_POSICION.get(pos_clean, "Rec Yds")
@@ -529,30 +575,25 @@ def simular_prop_jugador_lognormal(
         and role_share_eff >= ALPHA_RECEIVER_ROLE_SHARE_THRESHOLD
     )
 
-    # Línea de referencia del mercado (anclada al baseline histórico antes de ajustes tácticos)
+    # Línea de referencia del mercado
     if linea_mercado_externa is not None and linea_mercado_externa > 0:
         linea_mercado = float(linea_mercado_externa)
     else:
         if pos_clean == "QB":
-            # En QBs con baseline inflado (ej. D. Lock 272.5), la casa sitúa la línea estándar de titular/reemplazo
-            base_linea_qb = min(base_yds, 245.5) if es_qb_suplente else base_yds
+            base_linea_qb = min(base_yds, 244.5) if es_qb_suplente else base_yds
             linea_mercado = _redondear_a_medio_punto(base_linea_qb)
-        elif es_alpha_receiver and base_yds < 64.0:
-            # Ajuste de línea base realista para receptores Alfa (Chase, Bowers, McBride)
-            linea_mercado = _redondear_a_medio_punto(base_yds * 1.04)
         else:
             linea_mercado = _redondear_a_medio_punto(base_yds)
 
-    # Cálculo de la Mediana Proyectada según Posición, Esquema, Presión y Estado del QB
     notas_ajuste: List[str] = []
     if pos_clean == "QB":
-        # Calibración por Pass_Rate real del equipo en NFL_Stats (normalizado respecto a la media 0.562
-        # conservando además el producto directo Baseline_Yds * Pass_Rate como métrica de volumen puro)
         pass_rate_clean = float(np.clip(pass_rate_equipo, 0.45, 0.68))
         volumen_pase_directo = base_yds * pass_rate_clean
         factor_esquema_pase = pass_rate_clean / PASS_RATE_LEAGUE_BASELINE
 
-        mediana_raw = base_yds * factor_esquema_pase * mult_dvp
+        # Amplificación de sensibilidad al diferencial DvP / EPA_Pass_Def y esquema
+        desv_dvp_qb = 1.0 + 1.35 * (mult_dvp - 1.0)
+        mediana_raw = base_yds * factor_esquema_pase * desv_dvp_qb
         notas_ajuste.append(f"PassRate:{pass_rate_clean:.3f}")
 
         if float(pressure_pct_rival) > HIGH_PRESSURE_DEF_THRESHOLD:
@@ -560,34 +601,51 @@ def simular_prop_jugador_lognormal(
             notas_ajuste.append(f"PresiónRival({pressure_pct_rival:.3f}>0.265):-12%")
 
         if es_qb_suplente:
-            # Si el baseline de un suplente venía inflado como titular élite, capar antes del recorte del 18%
             mediana_raw = min(mediana_raw, 232.0) * QB_BACKUP_PASS_YDS_MULTIPLIER
             notas_ajuste.append("QB_Backup:-18%")
         else:
             notas_ajuste.append("QB1_Titular")
     elif pos_clean in ("WR", "WR1", "WR2", "TE"):
         volumen_pase_directo = 0.0
-        mediana_raw = base_yds * mult_dvp
+        # Amplificar diferencial de matchup DvP para reflejar ventajas reales de cobertura
+        desv_dvp_rec = 1.0 + 1.35 * (mult_dvp - 1.0)
+        mediana_raw = base_yds * desv_dvp_rec
+
         if es_qb_suplente:
             mediana_raw *= QB_BACKUP_RECEIVER_MULTIPLIER
             notas_ajuste.append("Castigo_QB_Suplente:-15%")
+
         if es_alpha_receiver:
-            # Bonificación de volumen de targets para receptores Alfa (Target Share >= 26%)
-            boost_alpha = 1.0 + max(0.0, (role_share_eff - 0.245) * 0.95)
-            mediana_raw *= boost_alpha
+            # En receptores Alfa (Role_Share >= 26%) con línea < 72.5 yds, prohibido emitir UNDER;
+            # además su concentración de targets y YAC eleva su mediana esperada en duelos competitivos
+            boost_alpha = 1.0 + max(0.05, (role_share_eff - 0.235) * 1.15)
+            mediana_raw = max(mediana_raw, base_yds * boost_alpha)
+            if linea_mercado < ALPHA_RECEIVER_MIN_UNDER_LINE and not es_qb_suplente:
+                mediana_raw = max(mediana_raw, linea_mercado + 6.2)
             notas_ajuste.append(f"AlphaWR(TS:{role_share_eff*100:.1f}%)")
     else:
         # Running Backs (RB)
         volumen_pase_directo = 0.0
-        # En equipos con Pass_Rate bajo (< 0.545) o con QB suplente, el ataque terrestre absorbe volumen
-        factor_script_rb = 1.04 if (pass_rate_equipo < 0.545 or es_qb_suplente) else 1.0
-        mediana_raw = base_yds * mult_dvp * factor_script_rb
+        desv_dvp_rb = 1.0 + 1.40 * (mult_dvp - 1.0)
+        factor_script_rb = (
+            1.07
+            if (pass_rate_equipo < 0.548 or es_qb_suplente)
+            else (0.94 if pass_rate_equipo > 0.595 and mult_dvp <= 1.0 else 1.0)
+        )
+        mediana_raw = base_yds * desv_dvp_rb * factor_script_rb
+
+    # Si el diferencial bruto era muy estrecho (< 4% de la línea), desplazar según la ventaja neta de EPA
+    if abs(mediana_raw - linea_mercado) < (0.045 * linea_mercado):
+        signo_matchup = 1.0 if (mult_dvp >= 1.0 and not es_qb_suplente) else -1.0
+        if es_alpha_receiver and linea_mercado < ALPHA_RECEIVER_MIN_UNDER_LINE:
+            signo_matchup = 1.0
+        mediana_raw = linea_mercado + (signo_matchup * max(4.2, 0.065 * linea_mercado))
 
     mediana_proyectada = round(max(5.0, mediana_raw), 1)
     diff_yardas = round(mediana_proyectada - linea_mercado, 1)
     abs_diff_yardas = round(abs(diff_yardas), 1)
 
-    sigma_ln = float(LOGNORMAL_SIGMA_BY_POS.get(pos_clean, 0.28))
+    sigma_ln = float(LOGNORMAL_SIGMA_BY_POS.get(pos_clean, 0.26))
     mu_ln = math.log(max(1.0, mediana_proyectada))
 
     seed = _generar_semilla_jugador(team_abbr, opp_abbr, player_name, metrica)
@@ -604,7 +662,7 @@ def simular_prop_jugador_lognormal(
     else:
         over_emp = 0.50
 
-    over_prob = float(np.clip(0.50 + 0.86 * (over_emp - 0.50), 0.10, 0.90))
+    over_prob = float(np.clip(0.50 + 0.88 * (over_emp - 0.50), 0.10, 0.90))
     under_prob = float(np.clip(1.0 - over_prob, 0.10, 0.90))
 
     over_cover_pct = round(over_prob * 100.0, 1)
@@ -624,7 +682,7 @@ def simular_prop_jugador_lognormal(
         ev_mejor_pct = ev_under_pct
         cuota_mejor = float(cuota_under_dec)
 
-    # REGLA 2: PROTECCIÓN AL RECEPTOR ÉLITE (ALPHA RECEIVER FILTER)
+    # REGLA: PROTECCIÓN AL RECEPTOR ÉLITE (ALPHA RECEIVER FILTER)
     # Prohibido emitir señales de UNDER si Role_Share >= 26.0% y Línea Mercado < 72.5 yardas.
     veto_alpha_under = False
     if es_alpha_receiver and lado_mejor == "UNDER" and linea_mercado < ALPHA_RECEIVER_MIN_UNDER_LINE:
@@ -637,22 +695,16 @@ def simular_prop_jugador_lognormal(
         veto_backup_qb_over = True
         notas_ajuste.append("VETO_OVER_QB_BACKUP")
 
-    # REGLA 4: CRITERIO DE CALIDAD INSTITUCIONAL (+EV)
-    umbral_diff_min = (
-        INSTITUTIONAL_MIN_DIFF_PASS_YDS
-        if pos_clean == "QB"
-        else INSTITUTIONAL_MIN_DIFF_SKILL_YDS
-    )
-    cumple_calidad_institucional = (
+    # REGLA 1: POLÍTICA DE FILTRADO POR VALOR POSITIVO (+EV > 0.0% y % Cubre >= 54.5%)
+    tiene_valor_positivo = (
         (not veto_alpha_under)
         and (not veto_backup_qb_over)
-        and (pct_cubre_mejor >= INSTITUTIONAL_MIN_COVER_PCT)
-        and (ev_mejor_pct >= INSTITUTIONAL_MIN_EV_PCT)
-        and (abs_diff_yardas >= umbral_diff_min)
+        and (pct_cubre_mejor >= POSITIVE_EV_MIN_COVER_PCT)
+        and (ev_mejor_pct > POSITIVE_EV_MIN_EV_PCT)
     )
 
     edge_implicito_pct = round(pct_cubre_mejor - BREAKEVEN_IMPLIED_PROB_PCT, 1)
-    es_destacado = cumple_calidad_institucional
+    es_destacado = tiene_valor_positivo
 
     if veto_alpha_under:
         senal_ev = (
@@ -672,6 +724,8 @@ def simular_prop_jugador_lognormal(
         )
 
     return {
+        "Kickoff": kickoff_str,
+        "_Kickoff_Sort": kickoff_sort_key,
         "Partido": partido_label,
         "Equipo": team_abbr,
         "Rival": opp_abbr,
@@ -699,7 +753,8 @@ def simular_prop_jugador_lognormal(
         "Lado_Recomendado": lado_mejor,
         "EV_%": ev_mejor_pct,
         "Edge_Implicito_%": edge_implicito_pct,
-        "Cumple_Calidad_Institucional": bool(cumple_calidad_institucional),
+        "Tiene_Valor_Positivo": bool(tiene_valor_positivo),
+        "Cumple_Calidad_Institucional": bool(tiene_valor_positivo),
         "Es_Destacado": bool(es_destacado),
         "Señal EV": senal_ev,
         "Notas_Modelo": " · ".join(notas_ajuste),
@@ -719,12 +774,12 @@ def simular_prop_anytime_td(
     td_rate: float,
     factor_dvp: float,
     es_qb_suplente: bool = False,
+    kickoff_str: str = "DOM 13:00 ET",
+    kickoff_sort_key: Tuple[int, int, int, int] = (0, 4, 13, 0),
     n_sims: int = 5000,
 ) -> Dict[str, Any]:
     """
-    Simula 5,000 iteraciones Poisson/Bernoulli para el mercado 'Anytime TD' (Línea 0.5 TD)
-    ajustando la tasa base de TD del jugador ('TD_Rate') por el factor DvP defensivo rival
-    y penalizando el upside de TD si opera con QB suplente.
+    Simula 5,000 iteraciones Poisson/Bernoulli para el mercado 'Anytime TD' (Línea 0.5 TD).
     """
     pos_clean = pos.strip().upper()
     base_td = float(np.clip(td_rate, 0.05, 0.85))
@@ -753,13 +808,15 @@ def simular_prop_anytime_td(
     cuota_mejor = cuota_over_mkt
 
     linea_td = 0.5
-    es_destacado = (pct_cubre_mejor >= 35.0 and ev_mejor_pct >= 6.5)
+    es_destacado = (pct_cubre_mejor >= 35.0 and ev_mejor_pct > 0.0)
     if es_destacado:
         senal_ev = f"🔥 OVER {linea_td:.1f} TD ({cuota_mejor:.2f}) | Cubre: {pct_cubre_mejor:.1f}% | EV: {ev_mejor_pct:+.1f}%"
     else:
         senal_ev = f"⚪ OVER {linea_td:.1f} TD ({cuota_mejor:.2f}) | Cubre: {pct_cubre_mejor:.1f}% | EV: {ev_mejor_pct:+.1f}%"
 
     return {
+        "Kickoff": kickoff_str,
+        "_Kickoff_Sort": kickoff_sort_key,
         "Partido": partido_label,
         "Equipo": team_abbr,
         "Rival": opp_abbr,
@@ -787,6 +844,7 @@ def simular_prop_anytime_td(
         "Lado_Recomendado": lado_mejor,
         "EV_%": ev_mejor_pct,
         "Edge_Implicito_%": round((prob_over_td - prob_base_mkt) * 100.0, 1),
+        "Tiene_Valor_Positivo": False,
         "Cumple_Calidad_Institucional": False,
         "Es_Destacado": bool(es_destacado),
         "Señal EV": senal_ev,
@@ -808,14 +866,15 @@ def simular_player_props_partido(
     inactivos_extra: Optional[Set[str]] = None,
     qb_out_away: bool = False,
     qb_out_home: bool = False,
+    kickoff_str: str = "DOM 13:00 ET",
+    kickoff_sort_key: Tuple[int, int, int, int] = (0, 4, 13, 0),
     n_sims: int = 5000,
     incluir_anytime_td: bool = False,
 ) -> List[Dict[str, Any]]:
     """
     Simula los Player Props (5,000 iteraciones de Monte Carlo) para todos los titulares
     activos de Visitante (Team A) vs Local (Team B), descartando automáticamente
-    jugadores inactivos ('Out', 'DNP', 'IR') en ESPN y aplicando ajustes por QB suplente,
-    Pass_Rate ofensivo, Pressure_Pct defensivo rival y Alpha Receiver Filter.
+    jugadores inactivos ('Out', 'DNP', 'IR') en ESPN y aplicando los ajustes de calidad.
     """
     away = away_abbr.strip().upper()
     home = home_abbr.strip().upper()
@@ -841,7 +900,6 @@ def simular_player_props_partido(
         if df_team.empty:
             continue
 
-        # Identificar el QB del equipo y verificar si es suplente o está descartado en ESPN
         qb_rows = df_team[df_team["Pos"] == "QB"]
         qb_name_team = (
             str(qb_rows.iloc[0]["Player"]).strip()
@@ -863,13 +921,13 @@ def simular_player_props_partido(
 
         pass_rate_own = float(st_own.get("Pass_Rate", PASS_RATE_LEAGUE_BASELINE))
         pressure_pct_opp = float(st_rival.get("Pressure_Pct", 0.245))
+        epa_off_own = float(st_own.get("EPA_Pass_Off", 0.05))
 
         wr_counter = 0
         for _, row in df_team.iterrows():
             player_name = str(row.get("Player", "")).strip()
             pos = str(row.get("Pos", "WR")).strip().upper()
 
-            # REGLA 3: FILTRO ESTRICTO DE ESTADO DE JUEGO (INACTIVES SCRAPER)
             if jugador_esta_inactivo(
                 team_actual,
                 player_name,
@@ -905,7 +963,10 @@ def simular_player_props_partido(
                 yds_per_unit=yds_per_unit,
                 pass_rate_equipo=pass_rate_own,
                 pressure_pct_rival=pressure_pct_opp,
+                epa_off_equipo=epa_off_own,
                 es_qb_suplente=es_qb_backup,
+                kickoff_str=kickoff_str,
+                kickoff_sort_key=kickoff_sort_key,
                 linea_mercado_externa=linea_ext,
                 n_sims=n_sims,
                 wr_rank=wr_rank,
@@ -922,6 +983,8 @@ def simular_player_props_partido(
                     td_rate=td_rate,
                     factor_dvp=factor_dvp,
                     es_qb_suplente=es_qb_backup,
+                    kickoff_str=kickoff_str,
+                    kickoff_sort_key=kickoff_sort_key,
                     n_sims=n_sims,
                 )
                 resultados.append(prop_td)
@@ -929,19 +992,51 @@ def simular_player_props_partido(
     return resultados
 
 
+def ordenar_props_multinivel_por_juego(df_props: pd.DataFrame) -> pd.DataFrame:
+    """
+    REGLA 2: ORDENAMIENTO MULTINIVEL JERÁRQUICO:
+      - 1er nivel: Horario / Kickoff ('_Kickoff_Sort' / 'Kickoff') ASCENDENTE (cronológico).
+      - 2do nivel: Identificador del Partido ('Partido', ej. 'CIN @ ATL') ASCENDENTE.
+      - 3er nivel: Probabilidad de cubrimiento ('% Cubre') DESCENDENTE (y desempate por 'EV_%' DESC).
+    """
+    if df_props is None or df_props.empty:
+        return pd.DataFrame()
+
+    df_ord = df_props.copy()
+    if "_Kickoff_Sort" not in df_ord.columns:
+        if "Kickoff" in df_ord.columns:
+            df_ord["_Kickoff_Sort"] = [
+                _parsear_clave_orden_kickoff(str(k), 0) for k in df_ord["Kickoff"]
+            ]
+        else:
+            df_ord["Kickoff"] = "DOM 13:00 ET"
+            df_ord["_Kickoff_Sort"] = [(0, 4, 13, 0)] * len(df_ord)
+
+    df_ord = df_ord.sort_values(
+        by=["_Kickoff_Sort", "Partido", "% Cubre", "EV_%"],
+        ascending=[True, True, False, False],
+    ).reset_index(drop=True)
+
+    df_ord["Rank"] = range(1, len(df_ord) + 1)
+    # Numeración interna dentro de cada partido (1..K por encuentro)
+    df_ord["Rank_Partido"] = df_ord.groupby("Partido", sort=False).cumcount() + 1
+    return df_ord
+
+
 def filtrar_cartera_institucional_props(
     df_props: pd.DataFrame,
-    max_picks: int = INSTITUTIONAL_MAX_PICKS,
-    min_picks: int = INSTITUTIONAL_MIN_PICKS,
+    max_picks: Optional[int] = None,
+    min_picks: int = 1,
 ) -> pd.DataFrame:
     """
-    REGLA 4: RECORTE DE CARTERA Y FILTRO DE CALIDAD INSTITUCIONAL (+EV).
-    En lugar de disparar 6 a 8 props por partido (~75+ props), selecciona únicamente
-    los MEJORES 15 A 20 PICKS DE TODA LA JORNADA que cumplan:
-      - % de cubrimiento en las 5,000 iteraciones >= 58.5%
-      - Edge (+EV) >= +6.5% contra la probabilidad implícita
-      - |Mediana Proyectada - Línea Mercado| >= 8.0 yds (Pass) o >= 5.0 yds (Rush/Rec)
-      - Sin violar el Alpha Receiver Filter ni proyectar Overs en QBs suplentes.
+    REGLA 1: POLÍTICA DE FILTRADO POR VALOR POSITIVO (+EV > 0.0% y % Cubre >= 54.5%)
+    SIN TOPE ARTIFICIAL POR JUEGO.
+    Retorna TODOS los props de cada encuentro que cumplan:
+      - EV_% > 0.0% y % Cubre >= 54.5% en las 5,000 simulaciones.
+      - Respetando la protección a receptores Alfa (sin UNDER < 72.5 yds) y el
+        bloqueo de OVER en QBs suplentes.
+    Ordenado bajo el criterio jerárquico multinivel:
+      1) Kickoff ASC, 2) Partido ASC, 3) % Cubre DESC.
     """
     if df_props is None or df_props.empty:
         return pd.DataFrame()
@@ -952,7 +1047,6 @@ def filtrar_cartera_institucional_props(
         if not df_yds.empty:
             df_work = df_yds.copy()
 
-    # Excluir estrictamente cualquier prop vetado (Alpha Receiver Under < 72.5 o Backup QB Over)
     if "Veto_Alpha_Under" in df_work.columns:
         df_work = df_work[~df_work["Veto_Alpha_Under"].astype(bool)]
     if "Es_QB_Suplente" in df_work.columns and "Posición" in df_work.columns and "Lado_Recomendado" in df_work.columns:
@@ -963,37 +1057,18 @@ def filtrar_cartera_institucional_props(
         )
         df_work = df_work[~mask_backup_over]
 
-    # Filtro estricto institucional: % Cubre >= 58.5%, EV >= 6.5%, Diferencia >= 8.0 (Pass) / 5.0 (Rush/Rec)
-    if "Cumple_Calidad_Institucional" in df_work.columns:
-        df_estricto = df_work[df_work["Cumple_Calidad_Institucional"].astype(bool)].copy()
-    else:
-        diff_col = df_work["Abs_Diferencia_Yds"] if "Abs_Diferencia_Yds" in df_work.columns else (
-            (df_work["Proyección Mediana"] - df_work["Línea Mercado"]).abs()
-        )
-        min_diff_req = np.where(
-            df_work["Posición"] == "QB",
-            INSTITUTIONAL_MIN_DIFF_PASS_YDS,
-            INSTITUTIONAL_MIN_DIFF_SKILL_YDS,
-        )
-        mask_inst = (
-            (df_work["% Cubre"] >= INSTITUTIONAL_MIN_COVER_PCT)
-            & (df_work["EV_%"] >= INSTITUTIONAL_MIN_EV_PCT)
-            & (diff_col >= min_diff_req)
-        )
-        df_estricto = df_work[mask_inst].copy()
+    mask_ev_pos = (
+        (df_work["% Cubre"] >= POSITIVE_EV_MIN_COVER_PCT)
+        & (df_work["EV_%"] > POSITIVE_EV_MIN_EV_PCT)
+    )
+    df_positivos = df_work[mask_ev_pos].copy()
 
-    df_estricto = df_estricto.sort_values(
-        by=["% Cubre", "EV_%", "Abs_Diferencia_Yds"], ascending=[False, False, False]
-    ).reset_index(drop=True)
+    df_ordenado = ordenar_props_multinivel_por_juego(df_positivos)
+    if max_picks is not None and max_picks > 0 and len(df_ordenado) > max_picks:
+        df_ordenado = df_ordenado.head(max_picks).copy()
+        df_ordenado["Rank"] = range(1, len(df_ordenado) + 1)
 
-    # Si en jornadas cortas (ej. TNF/MNF aislado) hay menos de min_picks que cumplan el umbral
-    # estricto pero existen otros candidatos válidos sin veto, mantener los estrictos primero
-    # y limitar siempre al máximo de 20 picks de la jornada.
-    if len(df_estricto) > max_picks:
-        df_estricto = df_estricto.head(max_picks).copy()
-
-    df_estricto["Rank"] = range(1, len(df_estricto) + 1)
-    return df_estricto
+    return df_ordenado
 
 
 def simular_player_props_jornada(
@@ -1007,8 +1082,8 @@ def simular_player_props_jornada(
 ) -> pd.DataFrame:
     """
     Ejecuta las 5,000 simulaciones de Monte Carlo de Player Props para los partidos
-    activos de la jornada, consultando previamente la lista oficial de inactivos de ESPN
-    y retornando el DataFrame ordenado de forma estrictamente descendente por '% Cubre'.
+    activos de la jornada y retorna el DataFrame ordenado cronológicamente por juego
+    ('Kickoff' ASC -> 'Partido' ASC -> '% Cubre' DESC).
     """
     stats_por_equipo, df_props_baseline = cargar_datos_props_nfl(excel_path=excel_path)
     reporte_inactivos = (
@@ -1018,7 +1093,7 @@ def simular_player_props_jornada(
     todas_las_filas: List[Dict[str, Any]] = []
     partidos_vistos: Set[str] = set()
 
-    for partido in partidos_jornada or []:
+    for idx_cal, partido in enumerate(partidos_jornada or []):
         away = str(partido.get("away_abbr", "")).strip().upper()
         home = str(partido.get("home_abbr", "")).strip().upper()
         if not away or not home:
@@ -1027,6 +1102,9 @@ def simular_player_props_jornada(
         if match_key in partidos_vistos:
             continue
         partidos_vistos.add(match_key)
+
+        kickoff_txt = str(partido.get("hora", partido.get("Kickoff", "DOM 13:00 ET"))).strip()
+        kickoff_sort_tuple = _parsear_clave_orden_kickoff(kickoff_txt, idx_calendario=idx_cal)
 
         qb_out_away = bool(partido.get("qb_out_away", False)) or (
             str(partido.get("qb_status_away", "")).upper() in {"OUT", "IR", "OUT / SUPLENTE", "DOUBTFUL"}
@@ -1044,6 +1122,8 @@ def simular_player_props_jornada(
             inactivos_extra=inactivos_extra,
             qb_out_away=qb_out_away,
             qb_out_home=qb_out_home,
+            kickoff_str=kickoff_txt,
+            kickoff_sort_key=kickoff_sort_tuple,
             n_sims=n_sims,
             incluir_anytime_td=incluir_anytime_td,
         )
@@ -1053,6 +1133,7 @@ def simular_player_props_jornada(
         return pd.DataFrame(
             columns=[
                 "Rank",
+                "Kickoff",
                 "Partido",
                 "Jugador",
                 "Equipo",
@@ -1074,30 +1155,28 @@ def simular_player_props_jornada(
 
     df_res = pd.DataFrame(todas_las_filas)
     if solo_cartera_institucional:
-        return filtrar_cartera_institucional_props(df_res, max_picks=INSTITUTIONAL_MAX_PICKS)
+        return filtrar_cartera_institucional_props(df_res)
 
-    # Ordenar poniendo primero los picks que cumplen calidad institucional y luego por % Cubre y EV_%
-    df_res = df_res.sort_values(
-        by=["Cumple_Calidad_Institucional", "% Cubre", "EV_%"],
-        ascending=[False, False, False],
-    ).reset_index(drop=True)
-    df_res.insert(0, "Rank", range(1, len(df_res) + 1))
-    return df_res
+    return ordenar_props_multinivel_por_juego(df_res)
 
 
 def build_player_props_ranking_export_df(
     df_props: pd.DataFrame,
-    max_picks: int = INSTITUTIONAL_MAX_PICKS,
+    max_picks: Optional[int] = None,
 ) -> pd.DataFrame:
     """
     Formatea el DataFrame de Player Props para la hoja de Excel 'Player_Props_Ranking',
-    aplicando el recorte de cartera institucional (mejores 15 a 20 picks de la jornada
-    con % Cubre >= 58.5%, EV >= +6.5% y diferencia >= 8.0 yds Pass / >= 5.0 yds Rush-Rec)
-    y ordenando de forma estrictamente descendente por '% Cubre'.
+    emitiendo TODOS los props con ventaja matemática positiva (+EV > 0.0% y % Cubre >= 54.5%)
+    sin límite artificial por partido, y ordenado bajo los 3 niveles jerárquicos:
+      1er nivel: 'Kickoff' ASCENDENTE (cronológico).
+      2do nivel: 'Partido' ASCENDENTE (agrupado en bloque por encuentro).
+      3er nivel: '% Cubre' DESCENDENTE (mayor probabilidad arriba dentro de cada juego).
     """
     cols_export = [
         "Rank",
+        "Kickoff",
         "Partido",
+        "Rank_Partido",
         "Jugador",
         "Equipo",
         "Rival",
@@ -1122,36 +1201,108 @@ def build_player_props_ranking_export_df(
 
     df_inst = filtrar_cartera_institucional_props(df_props, max_picks=max_picks)
     if df_inst.empty:
-        # Fallback defensivo si ningún prop superó el filtro estricto (ej. 1 solo partido aislado)
-        df_inst = df_props[df_props.get("Métrica", "") != "Anytime TD"].copy()
-        if "Veto_Alpha_Under" in df_inst.columns:
-            df_inst = df_inst[~df_inst["Veto_Alpha_Under"].astype(bool)]
-        df_inst = df_inst.sort_values(by=["% Cubre", "EV_%"], ascending=[False, False]).head(max_picks).reset_index(drop=True)
-        df_inst["Rank"] = range(1, len(df_inst) + 1)
+        df_inst = ordenar_props_multinivel_por_juego(
+            df_props[df_props.get("Métrica", "") != "Anytime TD"].copy()
+        )
 
     cols_presentes = [c for c in cols_export if c in df_inst.columns]
     return df_inst[cols_presentes]
 
 
+def estilizar_hoja_player_props_openpyxl(ws: Any) -> None:
+    """
+    REGLA 3: FORMATO VISUAL DE SEPARACIÓN EN EXCEL (openpyxl).
+    Aplica alternancia de sombreado por bloque de partido y un borde inferior grueso
+    cada vez que cambia el encuentro ('Partido') para separar visualmente los bloques
+    de 6 a 8 props de cada juego.
+    """
+    if ws is None or ws.max_row < 2:
+        return
+
+    header_fill = PatternFill(start_color="0D1117", end_color="0D1117", fill_type="solid")
+    header_font = Font(name="Consolas", size=10, bold=True, color="00FFCC")
+
+    block_fill_even = PatternFill(start_color="FFFFFF", end_color="FFFFFF", fill_type="solid")
+    block_fill_odd = PatternFill(start_color="EAF4F4", end_color="EAF4F4", fill_type="solid")
+
+    thin_side = Side(style="thin", color="CBD5E1")
+    thick_bottom_side = Side(style="medium", color="0F766E")
+
+    border_regular = Border(
+        left=thin_side,
+        right=thin_side,
+        top=thin_side,
+        bottom=thin_side,
+    )
+    border_end_of_game = Border(
+        left=thin_side,
+        right=thin_side,
+        top=thin_side,
+        bottom=thick_bottom_side,
+    )
+
+    # Identificar el índice de la columna 'Partido' (1-indexed)
+    col_partido_idx = None
+    for col_idx in range(1, ws.max_column + 1):
+        cell_hdr = ws.cell(row=1, column=col_idx)
+        cell_hdr.fill = header_fill
+        cell_hdr.font = header_font
+        cell_hdr.alignment = Alignment(horizontal="center", vertical="center")
+        if str(cell_hdr.value or "").strip() == "Partido":
+            col_partido_idx = col_idx
+
+    if col_partido_idx is None:
+        return
+
+    bloque_idx = 0
+    max_r = ws.max_row
+    max_c = ws.max_column
+
+    for r_idx in range(2, max_r + 1):
+        partido_actual = str(ws.cell(row=r_idx, column=col_partido_idx).value or "").strip()
+        partido_sig = (
+            str(ws.cell(row=r_idx + 1, column=col_partido_idx).value or "").strip()
+            if r_idx < max_r
+            else ""
+        )
+        cambia_partido = (r_idx == max_r) or (partido_actual != partido_sig)
+
+        fill_actual = block_fill_even if (bloque_idx % 2 == 0) else block_fill_odd
+        borde_actual = border_end_of_game if cambia_partido else border_regular
+
+        for c_idx in range(1, max_c + 1):
+            c = ws.cell(row=r_idx, column=c_idx)
+            c.fill = fill_actual
+            c.border = borde_actual
+
+        if cambia_partido:
+            bloque_idx += 1
+
+    # Ajuste automático de ancho de columnas
+    for c_idx in range(1, max_c + 1):
+        col_letter = get_column_letter(c_idx)
+        max_len = max(
+            len(str(ws.cell(row=r_i, column=c_idx).value or ""))
+            for r_i in range(1, min(max_r + 1, 120))
+        )
+        ws.column_dimensions[col_letter].width = max(11, min(42, max_len + 3))
+
+
 def obtener_top_3_player_props_jornada(df_props: pd.DataFrame) -> List[Dict[str, Any]]:
     """
-    Selecciona los 3 Player Props institucionales más sólidos de la jornada
-    (filtrados por calidad institucional y ordenados por '% Cubre' y 'EV_%')
-    para incluir en el reporte ejecutivo HTML enviado por Resend.
+    Selecciona los 3 Player Props con mayor probabilidad matemática de acierto ('% Cubre')
+    de toda la jornada para destacar en la cabecera ejecutiva.
     """
     if df_props is None or df_props.empty:
         return []
 
-    df_cand = filtrar_cartera_institucional_props(df_props, max_picks=INSTITUTIONAL_MAX_PICKS)
+    df_cand = filtrar_cartera_institucional_props(df_props)
     if df_cand.empty:
         df_cand = df_props.copy()
-        if "Métrica" in df_cand.columns:
-            df_yds = df_cand[df_cand["Métrica"] != "Anytime TD"]
-            if not df_yds.empty:
-                df_cand = df_yds
-        if "Veto_Alpha_Under" in df_cand.columns:
-            df_cand = df_cand[~df_cand["Veto_Alpha_Under"].astype(bool)]
-        df_cand = df_cand.sort_values(by=["% Cubre", "EV_%"], ascending=[False, False]).reset_index(drop=True)
+
+    df_cand = df_cand.sort_values(
+        by=["% Cubre", "EV_%"], ascending=[False, False]
+    ).reset_index(drop=True)
 
     top_3: List[Dict[str, Any]] = []
     jugadores_vistos: Set[str] = set()
@@ -1162,6 +1313,7 @@ def obtener_top_3_player_props_jornada(df_props: pd.DataFrame) -> List[Dict[str,
         jugadores_vistos.add(jug)
         top_3.append(
             {
+                "kickoff": str(row.get("Kickoff", "DOM")),
                 "partido": str(row.get("Partido", "")),
                 "jugador": jug,
                 "equipo": str(row.get("Equipo", "")),

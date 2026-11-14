@@ -41,6 +41,7 @@ from engine_nfl import (
 )
 from engine_props_nfl import (
     build_player_props_ranking_export_df,
+    estilizar_hoja_player_props_openpyxl,
     obtener_top_3_player_props_jornada,
     simular_player_props_jornada,
 )
@@ -326,7 +327,8 @@ def empaquetar_excel_en_memoria(
     incluyendo las hojas:
       1) 'Proyecciones_Generales'
       2) 'Ranking_Alta_Probabilidad' (ordenada estrictamente de mayor a menor probabilidad)
-      3) 'Player_Props_Ranking' (ordenada estrictamente descendente por '% Cubre')
+      3) 'Player_Props_Ranking' (ordenada multinivel: 1. Kickoff ASC, 2. Partido ASC,
+         3. '% Cubre' DESC, con sombreado alternado y borde inferior por juego)
     Retorna los bytes crudos y la cadena codificada en base64 para la API de Resend.
     """
     buffer = io.BytesIO()
@@ -335,6 +337,7 @@ def empaquetar_excel_en_memoria(
         df_ranking.to_excel(writer, index=False, sheet_name="Ranking_Alta_Probabilidad")
         if df_props_ranking is not None and not df_props_ranking.empty:
             df_props_ranking.to_excel(writer, index=False, sheet_name="Player_Props_Ranking")
+            estilizar_hoja_player_props_openpyxl(writer.sheets["Player_Props_Ranking"])
     buffer.seek(0)
     raw_bytes = buffer.getvalue()
     b64_str = base64.b64encode(raw_bytes).decode("utf-8")
@@ -590,11 +593,40 @@ def construir_html_reporte_nfl(
             )
         filas_cartera_props_html = ""
         if df_props_ranking is not None and not df_props_ranking.empty:
-            for _, rp in df_props_ranking.head(20).iterrows():
+            df_pr_iter = df_props_ranking.reset_index(drop=True)
+            total_pr = len(df_pr_iter)
+            partido_prev = None
+            bloque_idx = -1
+            for idx_r, rp in df_pr_iter.iterrows():
+                partido_act = str(rp.get("Partido", ""))
+                kickoff_act = str(rp.get("Kickoff", "DOM"))
+                partido_sig = (
+                    str(df_pr_iter.iloc[idx_r + 1].get("Partido", ""))
+                    if (idx_r + 1) < total_pr
+                    else None
+                )
+                if partido_act != partido_prev:
+                    bloque_idx += 1
+                    n_juego = int((df_pr_iter["Partido"] == partido_act).sum())
+                    filas_cartera_props_html += (
+                        f'<tr style="background-color:#162235; border-top:2px solid #00ffcc; border-bottom:1px solid rgba(0,255,204,0.4);">'
+                        f'<td colspan="9" style="padding:6px 10px; font-family:monospace; color:#00ffcc; font-weight:800; font-size:11px;">'
+                        f'🏈 {partido_act} · Kickoff: {kickoff_act} — {n_juego} Props con Ventaja Matemática (+EV)'
+                        f'</td></tr>'
+                    )
+                    partido_prev = partido_act
+
+                bg_row = "#0b0f17" if (bloque_idx % 2 == 0) else "#111827"
+                borde_inf = (
+                    "2px solid #00ffcc"
+                    if (partido_sig != partido_act)
+                    else "1px solid #1e293b"
+                )
                 filas_cartera_props_html += (
-                    f'<tr style="border-bottom:1px solid #1e293b;">'
+                    f'<tr style="background-color:{bg_row}; border-bottom:{borde_inf};">'
                     f'<td style="padding:6px 8px; font-family:monospace; color:#00ffcc; font-weight:700;">#{int(rp["Rank"])}</td>'
-                    f'<td style="padding:6px 8px; font-family:monospace; color:#f8fafc;">{rp["Partido"]}</td>'
+                    f'<td style="padding:6px 8px; font-family:monospace; color:#94a3b8;">{kickoff_act}</td>'
+                    f'<td style="padding:6px 8px; font-family:monospace; color:#f8fafc; font-weight:700;">{partido_act}</td>'
                     f'<td style="padding:6px 8px; font-family:monospace; color:#f8fafc; font-weight:700;">{rp["Jugador"]} ({rp["Posición"]})</td>'
                     f'<td style="padding:6px 8px; font-family:monospace; color:#94a3b8;">{rp["Métrica"]}</td>'
                     f'<td style="padding:6px 8px; font-family:monospace; color:#10b981; font-weight:700;">{float(rp["Proyección Mediana"]):.1f}</td>'
@@ -608,20 +640,21 @@ def construir_html_reporte_nfl(
         if filas_cartera_props_html:
             tabla_cartera_inst_html = (
                 f'<h3 style="font-family:monospace; font-size:13px; color:#38bdf8; text-transform:uppercase; margin:16px 0 8px 0;">'
-                f'📋 Cartera Institucional Filtrada: Top {len(df_props_ranking)} Player Props (Cubre ≥ 58.5% · EV ≥ +6.5% · Alpha WR & QB Filter)'
+                f'📋 Player Props con Valor Positivo (+EV > 0% · Cubre ≥ 54.5%) Agrupados por Juego ({len(df_props_ranking)} Props Activos)'
                 f'</h3>'
                 f'<div style="overflow-x:auto;">'
                 f'<table style="width:100%; border-collapse:collapse; background-color:#0b0f17; border:1px solid rgba(0,255,204,0.25); font-size:11px;">'
                 f'<thead>'
                 f'<tr style="background-color:#131b29; color:#00ffcc; font-family:monospace; text-align:left; border-bottom:1px solid #00ffcc;">'
                 f'<th style="padding:7px 8px;">#</th>'
+                f'<th style="padding:7px 8px;">Kickoff</th>'
                 f'<th style="padding:7px 8px;">Partido</th>'
                 f'<th style="padding:7px 8px;">Jugador</th>'
                 f'<th style="padding:7px 8px;">Métrica</th>'
                 f'<th style="padding:7px 8px;">Mediana Proy.</th>'
                 f'<th style="padding:7px 8px;">Línea (Diff)</th>'
                 f'<th style="padding:7px 8px;">DvP Rival</th>'
-                f'<th style="padding:7px 8px;">Señal Institucional (+EV)</th>'
+                f'<th style="padding:7px 8px;">Señal Cuantitativa (+EV)</th>'
                 f'</tr>'
                 f'</thead>'
                 f'<tbody>{filas_cartera_props_html}</tbody>'

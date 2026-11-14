@@ -45,6 +45,7 @@ from engine_props_nfl import (
     build_player_props_ranking_export_df,
     filtrar_cartera_institucional_props,
     obtener_top_3_player_props_jornada,
+    ordenar_props_multinivel_por_juego,
     simular_player_props_jornada,
 )
 
@@ -1300,7 +1301,7 @@ def render_vista_cartelera() -> None:
             )
             posiciones_opciones = ["Todas", "QB", "RB", "WR", "TE"]
             metricas_opciones = [
-                "🔥 Cartera Institucional (Top 15-20 Picks +EV)",
+                "🔥 Todos los Props +EV por Juego (Cubre ≥ 54.5% · EV > 0%)",
                 "Yardas Individuales (Pass / Rush / Rec)",
                 "Todas las Métricas (Incluye Anytime TD)",
                 "Pass Yds",
@@ -1335,6 +1336,7 @@ def render_vista_cartelera() -> None:
                 orden_prop = st.selectbox(
                     "📊 Ordenar por",
                     options=[
+                        "Agrupado por Juego (Kickoff ASC → Partido ASC → % Cubre DESC)",
                         "Mayor % Cubre (Descendente)",
                         "Mayor Valor Esperado (+EV %)",
                         "Mayor Factor DvP Rival",
@@ -1353,14 +1355,19 @@ def render_vista_cartelera() -> None:
                 df_filtrado_props = df_filtrado_props[
                     df_filtrado_props["Posición"] == filtro_pos_prop
                 ]
-            if filtro_metrica_prop == "🔥 Cartera Institucional (Top 15-20 Picks +EV)":
-                df_inst_only = filtrar_cartera_institucional_props(df_filtrado_props, max_picks=20)
+            if filtro_metrica_prop == "🔥 Todos los Props +EV por Juego (Cubre ≥ 54.5% · EV > 0%)":
+                df_inst_only = filtrar_cartera_institucional_props(
+                    df_filtrado_props,
+                    min_cover_pct=54.5,
+                    min_ev_pct=0.0,
+                    max_picks=None,
+                )
                 if not df_inst_only.empty:
                     df_filtrado_props = df_inst_only
                 else:
                     df_filtrado_props = df_filtrado_props[
                         df_filtrado_props["Métrica"].isin(["Pass Yds", "Rush Yds", "Rec Yds"])
-                    ].head(20)
+                    ]
             elif filtro_metrica_prop == "Yardas Individuales (Pass / Rush / Rec)":
                 df_filtrado_props = df_filtrado_props[
                     df_filtrado_props["Métrica"].isin(["Pass Yds", "Rush Yds", "Rec Yds"])
@@ -1370,7 +1377,9 @@ def render_vista_cartelera() -> None:
                     df_filtrado_props["Métrica"] == filtro_metrica_prop
                 ]
 
-            if orden_prop == "Mayor % Cubre (Descendente)":
+            if orden_prop == "Agrupado por Juego (Kickoff ASC → Partido ASC → % Cubre DESC)":
+                df_filtrado_props = ordenar_props_multinivel_por_juego(df_filtrado_props)
+            elif orden_prop == "Mayor % Cubre (Descendente)":
                 df_filtrado_props = df_filtrado_props.sort_values(
                     by=["% Cubre", "EV_%"], ascending=[False, False]
                 )
@@ -1416,7 +1425,11 @@ def render_vista_cartelera() -> None:
                         )
                         st.markdown(card_prop_html, unsafe_allow_html=True)
 
+            if "Kickoff" not in df_filtrado_props.columns:
+                df_filtrado_props["Kickoff"] = "DOM"
+
             columnas_tabla_props = [
+                "Kickoff",
                 "Partido",
                 "Jugador",
                 "Posición",
@@ -1428,11 +1441,34 @@ def render_vista_cartelera() -> None:
                 "% Cubre Under",
                 "Señal EV",
             ]
-            df_vista_props = df_filtrado_props[columnas_tabla_props].copy()
+            df_vista_props = df_filtrado_props[columnas_tabla_props].copy().reset_index(drop=True)
 
-            # Tabla HTML institucional oscura (#0d1117) con acentos neón (#00ffcc)
+            # Tabla HTML institucional oscura (#0d1117) con separación visual y sombreado alternado por Partido
             filas_props_html = ""
-            for _, r_p in df_vista_props.iterrows():
+            total_filas_vista = len(df_vista_props)
+            partido_prev_ui = None
+            bloque_juego_idx = -1
+
+            for idx_vp, r_p in df_vista_props.iterrows():
+                partido_actual = str(r_p["Partido"])
+                kickoff_actual = str(r_p["Kickoff"])
+                partido_siguiente = (
+                    str(df_vista_props.iloc[idx_vp + 1]["Partido"])
+                    if (idx_vp + 1) < total_filas_vista
+                    else None
+                )
+
+                if partido_actual != partido_prev_ui:
+                    bloque_juego_idx += 1
+                    cnt_props_juego = int((df_vista_props["Partido"] == partido_actual).sum())
+                    filas_props_html += (
+                        f'<tr style="background-color:#162235; border-top:2px solid #00ffcc; border-bottom:1px solid rgba(0,255,204,0.45);">'
+                        f'<td colspan="11" style="padding:7px 10px; font-family:JetBrains Mono,monospace; color:#00ffcc; font-weight:800; font-size:0.78rem;">'
+                        f'🏈 {partido_actual} · Horario: {kickoff_actual} — {cnt_props_juego} Props listados (Ordenados por Mayor % Cubre)'
+                        f'</td></tr>'
+                    )
+                    partido_prev_ui = partido_actual
+
                 senal_txt = str(r_p["Señal EV"])
                 es_fuego = senal_txt.startswith("🔥")
                 color_senal = "#00ffcc" if es_fuego else "#94a3b8"
@@ -1440,9 +1476,17 @@ def render_vista_cartelera() -> None:
                 dvp_val = float(r_p["Factor DvP Rival"])
                 color_dvp = "#10b981" if dvp_val >= 1.05 else ("#f59e0b" if dvp_val <= 0.92 else "#e2e8f0")
 
+                bg_fila = "#0d1117" if (bloque_juego_idx % 2 == 0) else "#131b26"
+                borde_inferior_fila = (
+                    "2px solid #00ffcc"
+                    if (partido_siguiente != partido_actual)
+                    else "1px solid #1e293b"
+                )
+
                 filas_props_html += (
-                    f'<tr style="border-bottom:1px solid #1e293b;">'
-                    f'<td style="padding:8px 10px; font-family:JetBrains Mono,monospace; color:#f8fafc; font-weight:700;">{r_p["Partido"]}</td>'
+                    f'<tr style="background-color:{bg_fila}; border-bottom:{borde_inferior_fila};">'
+                    f'<td style="padding:8px 10px; font-family:JetBrains Mono,monospace; color:#94a3b8; font-size:0.78rem;">{kickoff_actual}</td>'
+                    f'<td style="padding:8px 10px; font-family:JetBrains Mono,monospace; color:#f8fafc; font-weight:700;">{partido_actual}</td>'
                     f'<td style="padding:8px 10px; color:#f8fafc; font-weight:700;">{r_p["Jugador"]}</td>'
                     f'<td style="padding:8px 10px; font-family:JetBrains Mono,monospace; color:#38bdf8;">{r_p["Posición"]}</td>'
                     f'<td style="padding:8px 10px; font-family:JetBrains Mono,monospace; color:#cbd5e1;">{r_p["Métrica"]}</td>'
@@ -1460,6 +1504,7 @@ def render_vista_cartelera() -> None:
                 f'<table style="width:100%; border-collapse:collapse; font-size:0.83rem;">'
                 f'<thead>'
                 f'<tr style="background-color:#131b29; color:#00ffcc; font-family:JetBrains Mono,monospace; text-align:left; border-bottom:1px solid #00ffcc;">'
+                f'<th style="padding:9px 10px;">Kickoff</th>'
                 f'<th style="padding:9px 10px;">Partido</th>'
                 f'<th style="padding:9px 10px;">Jugador</th>'
                 f'<th style="padding:9px 10px;">Posición</th>'
