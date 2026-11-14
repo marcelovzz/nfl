@@ -53,10 +53,10 @@ ATTACHMENT_FILENAME = "nfl_quant_projections.xlsx"
 
 def cargar_diccionario_stats_local() -> Dict[str, Dict[str, Any]]:
     """
-    Carga la base de métricas EPA/play y Success Rate desde 'nfl_stats.xlsx'
+    Carga la base de métricas EPA/play y Success Rate desde 'nfl_stats1.xlsx' / 'nfl_stats.xlsx'
     (o respaldo CSV en el repositorio). Si no existe, retorna el pool calibrado por defecto.
     """
-    candidatos = ["nfl_stats.xlsx", "nfl_stats.csv", "nfl_stats_completo.csv"]
+    candidatos = ["nfl_stats1.xlsx", "nfl_stats.xlsx", "nfl_stats.csv", "nfl_stats_completo.csv"]
     for ruta in candidatos:
         if os.path.exists(ruta):
             try:
@@ -474,6 +474,7 @@ def construir_html_reporte_nfl(
     top_3_picks: List[Dict[str, Any]],
     df_ranking: pd.DataFrame,
     top_3_props: Optional[List[Dict[str, Any]]] = None,
+    df_props_ranking: Optional[pd.DataFrame] = None,
 ) -> str:
     """
     Construye el reporte ejecutivo HTML con estética institucional oscura (#0d1117),
@@ -587,11 +588,53 @@ def construir_html_reporte_nfl(
                 f'</div>'
                 f'</div>'
             )
+        filas_cartera_props_html = ""
+        if df_props_ranking is not None and not df_props_ranking.empty:
+            for _, rp in df_props_ranking.head(20).iterrows():
+                filas_cartera_props_html += (
+                    f'<tr style="border-bottom:1px solid #1e293b;">'
+                    f'<td style="padding:6px 8px; font-family:monospace; color:#00ffcc; font-weight:700;">#{int(rp["Rank"])}</td>'
+                    f'<td style="padding:6px 8px; font-family:monospace; color:#f8fafc;">{rp["Partido"]}</td>'
+                    f'<td style="padding:6px 8px; font-family:monospace; color:#f8fafc; font-weight:700;">{rp["Jugador"]} ({rp["Posición"]})</td>'
+                    f'<td style="padding:6px 8px; font-family:monospace; color:#94a3b8;">{rp["Métrica"]}</td>'
+                    f'<td style="padding:6px 8px; font-family:monospace; color:#10b981; font-weight:700;">{float(rp["Proyección Mediana"]):.1f}</td>'
+                    f'<td style="padding:6px 8px; font-family:monospace; color:#e2e8f0;">{float(rp["Línea Mercado"]):.1f} ({float(rp.get("Diferencia_Yds", 0.0)):+.1f})</td>'
+                    f'<td style="padding:6px 8px; font-family:monospace; color:#38bdf8;">{float(rp["Factor DvP Rival"]):.3f}x</td>'
+                    f'<td style="padding:6px 8px; font-family:monospace; color:#00ffcc; font-weight:700;">{rp["Señal EV"]}</td>'
+                    f'</tr>'
+                )
+
+        tabla_cartera_inst_html = ""
+        if filas_cartera_props_html:
+            tabla_cartera_inst_html = (
+                f'<h3 style="font-family:monospace; font-size:13px; color:#38bdf8; text-transform:uppercase; margin:16px 0 8px 0;">'
+                f'📋 Cartera Institucional Filtrada: Top {len(df_props_ranking)} Player Props (Cubre ≥ 58.5% · EV ≥ +6.5% · Alpha WR & QB Filter)'
+                f'</h3>'
+                f'<div style="overflow-x:auto;">'
+                f'<table style="width:100%; border-collapse:collapse; background-color:#0b0f17; border:1px solid rgba(0,255,204,0.25); font-size:11px;">'
+                f'<thead>'
+                f'<tr style="background-color:#131b29; color:#00ffcc; font-family:monospace; text-align:left; border-bottom:1px solid #00ffcc;">'
+                f'<th style="padding:7px 8px;">#</th>'
+                f'<th style="padding:7px 8px;">Partido</th>'
+                f'<th style="padding:7px 8px;">Jugador</th>'
+                f'<th style="padding:7px 8px;">Métrica</th>'
+                f'<th style="padding:7px 8px;">Mediana Proy.</th>'
+                f'<th style="padding:7px 8px;">Línea (Diff)</th>'
+                f'<th style="padding:7px 8px;">DvP Rival</th>'
+                f'<th style="padding:7px 8px;">Señal Institucional (+EV)</th>'
+                f'</tr>'
+                f'</thead>'
+                f'<tbody>{filas_cartera_props_html}</tbody>'
+                f'</table>'
+                f'</div>'
+            )
+
         bloques_top3_props_html = (
             f'<h2 style="font-family:monospace; font-size:15px; color:#00ffcc; text-transform:uppercase; margin:22px 0 10px 0;">'
             f'🎯 Top 3 Player Props & Matchups Defensivos (5,000 Simulaciones Log-Normal)'
             f'</h2>'
             f'{items_props_html}'
+            f'{tabla_cartera_inst_html}'
         )
 
     filas_top_prob_html = ""
@@ -691,7 +734,14 @@ def enviar_reporte_resend_nfl(semana: Optional[int] = None) -> Dict[str, Any]:
 
     _, excel_b64 = empaquetar_excel_en_memoria(df_general, df_ranking, df_props_ranking)
     top_3 = generar_memorando_ejecutivo_top3(resultados, nfl_stats, semana=sem)
-    html_body = construir_html_reporte_nfl(sem, resultados, top_3, df_ranking, top_3_props=top_3_props)
+    html_body = construir_html_reporte_nfl(
+        sem,
+        resultados,
+        top_3,
+        df_ranking,
+        top_3_props=top_3_props,
+        df_props_ranking=df_props_ranking,
+    )
 
     print(f"[TERMINAL SHARP NFL] Semana {sem} | Partidos simulados: {len(resultados)} | Player Props: {len(df_props_ranking)}")
     for idx, pick in enumerate(top_3, start=1):

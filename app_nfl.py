@@ -43,6 +43,7 @@ from engine_nfl import (
 )
 from engine_props_nfl import (
     build_player_props_ranking_export_df,
+    filtrar_cartera_institucional_props,
     obtener_top_3_player_props_jornada,
     simular_player_props_jornada,
 )
@@ -1299,6 +1300,7 @@ def render_vista_cartelera() -> None:
             )
             posiciones_opciones = ["Todas", "QB", "RB", "WR", "TE"]
             metricas_opciones = [
+                "🔥 Cartera Institucional (Top 15-20 Picks +EV)",
                 "Yardas Individuales (Pass / Rush / Rec)",
                 "Todas las Métricas (Incluye Anytime TD)",
                 "Pass Yds",
@@ -1351,7 +1353,15 @@ def render_vista_cartelera() -> None:
                 df_filtrado_props = df_filtrado_props[
                     df_filtrado_props["Posición"] == filtro_pos_prop
                 ]
-            if filtro_metrica_prop == "Yardas Individuales (Pass / Rush / Rec)":
+            if filtro_metrica_prop == "🔥 Cartera Institucional (Top 15-20 Picks +EV)":
+                df_inst_only = filtrar_cartera_institucional_props(df_filtrado_props, max_picks=20)
+                if not df_inst_only.empty:
+                    df_filtrado_props = df_inst_only
+                else:
+                    df_filtrado_props = df_filtrado_props[
+                        df_filtrado_props["Métrica"].isin(["Pass Yds", "Rush Yds", "Rec Yds"])
+                    ].head(20)
+            elif filtro_metrica_prop == "Yardas Individuales (Pass / Rush / Rec)":
                 df_filtrado_props = df_filtrado_props[
                     df_filtrado_props["Métrica"].isin(["Pass Yds", "Rush Yds", "Rec Yds"])
                 ]
