@@ -446,6 +446,51 @@ def empaquetar_excel_en_memoria(
     return raw_bytes, b64_str
 
 
+def _safe_float(val: Any, default: float = 0.0) -> float:
+    """Convierte de forma segura cualquier valor a float sin lanzar excepciones."""
+    if val is None:
+        return default
+    try:
+        if pd.isna(val):
+            return default
+    except Exception:
+        pass
+    try:
+        if isinstance(val, (int, float)):
+            return float(val)
+        txt = str(val).strip().replace("%", "").replace("+", "").replace(",", "")
+        return float(txt) if txt else default
+    except Exception:
+        return default
+
+
+def _extraer_lado_prop(rp: Any) -> str:
+    """
+    Extrae de forma segura el lado recomendado ('OVER' o 'UNDER') desde una fila
+    de 'df_props_ranking' verificando múltiples nombres de columna posibles
+    ('Lado_Recomendado', 'Lado_Recom', 'Pick', 'Lado', 'Recomendación', 'Señal EV').
+    """
+    for col in ("Lado_Recomendado", "Lado_Recom", "Pick", "Lado", "Recomendación", "Recomendacion"):
+        val = rp.get(col) if hasattr(rp, "get") else None
+        if val is not None and str(val).strip() and str(val).strip().lower() != "nan":
+            txt_u = str(val).strip().upper()
+            if "UNDER" in txt_u:
+                return "UNDER"
+            if "OVER" in txt_u:
+                return "OVER"
+            return txt_u
+
+    senal = str(rp.get("Señal EV", "") if hasattr(rp, "get") else "").upper()
+    if "UNDER" in senal:
+        return "UNDER"
+    if "OVER" in senal:
+        return "OVER"
+
+    med = _safe_float(rp.get("Proyección Mediana") if hasattr(rp, "get") else 0.0, 0.0)
+    lin = _safe_float(rp.get("Línea Mercado") if hasattr(rp, "get") else 0.0, 0.0)
+    return "UNDER" if med < lin else "OVER"
+
+
 def obtener_top_5_anchors_jornada(
     resultados_simulados: List[Dict[str, Any]],
     df_props_ranking: Optional[pd.DataFrame] = None,
@@ -458,16 +503,16 @@ def obtener_top_5_anchors_jornada(
     candidatos: List[Dict[str, Any]] = []
 
     for s in resultados_simulados:
-        away = s["away_abbr"]
-        home = s["home_abbr"]
+        away = str(s.get("away_abbr", ""))
+        home = str(s.get("home_abbr", ""))
         partido_str = f"{away} @ {home}"
-        hora_cst = s.get("hora", "DOM 12:00 CST")
-        ev_sp = s["ev_spread"]
-        ev_to = s["ev_totales"]
+        hora_cst = str(s.get("hora", "DOM 12:00 CST"))
+        ev_sp = s.get("ev_spread", {}) or {}
+        ev_to = s.get("ev_totales", {}) or {}
 
-        sp_cov = float(s.get("spread_cover_pct", ev_sp.get("spread_cover_pct", ev_sp.get("prob_mejor_pct", 50.0))))
-        sp_ev = float(ev_sp.get("ev_pct", 0.0))
-        sp_odds = float(ev_sp.get("cuota_mercado_decimal", 1.91))
+        sp_cov = _safe_float(s.get("spread_cover_pct", ev_sp.get("spread_cover_pct", ev_sp.get("prob_mejor_pct", 50.0))), 50.0)
+        sp_ev = _safe_float(ev_sp.get("ev_pct", 0.0), 0.0)
+        sp_odds = _safe_float(ev_sp.get("cuota_mercado_decimal", 1.91), 1.91)
         lado_sp = str(ev_sp.get("lado", "HOME"))
         team_sp = home if lado_sp == "HOME" else away
 
@@ -478,8 +523,8 @@ def obtener_top_5_anchors_jornada(
                 "logo_url": get_team_logo_url(team_sp),
                 "partido": partido_str,
                 "horario": hora_cst,
-                "seleccion": f"{ev_sp['recomendacion']} ({sp_odds:.2f})",
-                "detalle": f"Proy: {away} {s['away_pts']:.1f} - {s['home_pts']:.1f} {home}",
+                "seleccion": f"{ev_sp.get('recomendacion', team_sp)} ({sp_odds:.2f})",
+                "detalle": f"Proy: {away} {_safe_float(s.get('away_pts'), 0.0):.1f} - {_safe_float(s.get('home_pts'), 0.0):.1f} {home}",
                 "pct_cubre": round(sp_cov, 1),
                 "ev_pct": round(sp_ev, 1),
                 "cuota": sp_odds,
@@ -487,10 +532,10 @@ def obtener_top_5_anchors_jornada(
             }
         )
 
-        to_cov = float(s.get("total_cover_pct", ev_to.get("total_cover_pct", ev_to.get("prob_mejor_pct", 50.0))))
-        to_ev = float(ev_to.get("ev_pct", 0.0))
-        to_odds = float(ev_to.get("cuota_mercado_decimal", 1.91))
-        team_to = home if s.get("win_home_pct", 50.0) >= s.get("win_away_pct", 50.0) else away
+        to_cov = _safe_float(s.get("total_cover_pct", ev_to.get("total_cover_pct", ev_to.get("prob_mejor_pct", 50.0))), 50.0)
+        to_ev = _safe_float(ev_to.get("ev_pct", 0.0), 0.0)
+        to_odds = _safe_float(ev_to.get("cuota_mercado_decimal", 1.91), 1.91)
+        team_to = home if _safe_float(s.get("win_home_pct", 50.0), 50.0) >= _safe_float(s.get("win_away_pct", 50.0), 50.0) else away
 
         candidatos.append(
             {
@@ -499,8 +544,8 @@ def obtener_top_5_anchors_jornada(
                 "logo_url": get_team_logo_url(team_to),
                 "partido": partido_str,
                 "horario": hora_cst,
-                "seleccion": f"{ev_to['lado']} {ev_to['total_mercado']:.1f} ({to_odds:.2f})",
-                "detalle": f"Total Proy: {s['total_ou']:.1f} pts ({partido_str})",
+                "seleccion": f"{ev_to.get('lado', 'OVER')} {_safe_float(ev_to.get('total_mercado'), 44.5):.1f} ({to_odds:.2f})",
+                "detalle": f"Total Proy: {_safe_float(s.get('total_ou'), 44.5):.1f} pts ({partido_str})",
                 "pct_cubre": round(to_cov, 1),
                 "ev_pct": round(to_ev, 1),
                 "cuota": to_odds,
@@ -510,18 +555,18 @@ def obtener_top_5_anchors_jornada(
 
     if df_props_ranking is not None and not df_props_ranking.empty:
         for _, rp in df_props_ranking.iterrows():
-            ev_val = float(rp.get("EV_%", 0.0))
-            cov_val = float(rp.get("% Cubre", 50.0))
-            eq_abbr = str(rp.get("Equipo", "")).strip().upper()
-            partido_p = str(rp.get("Partido", ""))
+            ev_val = _safe_float(rp.get("EV_%", 0.0), 0.0)
+            cov_val = _safe_float(rp.get("% Cubre", 50.0), 50.0)
+            eq_abbr = str(rp.get("Equipo", "") or "").strip().upper()
+            partido_p = str(rp.get("Partido", "") or "")
             if not eq_abbr and "@" in partido_p:
                 eq_abbr = partido_p.split("@")[0].strip()
-            jug = str(rp.get("Jugador", ""))
-            pos = str(rp.get("Posición", ""))
-            met = str(rp.get("Métrica", ""))
-            lado_p = str(rp.get("Lado_Recom", "OVER"))
-            linea_p = float(rp.get("Línea Mercado", 0.0))
-            med_p = float(rp.get("Proyección Mediana", 0.0))
+            jug = str(rp.get("Jugador", "") or "Jugador")
+            pos = str(rp.get("Posición", rp.get("Posicion", "")) or "")
+            met = str(rp.get("Métrica", rp.get("Metrica", "")) or "")
+            lado_p = _extraer_lado_prop(rp)
+            linea_p = _safe_float(rp.get("Línea Mercado", rp.get("Linea Mercado", 0.0)), 0.0)
+            med_p = _safe_float(rp.get("Proyección Mediana", rp.get("Proyeccion Mediana", 0.0)), 0.0)
 
             candidatos.append(
                 {
@@ -529,7 +574,7 @@ def obtener_top_5_anchors_jornada(
                     "team_abbr": eq_abbr,
                     "logo_url": get_team_logo_url(eq_abbr),
                     "partido": partido_p,
-                    "horario": str(rp.get("Kickoff", "DOM 12:00 CST")),
+                    "horario": str(rp.get("Kickoff", "DOM 12:00 CST") or "DOM 12:00 CST"),
                     "seleccion": f"{jug} ({pos}) — {lado_p} {linea_p:.1f} {met}",
                     "detalle": f"Proy: {med_p:.1f} | {partido_p}",
                     "pct_cubre": round(cov_val, 1),
@@ -785,14 +830,14 @@ def construir_html_reporte_nfl(
             ].sort_values(by=["% Cubre", "EV_%"], ascending=[False, False])
 
             for _, rp in df_juego_props.iterrows():
-                jug_n = str(rp.get("Jugador", ""))
-                pos_n = str(rp.get("Posición", ""))
-                met_n = str(rp.get("Métrica", ""))
-                lado_n = str(rp.get("Lado_Recom", "OVER"))
-                lin_n = float(rp.get("Línea Mercado", 0.0))
-                med_n = float(rp.get("Proyección Mediana", 0.0))
-                cov_n = float(rp.get("% Cubre", 50.0))
-                ev_n = float(rp.get("EV_%", 0.0))
+                jug_n = str(rp.get("Jugador", "") or "Jugador")
+                pos_n = str(rp.get("Posición", rp.get("Posicion", "")) or "")
+                met_n = str(rp.get("Métrica", rp.get("Metrica", "")) or "")
+                lado_n = _extraer_lado_prop(rp)
+                lin_n = _safe_float(rp.get("Línea Mercado", rp.get("Linea Mercado", 0.0)), 0.0)
+                med_n = _safe_float(rp.get("Proyección Mediana", rp.get("Proyeccion Mediana", 0.0)), 0.0)
+                cov_n = _safe_float(rp.get("% Cubre", 50.0), 50.0)
+                ev_n = _safe_float(rp.get("EV_%", 0.0), 0.0)
                 props_lineas_html += (
                     f'<div style="font-family:monospace; font-size:11.5px; color:#e6edf3; '
                     f'padding:4px 0; border-bottom:1px dashed #21262d; line-height:1.45;">'
@@ -882,7 +927,7 @@ def construir_html_reporte_nfl(
 
 
 def _limpiar_ascii_pdf(texto: str) -> str:
-    """Normaliza acentos y símbolos Unicode a Latin-1/ASCII seguro para fuentes base PDF."""
+    """Normaliza acentos, emojis y símbolos Unicode a ASCII seguro para fuentes base PDF."""
     reemplazos = {
         "—": "--",
         "–": "-",
@@ -897,6 +942,7 @@ def _limpiar_ascii_pdf(texto: str) -> str:
         "🕒": "",
         "📊": "",
         "🏦": "",
+        "📅": "",
         "≥": ">=",
         "≤": "<=",
     }
@@ -904,7 +950,8 @@ def _limpiar_ascii_pdf(texto: str) -> str:
     for k, v in reemplazos.items():
         res = res.replace(k, v)
     res_norm = unicodedata.normalize("NFKD", res)
-    return res_norm.encode("latin-1", errors="ignore").decode("latin-1")
+    # Codificar en ASCII estricto ignorando diacríticos y emojis residuales
+    return res_norm.encode("ascii", errors="ignore").decode("ascii")
 
 
 def _generar_pdf_fallback_minimo(lineas: List[str]) -> bytes:
@@ -916,10 +963,9 @@ def _generar_pdf_fallback_minimo(lineas: List[str]) -> bytes:
     paginas = [lineas[i : i + lineas_por_pag] for i in range(0, max(1, len(lineas)), lineas_por_pag)]
 
     objetos: List[bytes] = []
-    # Obj 1: Catalog, Obj 2: Pages, Obj 3: Font
     objetos.append(b"<< /Type /Catalog /Pages 2 0 R >>")
     kids_refs = " ".join(f"{4 + idx * 2} 0 R" for idx in range(len(paginas)))
-    objetos.append(f"<< /Type /Pages /Kids [{kids_refs}] /Count {len(paginas)} >>".encode("latin-1"))
+    objetos.append(f"<< /Type /Pages /Kids [{kids_refs}] /Count {len(paginas)} >>".encode("ascii"))
     objetos.append(b"<< /Type /Font /Subtype /Type1 /BaseFont /Courier >>")
 
     for idx, pag_lineas in enumerate(paginas):
@@ -935,13 +981,13 @@ def _generar_pdf_fallback_minimo(lineas: List[str]) -> bytes:
             )
             cmd_lines.append(f"({safe_ln[:96]}) Tj T*")
         cmd_lines.append("ET")
-        stream_bytes = "\n".join(cmd_lines).encode("latin-1", errors="ignore")
+        stream_bytes = "\n".join(cmd_lines).encode("ascii", errors="ignore")
         page_dict = (
             f"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] "
             f"/Resources << /Font << /F1 3 0 R >> >> /Contents {content_obj_num} 0 R >>"
-        ).encode("latin-1")
+        ).encode("ascii")
         content_dict = (
-            f"<< /Length {len(stream_bytes)} >>\nstream\n".encode("latin-1")
+            f"<< /Length {len(stream_bytes)} >>\nstream\n".encode("ascii")
             + stream_bytes
             + b"\nendstream"
         )
@@ -952,18 +998,18 @@ def _generar_pdf_fallback_minimo(lineas: List[str]) -> bytes:
     offsets: List[int] = []
     for idx_obj, body in enumerate(objetos, start=1):
         offsets.append(len(out))
-        out.extend(f"{idx_obj} 0 obj\n".encode("latin-1"))
+        out.extend(f"{idx_obj} 0 obj\n".encode("ascii"))
         out.extend(body)
         out.extend(b"\nendobj\n")
 
     xref_pos = len(out)
-    out.extend(f"xref\n0 {len(objetos) + 1}\n".encode("latin-1"))
+    out.extend(f"xref\n0 {len(objetos) + 1}\n".encode("ascii"))
     out.extend(b"0000000000 65535 f \n")
     for off in offsets:
-        out.extend(f"{off:010d} 00000 n \n".encode("latin-1"))
+        out.extend(f"{off:010d} 00000 n \n".encode("ascii"))
     out.extend(
         f"trailer\n<< /Size {len(objetos) + 1} /Root 1 0 R >>\nstartxref\n{xref_pos}\n%%EOF\n".encode(
-            "latin-1"
+            "ascii"
         )
     )
     return bytes(out)
@@ -983,8 +1029,8 @@ def generar_pdf_briefing_nfl(
     """
     fecha_utc = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
     partidos_ordenados = sorted(
-        resultados_simulados,
-        key=lambda x: (int(x.get("_kickoff_sort", 40720)), f"{x['away_abbr']} @ {x['home_abbr']}"),
+        resultados_simulados or [],
+        key=lambda x: (int(x.get("_kickoff_sort", 40720)), f"{x.get('away_abbr', '')} @ {x.get('home_abbr', '')}"),
     )
 
     lineas_doc: List[str] = [
@@ -994,10 +1040,17 @@ def generar_pdf_briefing_nfl(
         "SECCION 1 -- TOP 5 ANCHORS DE LA JORNADA (MAYOR % DE CUBRIMIENTO)",
         "-" * 84,
     ]
-    for idx_a, anc in enumerate(top_5_anchors, start=1):
+    for idx_a, anc in enumerate(top_5_anchors or [], start=1):
+        t_abbr = str(anc.get("team_abbr", "NFL") or "NFL")
+        t_tipo = str(anc.get("tipo", "PICK") or "PICK")
+        t_sel = str(anc.get("seleccion", "") or "")
+        t_cov = _safe_float(anc.get("pct_cubre", 50.0), 50.0)
+        t_ev = _safe_float(anc.get("ev_pct", 0.0), 0.0)
+        t_part = str(anc.get("partido", "") or "")
+        t_hor = str(anc.get("horario", "") or "")
         lineas_doc.append(
-            f" #{idx_a} [{anc['team_abbr']}] ({anc['tipo']}) {anc['seleccion']} | "
-            f"Cubre: {anc['pct_cubre']:.1f}% | EV: {anc['ev_pct']:+.1f}% | {anc['partido']} ({anc['horario']})"
+            f" #{idx_a} [{t_abbr}] ({t_tipo}) {t_sel} | "
+            f"Cubre: {t_cov:.1f}% | EV: {t_ev:+.1f}% | {t_part} ({t_hor})"
         )
 
     lineas_doc.append("=" * 84)
@@ -1005,43 +1058,103 @@ def generar_pdf_briefing_nfl(
     lineas_doc.append("-" * 84)
 
     for s in partidos_ordenados:
-        away = s["away_abbr"]
-        home = s["home_abbr"]
+        away = str(s.get("away_abbr", "") or "")
+        home = str(s.get("home_abbr", "") or "")
         partido_key = f"{away} @ {home}"
-        hora_cst = s.get("hora", "DOM 12:00 CST")
-        ev_sp = s["ev_spread"]
-        ev_to = s["ev_totales"]
-        sp_cov = float(s.get("spread_cover_pct", ev_sp.get("spread_cover_pct", ev_sp.get("prob_mejor_pct", 50.0))))
-        to_cov = float(s.get("total_cover_pct", ev_to.get("total_cover_pct", ev_to.get("prob_mejor_pct", 50.0))))
+        hora_cst = str(s.get("hora", "DOM 12:00 CST") or "DOM 12:00 CST")
+        ev_sp = s.get("ev_spread", {}) or {}
+        ev_to = s.get("ev_totales", {}) or {}
+        sp_cov = _safe_float(s.get("spread_cover_pct", ev_sp.get("spread_cover_pct", ev_sp.get("prob_mejor_pct", 50.0))), 50.0)
+        to_cov = _safe_float(s.get("total_cover_pct", ev_to.get("total_cover_pct", ev_to.get("prob_mejor_pct", 50.0))), 50.0)
+
+        away_pts = _safe_float(s.get("away_pts", 0.0), 0.0)
+        home_pts = _safe_float(s.get("home_pts", 0.0), 0.0)
+        sp_mkt_home = _safe_float(s.get("spread_mercado_home", 0.0), 0.0)
+        tot_mkt = _safe_float(s.get("total_mercado", 44.5), 44.5)
 
         lineas_doc.append(
-            f"[{away}] @ [{home}] | {hora_cst} | Proy: {away} {s['away_pts']:.1f} - {s['home_pts']:.1f} {home} "
-            f"(Mkt: {home} {s['spread_mercado_home']:+.1f} | O/U {s['total_mercado']:.1f})"
+            f"[{away}] @ [{home}] | {hora_cst} | Proy: {away} {away_pts:.1f} - {home_pts:.1f} {home} "
+            f"(Mkt: {home} {sp_mkt_home:+.1f} | O/U {tot_mkt:.1f})"
         )
         lineas_doc.append(
-            f"  [SPREAD] {ev_sp['recomendacion']} | Cuota: {ev_sp['cuota_mercado_decimal']:.2f} | "
-            f"Cubre: {sp_cov:.1f}% (5,000 sims) | EV: {ev_sp['ev_pct']:+.1f}%"
+            f"  [SPREAD] {ev_sp.get('recomendacion', home)} | Cuota: {_safe_float(ev_sp.get('cuota_mercado_decimal'), 1.91):.2f} | "
+            f"Cubre: {sp_cov:.1f}% (5,000 sims) | EV: {_safe_float(ev_sp.get('ev_pct'), 0.0):+.1f}%"
         )
         lineas_doc.append(
-            f"  [TOTAL]  {ev_to['lado']} {ev_to['total_mercado']:.1f} | Cuota: {ev_to['cuota_mercado_decimal']:.2f} | "
-            f"Cubre: {to_cov:.1f}% (5,000 sims) | EV: {ev_to['ev_pct']:+.1f}%"
+            f"  [TOTAL]  {ev_to.get('lado', 'OVER')} {_safe_float(ev_to.get('total_mercado'), tot_mkt):.1f} | Cuota: {_safe_float(ev_to.get('cuota_mercado_decimal'), 1.91):.2f} | "
+            f"Cubre: {to_cov:.1f}% (5,000 sims) | EV: {_safe_float(ev_to.get('ev_pct'), 0.0):+.1f}%"
         )
 
-        if df_props_ranking is not None and not df_props_ranking.empty:
-            df_jp = df_props_ranking[
-                (df_props_ranking["Partido"] == partido_key)
-                & (df_props_ranking["EV_%"] > 0.0)
-            ].sort_values(by=["% Cubre", "EV_%"], ascending=[False, False])
+        if df_props_ranking is not None and not df_props_ranking.empty and "Partido" in df_props_ranking.columns:
+            df_jp = df_props_ranking[df_props_ranking["Partido"] == partido_key].copy()
+            if "EV_%" in df_jp.columns:
+                df_jp = df_jp[df_jp["EV_%"].apply(lambda v: _safe_float(v, 0.0) > 0.0)]
+            cols_sort = [c for c in ["% Cubre", "EV_%"] if c in df_jp.columns]
+            if cols_sort:
+                df_jp = df_jp.sort_values(by=cols_sort, ascending=[False] * len(cols_sort))
+
             for _, rp in df_jp.iterrows():
+                jug_pdf = str(rp.get("Jugador") or rp.get("Player") or "Jugador")
+                pos_pdf = str(rp.get("Posición") or rp.get("Posicion") or rp.get("Pos") or "")
+                met_pdf = str(rp.get("Métrica") or rp.get("Metrica") or rp.get("Market") or "")
+                lado_pdf = _extraer_lado_prop(rp)
+                linea_pdf = _safe_float(
+                    rp.get("Línea Mercado")
+                    if rp.get("Línea Mercado") is not None
+                    else rp.get("Linea Mercado", rp.get("Linea", 0.0)),
+                    0.0,
+                )
+                proy_pdf = _safe_float(
+                    rp.get("Proyección Mediana")
+                    if rp.get("Proyección Mediana") is not None
+                    else rp.get("Proyeccion Mediana", rp.get("Mediana", 0.0)),
+                    0.0,
+                )
+                cubre_pdf = _safe_float(
+                    rp.get("% Cubre")
+                    if rp.get("% Cubre") is not None
+                    else rp.get("Probabilidad_%", 50.0),
+                    50.0,
+                )
+                ev_pdf = _safe_float(rp.get("EV_%", 0.0), 0.0)
+
                 lineas_doc.append(
-                    f"    - {rp['Jugador']} ({rp['Posición']} {rp['Métrica']}) -- "
-                    f"{rp['Lado_Recom']} {float(rp['Línea Mercado']):.1f} | "
-                    f"Proy: {float(rp['Proyección Mediana']):.1f} | "
-                    f"Cubre: {float(rp['% Cubre']):.1f}% ({float(rp['EV_%']):+.1f}% EV)"
+                    f"    - {jug_pdf} ({pos_pdf} {met_pdf}) -- "
+                    f"{lado_pdf} {linea_pdf:.1f} | "
+                    f"Proy: {proy_pdf:.1f} | "
+                    f"Cubre: {cubre_pdf:.1f}% ({ev_pdf:+.1f}% EV)"
                 )
         lineas_doc.append("-" * 84)
 
-    # 1) Intento con fpdf2 (FPDF)
+    # 1) Intento con reportlab (C-extension rápida y estable para texto Courier)
+    try:
+        from reportlab.lib.pagesizes import letter  # type: ignore
+        from reportlab.pdfgen import canvas  # type: ignore
+
+        buf_rl = io.BytesIO()
+        c = canvas.Canvas(buf_rl, pagesize=letter)
+        _, height = letter
+        y = height - 36
+        c.setFont("Courier-Bold", 10)
+        for ln in lineas_doc:
+            if y < 40:
+                c.showPage()
+                y = height - 36
+            txt_clean = _limpiar_ascii_pdf(ln)
+            if txt_clean.startswith("SECCION") or txt_clean.startswith("[") or txt_clean.startswith("TERMINAL"):
+                c.setFont("Courier-Bold", 8.2)
+            else:
+                c.setFont("Courier", 7.8)
+            c.drawString(30, y, txt_clean[:102])
+            y -= 12
+        c.save()
+        pdf_bytes = buf_rl.getvalue()
+        if pdf_bytes:
+            return pdf_bytes, base64.b64encode(pdf_bytes).decode("utf-8")
+    except Exception:
+        pass
+
+    # 2) Intento con fpdf2 (FPDF)
     try:
         from fpdf import FPDF  # type: ignore
 
@@ -1067,36 +1180,13 @@ def generar_pdf_briefing_nfl(
             else:
                 pdf.set_font("Courier", "", 8)
             pdf.multi_cell(0, 4.5, txt_clean)
-        raw_out = pdf.output(dest="S")
-        pdf_bytes = bytes(raw_out) if isinstance(raw_out, (bytes, bytearray)) else raw_out.encode("latin-1")
-        return pdf_bytes, base64.b64encode(pdf_bytes).decode("utf-8")
-    except Exception:
-        pass
-
-    # 2) Intento con reportlab
-    try:
-        from reportlab.lib.pagesizes import letter  # type: ignore
-        from reportlab.pdfgen import canvas  # type: ignore
-
-        buf_rl = io.BytesIO()
-        c = canvas.Canvas(buf_rl, pagesize=letter)
-        _, height = letter
-        y = height - 36
-        c.setFont("Courier-Bold", 10)
-        for ln in lineas_doc:
-            if y < 40:
-                c.showPage()
-                y = height - 36
-            txt_clean = _limpiar_ascii_pdf(ln)
-            if txt_clean.startswith("SECCION") or txt_clean.startswith("["):
-                c.setFont("Courier-Bold", 8.2)
-            else:
-                c.setFont("Courier", 7.8)
-            c.drawString(30, y, txt_clean[:102])
-            y -= 12
-        c.save()
-        pdf_bytes = buf_rl.getvalue()
-        return pdf_bytes, base64.b64encode(pdf_bytes).decode("utf-8")
+        try:
+            raw_out = pdf.output()
+        except TypeError:
+            raw_out = pdf.output(dest="S")
+        pdf_bytes = bytes(raw_out) if isinstance(raw_out, (bytes, bytearray)) else str(raw_out).encode("latin-1", errors="ignore")
+        if pdf_bytes:
+            return pdf_bytes, base64.b64encode(pdf_bytes).decode("utf-8")
     except Exception:
         pass
 
@@ -1132,7 +1222,16 @@ def enviar_reporte_resend_nfl(semana: Optional[int] = None) -> Dict[str, Any]:
         top_5_anchors=top_5_anchors,
     )
 
-    _, pdf_b64 = generar_pdf_briefing_nfl(sem, resultados, top_5_anchors, df_props_ranking)
+    pdf_bytes: Optional[bytes] = None
+    pdf_b64: Optional[str] = None
+    try:
+        pdf_bytes, pdf_b64 = generar_pdf_briefing_nfl(sem, resultados, top_5_anchors, df_props_ranking)
+    except Exception as e:
+        print(
+            f"[WARN] Excepción capturada en generar_pdf_briefing_nfl ({e}); "
+            "continuando el envío del correo HTML sin adjunto PDF."
+        )
+        pdf_bytes, pdf_b64 = None, None
 
     print(
         f"[TERMINAL SHARP NFL] Semana {sem} | Partidos: {len(resultados)} | "
