@@ -1,10 +1,10 @@
 {
-  "timestamp_cst": "2026-11-15 00:57:32 CST",
+  "timestamp_cst": "2026-11-15 15:18:01 CST",
   "new_team_adaptation_factor": 0.85,
   "total_moves": 2,
   "moves": [
     {
-      "Timestamp_CST": "2026-11-15 00:57:32 CST",
+      "Timestamp_CST": "2026-11-15 15:18:01 CST",
       "Player": "J. Downs",
       "Pos": "WR",
       "Equipo_Prev": "IND",
@@ -20,7 +20,7 @@
       "player_key": "J_DOWNS"
     },
     {
-      "Timestamp_CST": "2026-11-15 00:57:32 CST",
+      "Timestamp_CST": "2026-11-15 15:18:01 CST",
       "Player": "K. Cousins",
       "Pos": "QB",
       "Equipo_Prev": "LV",
@@ -39,7 +39,7 @@
   "by_prev_team": {
     "IND": [
       {
-        "Timestamp_CST": "2026-11-15 00:57:32 CST",
+        "Timestamp_CST": "2026-11-15 15:18:01 CST",
         "Player": "J. Downs",
         "Pos": "WR",
         "Equipo_Prev": "IND",
@@ -57,7 +57,7 @@
     ],
     "LV": [
       {
-        "Timestamp_CST": "2026-11-15 00:57:32 CST",
+        "Timestamp_CST": "2026-11-15 15:18:01 CST",
         "Player": "K. Cousins",
         "Pos": "QB",
         "Equipo_Prev": "LV",
@@ -77,7 +77,7 @@
   "by_current_team": {
     "KC": [
       {
-        "Timestamp_CST": "2026-11-15 00:57:32 CST",
+        "Timestamp_CST": "2026-11-15 15:18:01 CST",
         "Player": "J. Downs",
         "Pos": "WR",
         "Equipo_Prev": "IND",
@@ -95,7 +95,7 @@
     ],
     "MIN": [
       {
-        "Timestamp_CST": "2026-11-15 00:57:32 CST",
+        "Timestamp_CST": "2026-11-15 15:18:01 CST",
         "Player": "K. Cousins",
         "Pos": "QB",
         "Equipo_Prev": "LV",
