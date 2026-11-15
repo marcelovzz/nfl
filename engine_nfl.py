@@ -1024,6 +1024,28 @@ def _aplicar_ajustes_lesiones_titulares_epa(
                     epa_pass_def -= 0.025
                     epa_rush_def -= 0.025
 
+        # 7. Traspasos y Movimientos de Roster (Altas con factor de adaptación del 85% y Bajas por trade/corte FA)
+        for mov_baja in team_verified.get("traspasos_bajas", []) or []:
+            pos_b = str(mov_baja.get("Pos", "")).strip().upper()
+            rs_b = float(mov_baja.get("Role_Share_Base", 0.20) or 0.20)
+            if pos_b == "QB":
+                epa_pass_off -= 0.08
+            elif pos_b in {"WR", "WR1", "WR2", "TE"} and rs_b >= 0.22:
+                epa_pass_off -= 0.030
+            elif pos_b == "RB" and rs_b >= 0.35:
+                epa_rush_off -= 0.028
+
+        for mov_alta in team_verified.get("traspasos_altas", []) or []:
+            pos_a = str(mov_alta.get("Pos", "")).strip().upper()
+            fac_a = float(mov_alta.get("Factor_Adaptacion", 0.85) or 0.85)
+            rs_a = float(mov_alta.get("Role_Share_Base", 0.22) or 0.22)
+            if pos_a == "QB":
+                epa_pass_off += 0.065 * fac_a
+            elif pos_a in {"WR", "WR1", "WR2", "TE"}:
+                epa_pass_off += (0.035 if rs_a >= 0.24 else 0.022) * fac_a
+            elif pos_a == "RB":
+                epa_rush_off += 0.028 * fac_a
+
     if clima_adverso:
         pass_rate *= 0.94
 
@@ -1549,6 +1571,7 @@ def run_simulacion_nfl(
         "linea_1_qb_clima": str(bloque_estado_partido.get("linea_1_qb_clima") or f"QB1: {away_qb} [OK] vs {home_qb} [OK] | Clima: {estadio_label}"),
         "linea_2_out_gtd": str(bloque_estado_partido.get("linea_2_out_gtd") or "🔴 OUT / GTD: Sin bajas titulares reportadas"),
         "linea_3_activados": str(bloque_estado_partido.get("linea_3_activados") or "🟢 ACTIVADOS: Sin novedades"),
+        "linea_4_traspasos": str(bloque_estado_partido.get("linea_4_traspasos") or "🔄 TRASPASOS: Sin cambios"),
         "n_sims": n_sims,
         "mc_p10_total": round(float(np.percentile(total_sim, 10)), 1),
         "mc_p50_total": round(float(np.percentile(total_sim, 50)), 1),

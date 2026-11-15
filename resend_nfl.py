@@ -348,6 +348,7 @@ def ejecutar_pipeline_simulaciones_nfl(
                 sim_record["linea_1_qb_clima"] = bloque_est.get("linea_1_qb_clima", sim_record.get("linea_1_qb_clima", ""))
                 sim_record["linea_2_out_gtd"] = bloque_est.get("linea_2_out_gtd", sim_record.get("linea_2_out_gtd", ""))
                 sim_record["linea_3_activados"] = bloque_est.get("linea_3_activados", sim_record.get("linea_3_activados", ""))
+                sim_record["linea_4_traspasos"] = bloque_est.get("linea_4_traspasos", sim_record.get("linea_4_traspasos", "🔄 TRASPASOS: Sin cambios"))
             except Exception:
                 pass
         resultados_simulados.append(sim_record)
@@ -897,6 +898,10 @@ def construir_html_reporte_nfl(
             s.get("linea_3_activados")
             or "🟢 ACTIVADOS: Sin novedades"
         )
+        linea_4_traspasos = str(
+            s.get("linea_4_traspasos")
+            or "🔄 TRASPASOS: Sin cambios"
+        )
         bloque_estado_html = (
             f'<div style="background:#0d1117; border:1px solid #30363d; border-left:3px solid #58a6ff; '
             f'border-radius:6px; padding:7px 10px; margin-bottom:9px; font-family:monospace; font-size:11.2px; '
@@ -904,6 +909,7 @@ def construir_html_reporte_nfl(
             f'<div style="color:#f0f6fc; font-weight:700;">🏈 {linea_1_qb_clima}</div>'
             f'<div style="color:#ffa657; margin-top:2px;">{linea_2_out_gtd}</div>'
             f'<div style="color:#3fb950; margin-top:2px;">{linea_3_activados}</div>'
+            f'<div style="color:#79c0ff; margin-top:2px;">{linea_4_traspasos}</div>'
             f'</div>'
         )
 
@@ -1132,9 +1138,11 @@ def generar_pdf_briefing_nfl(
         ln1_pdf = str(s.get("linea_1_qb_clima") or f"QB1: {s.get('away_qb', away)} [OK] vs {s.get('home_qb', home)} [OK] | Clima: {s.get('resumen_clima', 'Outdoor')}")
         ln2_pdf = str(s.get("linea_2_out_gtd") or "OUT / GTD: Sin bajas titulares reportadas")
         ln3_pdf = str(s.get("linea_3_activados") or "ACTIVADOS: Sin novedades")
+        ln4_pdf = str(s.get("linea_4_traspasos") or "🔄 TRASPASOS: Sin cambios")
         lineas_doc.append(f"  [ROSTER] {ln1_pdf}")
         lineas_doc.append(f"  [BAJAS]  {ln2_pdf}")
         lineas_doc.append(f"  [ACTIVO] {ln3_pdf}")
+        lineas_doc.append(f"  [TRASP]  {ln4_pdf}")
         lineas_doc.append(
             f"  [SPREAD] {ev_sp.get('recomendacion', home)} | Cuota: {_safe_float(ev_sp.get('cuota_mercado_decimal'), 1.91):.2f} | "
             f"Cubre: {sp_cov:.1f}% (5,000 sims) | EV: {_safe_float(ev_sp.get('ev_pct'), 0.0):+.1f}%"

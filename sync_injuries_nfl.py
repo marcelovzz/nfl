@@ -52,12 +52,17 @@ from sync_espn_nfl import (
 
 ESPN_INJURIES_URL = "https://site.api.espn.com/apis/site/v2/sports/football/nfl/injuries"
 ESPN_DEPTHCHART_URL_TPL = "https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/{team_id}/depthcharts"
+ESPN_ROSTER_URL_TPL = "https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/{team_id}/roster"
+ESPN_TRANSACTIONS_URL = "https://site.api.espn.com/apis/site/v2/sports/football/nfl/transactions"
 ESPN_SUMMARY_URL_TPL = "https://site.api.espn.com/apis/site/v2/sports/football/nfl/summary?event={event_id}"
 OPEN_METEO_FORECAST_URL = "https://api.open-meteo.com/v1/forecast"
 
 INJURIES_JSON_PATH = "nfl_injuries_live.json"
 STARTERS_JSON_PATH = "nfl_starters_verified.json"
+ROSTER_MOVES_JSON_PATH = "nfl_roster_moves.json"
 DEFAULT_EXCEL_STATS_PATH = "nfl_stats1.xlsx"
+
+NEW_TEAM_ADAPTATION_FACTOR = 0.85  # Factor conservador del 85% por adaptación al playbook en nuevo equipo
 
 CST_TZ = timezone(timedelta(hours=-6))
 
@@ -165,6 +170,22 @@ AUDIT_LOG_COLUMNS: List[str] = [
     "EPA_Off_New",
     "EPA_Def_Prev",
     "EPA_Def_New",
+]
+
+ROSTER_MOVES_COLUMNS: List[str] = [
+    "Timestamp_CST",
+    "Player",
+    "Pos",
+    "Equipo_Prev",
+    "Equipo_Actual",
+    "Tipo_Movimiento",
+    "Factor_Adaptacion",
+    "Role_Share_Base",
+    "Baseline_Yds",
+    "Catch_Rate",
+    "Yds_Per_Unit",
+    "TD_Rate",
+    "Detalle_ESPN",
 ]
 
 
@@ -520,6 +541,360 @@ def consultar_clima_estadio_open_meteo(
     }
 
 
+consultar_clima_open_meteo_estadio = consultar_clima_estadio_open_meteo
+
+
+def _clave_jugador_sin_equipo(player_name: str) -> str:
+    """
+    Genera una clave canónica independiente del equipo (Inicial + Apellido, ej. 'D_ADAMS')
+    para detectar cuando un jugador de 'NFL_Stats' o 'Player_Props_Baseline' cambió de
+    franquicia o fue cortado ('FA') en los rosters en vivo de ESPN.
+    """
+    limpio = _limpiar_nombre_jugador(player_name)
+    partes = limpio.split()
+    if not partes:
+        return "UNK"
+    if len(partes) == 1:
+        return partes[0]
+    return f"{partes[0][0]}_{partes[-1]}"
+
+
+def consultar_roster_equipo_espn(team_abbr: str, timeout: int = 5) -> List[Dict[str, str]]:
+    """
+    Consulta el roster vivo oficial de ESPN para una franquicia:
+    'https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/{team_id}/roster'
+    Retorna la lista de jugadores activos/en plantilla del equipo.
+    """
+    std_abbr = normalizar_abbr_nfl(team_abbr)
+    team_id = ESPN_TEAM_IDS.get(std_abbr)
+    jugadores_roster: List[Dict[str, str]] = []
+    if not team_id:
+        return jugadores_roster
+
+    url = ESPN_ROSTER_URL_TPL.format(team_id=team_id)
+    try:
+        resp = requests.get(
+            url,
+            timeout=timeout,
+            headers={"Accept": "application/json", "User-Agent": "Mozilla/5.0"},
+        )
+        if resp.status_code != 200:
+            return jugadores_roster
+        data = resp.json()
+        grupos = data.get("athletes", []) or []
+        for grp in grupos:
+            items = grp.get("items", []) if isinstance(grp, dict) else []
+            if not items and isinstance(grp, dict) and ("displayName" in grp or "fullName" in grp):
+                items = [grp]
+            for ath in items:
+                if not isinstance(ath, dict):
+                    continue
+                disp_name = str(ath.get("displayName") or ath.get("fullName") or ath.get("shortName") or "").strip()
+                short_name = str(ath.get("shortName") or disp_name).strip()
+                pos_abbr = str((ath.get("position") or {}).get("abbreviation", "")).strip().upper()
+                status_obj = ath.get("status") or {}
+                status_type = str(
+                    status_obj.get("type") or status_obj.get("name") or status_obj.get("abbreviation") or "Active"
+                ).strip()
+                if disp_name:
+                    jugadores_roster.append(
+                        {
+                            "team": std_abbr,
+                            "player": disp_name,
+                            "short_name": short_name,
+                            "pos": pos_abbr,
+                            "status": status_type,
+                            "player_key": _clave_jugador_sin_equipo(disp_name),
+                            "full_clean": _limpiar_nombre_jugador(disp_name),
+                        }
+                    )
+    except Exception:
+        pass
+    return jugadores_roster
+
+
+def consultar_transacciones_espn_nfl(timeout: int = 6) -> List[Dict[str, Any]]:
+    """
+    Consulta el feed oficial de transacciones de ESPN NFL:
+    'https://site.api.espn.com/apis/site/v2/sports/football/nfl/transactions'
+    Extrae trades, firmas ('signed', 'acquired', 'claimed') y cortes ('released', 'waived', 'cut').
+    """
+    transacciones: List[Dict[str, Any]] = []
+    try:
+        resp = requests.get(
+            ESPN_TRANSACTIONS_URL,
+            timeout=timeout,
+            headers={"Accept": "application/json", "User-Agent": "Mozilla/5.0"},
+        )
+        if resp.status_code != 200:
+            return transacciones
+        data = resp.json()
+        raw_list = data.get("transactions", []) or data.get("items", []) or []
+        for item in raw_list:
+            if not isinstance(item, dict):
+                continue
+            team_obj = item.get("team", {}) or {}
+            raw_abbr = str(team_obj.get("abbreviation") or "").strip().upper()
+            std_abbr = normalizar_abbr_nfl(raw_abbr) if raw_abbr else ""
+            desc = str(item.get("description") or item.get("text") or "").strip()
+            date_str = str(item.get("date") or "").strip()
+            if not desc:
+                continue
+
+            desc_low = desc.lower()
+            if "trade" in desc_low or "acquired" in desc_low:
+                tipo_tx = "TRADE"
+            elif any(w in desc_low for w in ("released", "waived", "cut", "terminated")):
+                tipo_tx = "CORTE_FA"
+            elif any(w in desc_low for w in ("signed", "claimed", "elevated", "activated")):
+                tipo_tx = "FIRMA_ALTA"
+            else:
+                tipo_tx = "MOVIMIENTO"
+
+            transacciones.append(
+                {
+                    "team": std_abbr,
+                    "date": date_str,
+                    "type": tipo_tx,
+                    "description": desc,
+                }
+            )
+    except Exception:
+        pass
+    return transacciones
+
+
+def sincronizar_traspasos_y_movimientos_roster_nfl(
+    excel_path: str = DEFAULT_EXCEL_STATS_PATH,
+    guardar_excel: bool = True,
+) -> Dict[str, Any]:
+    """
+    1. DETECCIÓN DE TRASPASOS Y MOVIMIENTOS DE ROSTER:
+       - Consulta los rosters vivos de ESPN ('teams/{team_id}/roster') para las 32 franquicias
+         y el feed de transacciones ('transactions').
+       - Cruza los jugadores registrados en 'NFL_Stats' y 'Player_Props_Baseline' contra los
+         rosters actuales: si un jugador de impacto cambió de equipo ('Equipo_Prev' != 'Equipo_Actual')
+         o fue cortado ('FA'), lo guarda en 'nfl_roster_moves.json' y actualiza/crea la pestaña
+         'Roster_Moves' en 'nfl_stats1.xlsx'.
+    """
+    ts_cst = datetime.now(CST_TZ).strftime("%Y-%m-%d %H:%M:%S CST")
+    qb_base_map, df_props_base = _cargar_baseline_jugadores_excel(excel_path)
+    transacciones_espn = consultar_transacciones_espn_nfl()
+
+    # Consultar los 32 rosters vivos de ESPN
+    rosters_por_equipo: Dict[str, List[Dict[str, str]]] = {}
+    indice_global_nombre_exacto: Dict[str, List[Dict[str, str]]] = {}
+    indice_global_clave_pos: Dict[Tuple[str, str], List[Dict[str, str]]] = {}
+    indice_global_clave: Dict[str, List[Dict[str, str]]] = {}
+
+    for std_abbr in sorted(ESPN_TEAM_IDS.keys()):
+        r_list = consultar_roster_equipo_espn(std_abbr)
+        rosters_por_equipo[std_abbr] = r_list
+        for p_item in r_list:
+            f_clean = p_item["full_clean"]
+            p_key = p_item["player_key"]
+            p_grp = _clasificar_grupo_posicion(p_item["pos"])
+            indice_global_nombre_exacto.setdefault(f_clean, []).append(p_item)
+            indice_global_clave_pos.setdefault((p_key, p_grp), []).append(p_item)
+            indice_global_clave.setdefault(p_key, []).append(p_item)
+
+    # Construir lista unificada de jugadores base desde 'NFL_Stats' y 'Player_Props_Baseline'
+    jugadores_base: List[Dict[str, Any]] = []
+    vistos_base: Set[str] = set()
+
+    if not df_props_base.empty:
+        for _, row in df_props_base.iterrows():
+            t_prev = normalizar_abbr_nfl(str(row.get("Team", "")).strip())
+            p_name = str(row.get("Player", "")).strip()
+            p_pos = str(row.get("Pos", "WR")).strip().upper()
+            if not t_prev or not p_name:
+                continue
+            uid = f"{t_prev}_{_clave_jugador_sin_equipo(p_name)}_{p_pos}"
+            if uid in vistos_base:
+                continue
+            vistos_base.add(uid)
+            jugadores_base.append(
+                {
+                    "Equipo_Prev": t_prev,
+                    "Player": p_name,
+                    "Pos": p_pos,
+                    "Role_Share": float(row.get("Role_Share", 0.22) or 0.22),
+                    "Catch_Rate": float(row.get("Catch_Rate", 0.65) or 0.65),
+                    "Yds_Per_Unit": float(row.get("Yds_Per_Unit", 7.5) or 7.5),
+                    "Baseline_Yds": float(row.get("Baseline_Yds", 45.0) or 45.0),
+                    "TD_Rate": float(row.get("TD_Rate", 0.20) or 0.20),
+                }
+            )
+
+    for t_prev, qb_nm in qb_base_map.items():
+        uid = f"{t_prev}_{_clave_jugador_sin_equipo(qb_nm)}_QB"
+        if uid not in vistos_base and qb_nm:
+            vistos_base.add(uid)
+            jugadores_base.append(
+                {
+                    "Equipo_Prev": t_prev,
+                    "Player": qb_nm,
+                    "Pos": "QB",
+                    "Role_Share": 1.0,
+                    "Catch_Rate": 0.65,
+                    "Yds_Per_Unit": 7.4,
+                    "Baseline_Yds": 225.0,
+                    "TD_Rate": 1.5,
+                }
+            )
+
+    # Verificar si los rosters vivos de ESPN devolvieron datos reales (al menos 16 equipos con jugadores)
+    equipos_con_roster_vivo = sum(1 for v in rosters_por_equipo.values() if len(v) > 0)
+    movimientos_detectados: List[Dict[str, Any]] = []
+    por_equipo_prev: Dict[str, List[Dict[str, Any]]] = {}
+    por_equipo_actual: Dict[str, List[Dict[str, Any]]] = {}
+    resumen_por_equipo: Dict[str, List[str]] = {abbr: [] for abbr in ESPN_TEAM_IDS.keys()}
+
+    if equipos_con_roster_vivo >= 16:
+        for jb in jugadores_base:
+            t_prev = jb["Equipo_Prev"]
+            p_name = jb["Player"]
+            p_pos = jb["Pos"]
+            p_grp = _clasificar_grupo_posicion(p_pos)
+            p_key = _clave_jugador_sin_equipo(p_name)
+            f_clean = _limpiar_nombre_jugador(p_name)
+
+            # 1) ¿Sigue en el roster de su Equipo_Prev?
+            roster_prev = rosters_por_equipo.get(t_prev, [])
+            sigue_en_prev = any(
+                (r["full_clean"] == f_clean)
+                or (r["player_key"] == p_key and _clasificar_grupo_posicion(r["pos"]) == p_grp)
+                for r in roster_prev
+            )
+            if sigue_en_prev:
+                continue
+
+            # 2) Buscar en los rosters del resto de las franquicias NFL
+            candidatos = indice_global_nombre_exacto.get(f_clean, [])
+            if not candidatos:
+                candidatos = indice_global_clave_pos.get((p_key, p_grp), [])
+
+            otros_equipos = [c for c in candidatos if c["team"] != t_prev]
+            if len(otros_equipos) == 1:
+                nuevo_item = otros_equipos[0]
+                t_actual = nuevo_item["team"]
+                tipo_mov = "TRASPASO_NUEVO_EQUIPO"
+                factor_adap = NEW_TEAM_ADAPTATION_FACTOR
+                detalle_tx = f"Detectado en roster vivo ESPN de {t_actual} (antes {t_prev})"
+            elif len(otros_equipos) > 1:
+                # Si hay colisión de inicial+apellido en la misma posición, verificar transacciones ESPN
+                apellido_b = f_clean.split()[-1] if f_clean.split() else ""
+                match_tx = None
+                for cand in otros_equipos:
+                    for tx in transacciones_espn:
+                        if apellido_b and apellido_b in tx["description"].upper() and tx["team"] == cand["team"]:
+                            match_tx = cand
+                            break
+                if match_tx is not None:
+                    t_actual = match_tx["team"]
+                    tipo_mov = "TRASPASO_NUEVO_EQUIPO"
+                    factor_adap = NEW_TEAM_ADAPTATION_FACTOR
+                    detalle_tx = f"Confirmado por Roster + Transacción ESPN en {t_actual} (antes {t_prev})"
+                else:
+                    continue
+            else:
+                # No figura en ningún roster activo de las 32 franquicias -> Cortado / Agente Libre ('FA')
+                if not roster_prev:
+                    continue
+                t_actual = "FA"
+                tipo_mov = "CORTE_FA"
+                factor_adap = 0.0
+                detalle_tx = f"Fuera del roster activo de {t_prev} (Agente Libre / FA)"
+
+            reg_mov = {
+                "Timestamp_CST": ts_cst,
+                "Player": p_name,
+                "Pos": p_pos,
+                "Equipo_Prev": t_prev,
+                "Equipo_Actual": t_actual,
+                "Tipo_Movimiento": tipo_mov,
+                "Factor_Adaptacion": factor_adap,
+                "Role_Share_Base": round(float(jb["Role_Share"]), 3),
+                "Baseline_Yds": round(float(jb["Baseline_Yds"]), 1),
+                "Catch_Rate": round(float(jb["Catch_Rate"]), 3),
+                "Yds_Per_Unit": round(float(jb["Yds_Per_Unit"]), 2),
+                "TD_Rate": round(float(jb["TD_Rate"]), 3),
+                "Detalle_ESPN": detalle_tx,
+                "player_key": p_key,
+            }
+            movimientos_detectados.append(reg_mov)
+            por_equipo_prev.setdefault(t_prev, []).append(reg_mov)
+            if t_actual != "FA":
+                por_equipo_actual.setdefault(t_actual, []).append(reg_mov)
+                resumen_por_equipo.setdefault(t_actual, []).append(
+                    f"Alta: {p_name} ({p_pos}, ex-{t_prev} · 85%)"
+                )
+                resumen_por_equipo.setdefault(t_prev, []).append(
+                    f"Baja: {p_name} ({p_pos} -> {t_actual})"
+                )
+            else:
+                resumen_por_equipo.setdefault(t_prev, []).append(
+                    f"Baja: {p_name} ({p_pos} -> FA)"
+                )
+
+    # Incorporar transacciones recientes de impacto del feed de ESPN que no estén ya listadas
+    for tx in transacciones_espn[:40]:
+        t_tx = tx.get("team", "")
+        if t_tx and tx.get("type") in {"TRADE", "FIRMA_ALTA", "CORTE_FA"}:
+            desc_corta = tx["description"]
+            if len(desc_corta) > 78:
+                desc_corta = desc_corta[:75] + "..."
+            if len(resumen_por_equipo.get(t_tx, [])) < 3:
+                etiqueta_tx = f"{tx['type']}: {desc_corta}"
+                if etiqueta_tx not in resumen_por_equipo.setdefault(t_tx, []):
+                    resumen_por_equipo[t_tx].append(etiqueta_tx)
+
+    payload_moves = {
+        "timestamp_cst": ts_cst,
+        "new_team_adaptation_factor": NEW_TEAM_ADAPTATION_FACTOR,
+        "total_moves": len(movimientos_detectados),
+        "moves": movimientos_detectados,
+        "by_prev_team": por_equipo_prev,
+        "by_current_team": por_equipo_actual,
+        "summary_by_team": resumen_por_equipo,
+        "recent_espn_transactions": transacciones_espn[:50],
+    }
+
+    with open(ROSTER_MOVES_JSON_PATH, "w", encoding="utf-8") as f_rm:
+        json.dump(payload_moves, f_rm, ensure_ascii=False, indent=2)
+
+    if guardar_excel:
+        filas_rm_excel = [
+            {col: m.get(col, "") for col in ROSTER_MOVES_COLUMNS}
+            for m in movimientos_detectados
+        ]
+        df_rm_sheet = pd.DataFrame(filas_rm_excel, columns=ROSTER_MOVES_COLUMNS)
+        _actualizar_hoja_excel_seguro(
+            excel_path=excel_path,
+            sheet_name="Roster_Moves",
+            df_new=df_rm_sheet,
+            append=False,
+        )
+
+    return payload_moves
+
+
+def cargar_traspasos_roster_nfl(forzar_sync: bool = False) -> Dict[str, Any]:
+    """
+    Carga 'nfl_roster_moves.json' si existe; de lo contrario ejecuta
+    'sincronizar_traspasos_y_movimientos_roster_nfl'.
+    """
+    if not forzar_sync and os.path.exists(ROSTER_MOVES_JSON_PATH):
+        try:
+            with open(ROSTER_MOVES_JSON_PATH, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            if isinstance(data, dict) and "moves" in data:
+                return data
+        except Exception:
+            pass
+    return sincronizar_traspasos_y_movimientos_roster_nfl()
+
+
 def _cargar_baseline_jugadores_excel(excel_path: str = DEFAULT_EXCEL_STATS_PATH) -> Tuple[Dict[str, str], pd.DataFrame]:
     """
     Lee 'NFL_Stats' y 'Player_Props_Baseline' desde 'nfl_stats1.xlsx' para conocer
@@ -550,22 +925,32 @@ def sincronizar_lesiones_titulares_y_clima_nfl(
     semana: Optional[int] = None,
     excel_path: str = DEFAULT_EXCEL_STATS_PATH,
     incluir_depth_charts: bool = True,
+    guardar_excel: bool = True,
 ) -> Dict[str, Any]:
     """
     Ejecuta la sincronización integral:
       1. Carga el snapshot previo de 'nfl_injuries_live.json' para detectar 'RECIEN_ACTIVADO'.
-      2. Consulta 'injuries', 'scoreboard' + 'summary?event={event_id}' y 'depthcharts' en ESPN.
+      2. Consulta 'injuries', 'scoreboard' + 'summary?event={event_id}', 'depthcharts',
+         'roster' y 'transactions' en ESPN.
       3. Clasifica el estatus exacto ('ACTIVO_CONFIRMADO', 'RECIEN_ACTIVADO', 'QUESTIONABLE_GTD',
          'OUT_INACTIVO') para QB1, RB1, WR1, WR2, TE1, LT, LG, C, RG, RT, CB1, EDGE1 y MLB1.
-      4. Consulta Open-Meteo para todos los partidos de la jornada.
-      5. Guarda 'nfl_injuries_live.json', 'nfl_starters_verified.json' y actualiza la hoja
-         'Injuries_Live' en 'nfl_stats1.xlsx' con timestamp en CST.
+      4. Detecta traspasos y cortes ('nfl_roster_moves.json' y pestaña 'Roster_Moves').
+      5. Consulta Open-Meteo para todos los partidos de la jornada.
+      6. Guarda 'nfl_injuries_live.json', 'nfl_starters_verified.json' y actualiza las hojas
+         'Injuries_Live' y 'Roster_Moves' en 'nfl_stats1.xlsx' con timestamp en CST.
     """
     ts_cst = datetime.now(CST_TZ).strftime("%Y-%m-%d %H:%M:%S CST")
     snapshot_prev = cargar_snapshot_previo_lesiones(INJURIES_JSON_PATH)
     bajas_previas_map = _extraer_bajas_previas_por_clave(snapshot_prev)
 
     qb_base_map, df_props_base = _cargar_baseline_jugadores_excel(excel_path)
+    roster_moves_payload = sincronizar_traspasos_y_movimientos_roster_nfl(
+        excel_path=excel_path,
+        guardar_excel=guardar_excel,
+    )
+    moves_by_prev = roster_moves_payload.get("by_prev_team", {}) or {}
+    moves_by_curr = roster_moves_payload.get("by_current_team", {}) or {}
+    moves_summary_map = roster_moves_payload.get("summary_by_team", {}) or {}
 
     # 1. Consultar calendario de la jornada y extraer event_ids
     partidos_semana = obtener_calendario_nfl_semana(semana=semana)
@@ -846,13 +1231,29 @@ def sincronizar_lesiones_titulares_y_clima_nfl(
             "recien_activados": recien_activados_equipo,
             "bajas_out_doubtful": bajas_clave_equipo,
             "questionable_gtd": gtd_equipo,
+            "traspasos_altas": moves_by_curr.get(std_abbr, []),
+            "traspasos_bajas": moves_by_prev.get(std_abbr, []),
+            "traspasos_resumen": moves_summary_map.get(std_abbr, []),
             "starters": titulares_clasificados,
+            "titulares": [
+                {
+                    "slot": v["slot"],
+                    "position": v["pos"],
+                    "player_name": v["player"],
+                    "status": v["status"],
+                    "raw_espn_status": v["raw_status"],
+                    "detail": v["raw_status"],
+                    "recien_activado": v["status"] == "RECIEN_ACTIVADO",
+                }
+                for v in titulares_clasificados.values()
+            ],
         }
 
     payload_injuries = {
         "timestamp_cst": ts_cst,
         "semana": semana or 10,
         "weather_by_matchup": clima_por_partido,
+        "roster_moves": roster_moves_payload,
         "teams": {
             abbr: {
                 "injuries": lesiones_por_equipo.get(abbr, []),
@@ -866,7 +1267,14 @@ def sincronizar_lesiones_titulares_y_clima_nfl(
         "timestamp_cst": ts_cst,
         "semana": semana or 10,
         "weather_by_matchup": clima_por_partido,
+        "clima_por_local": {
+            normalizar_abbr_nfl(k.split("@")[-1].strip()): v
+            for k, v in clima_por_partido.items()
+            if "@" in k
+        },
+        "roster_moves": roster_moves_payload,
         "teams": starters_por_equipo,
+        "equipos": starters_por_equipo,
     }
 
     with open(INJURIES_JSON_PATH, "w", encoding="utf-8") as f_inj:
@@ -876,13 +1284,14 @@ def sincronizar_lesiones_titulares_y_clima_nfl(
         json.dump(payload_starters, f_st, ensure_ascii=False, indent=2)
 
     # 4. Actualizar/crear la pestaña 'Injuries_Live' en 'nfl_stats1.xlsx'
-    df_inj_sheet = pd.DataFrame(filas_excel_injuries)
-    _actualizar_hoja_excel_seguro(
-        excel_path=excel_path,
-        sheet_name="Injuries_Live",
-        df_new=df_inj_sheet,
-        append=False,
-    )
+    if guardar_excel:
+        df_inj_sheet = pd.DataFrame(filas_excel_injuries)
+        _actualizar_hoja_excel_seguro(
+            excel_path=excel_path,
+            sheet_name="Injuries_Live",
+            df_new=df_inj_sheet,
+            append=False,
+        )
 
     return payload_starters
 
@@ -949,20 +1358,28 @@ def obtener_bloque_estado_partido(
     away_abbr: str,
     home_abbr: str,
     estado_global: Optional[Dict[str, Any]] = None,
+    starters_verified: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """
-    Construye las 3 líneas compactas de estado de plantilla y entorno para un partido:
+    Construye las 4 líneas compactas de estado de plantilla, traspasos y entorno para un partido:
       - Línea 1: "QB1: [Nombre Visitante] [OK/NUEVO] vs [Nombre Local] [OK/NUEVO] | Clima: [Domo / Temp y Viento]"
       - Línea 2: "🔴 OUT / GTD: [Bajas relevantes de ambos equipos con posición]"
       - Línea 3: "🟢 ACTIVADOS: [Jugadores clave recién activados de IR/lesión para este juego, o 'Sin novedades']"
+      - Línea 4: "🔄 TRASPASOS: [Altas/bajas recientes por trade o firma en ambos equipos, o 'Sin cambios']"
     """
     aw = normalizar_abbr_nfl(away_abbr)
     hm = normalizar_abbr_nfl(home_abbr)
     partido_key = f"{aw} @ {hm}"
 
-    data = estado_global if estado_global is not None else cargar_estado_titulares_y_clima(forzar_sync=False)
-    teams_map = (data or {}).get("teams", {}) or {}
+    data = (
+        estado_global
+        if estado_global is not None
+        else (starters_verified if starters_verified is not None else cargar_estado_titulares_y_clima(forzar_sync=False))
+    )
+    teams_map = (data or {}).get("teams", (data or {}).get("equipos", {})) or {}
     weather_map = (data or {}).get("weather_by_matchup", {}) or {}
+    rm_global = (data or {}).get("roster_moves", {}) or {}
+    rm_summary_map = rm_global.get("summary_by_team", {}) if isinstance(rm_global, dict) else {}
 
     aw_info = teams_map.get(aw, {}) or {}
     hm_info = teams_map.get(hm, {}) or {}
@@ -999,11 +1416,22 @@ def obtener_bloque_estado_partido(
     act_str = " | ".join(partes_act) if partes_act else "Sin novedades"
     linea_3 = f"🟢 ACTIVADOS: {act_str}"
 
+    tr_aw = (aw_info.get("traspasos_resumen") or rm_summary_map.get(aw) or [])[:2]
+    tr_hm = (hm_info.get("traspasos_resumen") or rm_summary_map.get(hm) or [])[:2]
+    partes_tr = []
+    if tr_aw:
+        partes_tr.append(f"{aw}: {', '.join(tr_aw)}")
+    if tr_hm:
+        partes_tr.append(f"{hm}: {', '.join(tr_hm)}")
+    traspasos_str = " | ".join(partes_tr) if partes_tr else "Sin cambios"
+    linea_4 = f"🔄 TRASPASOS: {traspasos_str}"
+
     return {
         "partido": partido_key,
         "linea_1_qb_clima": linea_1,
         "linea_2_out_gtd": linea_2,
         "linea_3_activados": linea_3,
+        "linea_4_traspasos": linea_4,
         "clima": clima_info,
         "away_team_state": aw_info,
         "home_team_state": hm_info,

@@ -52,12 +52,14 @@ from engine_props_nfl import (
 try:
     from sync_injuries_nfl import (
         cargar_estado_titulares_y_clima,
+        cargar_traspasos_roster_nfl,
         ejecutar_autocalibracion_post_jornada,
         obtener_bloque_estado_partido,
         sincronizar_lesiones_titulares_y_clima_nfl,
     )
 except Exception:
     cargar_estado_titulares_y_clima = None  # type: ignore
+    cargar_traspasos_roster_nfl = None  # type: ignore
     ejecutar_autocalibracion_post_jornada = None  # type: ignore
     obtener_bloque_estado_partido = None  # type: ignore
     sincronizar_lesiones_titulares_y_clima_nfl = None  # type: ignore
@@ -1207,6 +1209,10 @@ def render_vista_cartelera() -> None:
                             sim.get("linea_3_activados")
                             or "🟢 ACTIVADOS: Sin novedades"
                         )
+                        ln4_card = str(
+                            sim.get("linea_4_traspasos")
+                            or "🔄 TRASPASOS: Sin cambios"
+                        )
 
                         mc_breakdown_html = (
                             f'<div class="mc-breakdown-box">'
@@ -1217,6 +1223,7 @@ def render_vista_cartelera() -> None:
                             f'<div class="mc-breakdown-line" style="border-top:1px dashed rgba(148,163,184,0.25); padding-top:4px; margin-top:4px; color:#F8FAFC;">📋 {ln1_card}</div>'
                             f'<div class="mc-breakdown-line" style="color:#FBBF24;">{ln2_card}</div>'
                             f'<div class="mc-breakdown-line" style="color:#34D399;">{ln3_card}</div>'
+                            f'<div class="mc-breakdown-line" style="color:#60A5FA;">{ln4_card}</div>'
                             f'</div>'
                         )
 
@@ -1645,6 +1652,7 @@ def render_vista_cartelera() -> None:
                     ln1_s = str(sim_s.get("linea_1_qb_clima") or f"QB1: {sim_s['away_qb']} [OK] vs {sim_s['home_qb']} [OK] | Clima: {sim_s['tipo_estadio']}")
                     ln2_s = str(sim_s.get("linea_2_out_gtd") or "🔴 OUT / GTD: Sin bajas titulares reportadas")
                     ln3_s = str(sim_s.get("linea_3_activados") or "🟢 ACTIVADOS: Sin novedades")
+                    ln4_s = str(sim_s.get("linea_4_traspasos") or "🔄 TRASPASOS: Sin cambios")
                     card_st_html = (
                         f'<div style="background-color:#0d1117; border:1px solid #30363d; border-left:4px solid #38bdf8; '
                         f'border-radius:10px; padding:12px 14px; margin-bottom:10px; font-family:JetBrains Mono,monospace;">'
@@ -1653,10 +1661,43 @@ def render_vista_cartelera() -> None:
                         f'</div>'
                         f'<div style="font-size:0.76rem; color:#e2e8f0; margin-bottom:3px;">🏈 {ln1_s}</div>'
                         f'<div style="font-size:0.75rem; color:#fbbf24; margin-bottom:3px;">{ln2_s}</div>'
-                        f'<div style="font-size:0.75rem; color:#34d399;">{ln3_s}</div>'
+                        f'<div style="font-size:0.75rem; color:#34d399; margin-bottom:3px;">{ln3_s}</div>'
+                        f'<div style="font-size:0.75rem; color:#60a5fa;">{ln4_s}</div>'
                         f'</div>'
                     )
                     st.markdown(card_st_html, unsafe_allow_html=True)
+
+        # Sección de Traspasos y Movimientos de Roster ('Roster_Moves' / 'nfl_roster_moves.json')
+        st.markdown("##### 🔄 Traspasos, Firmas y Cortes Detectados en Rosters Vivos de ESPN (`Roster_Moves`)")
+        df_roster_moves = pd.DataFrame()
+        if os.path.exists("nfl_stats1.xlsx"):
+            try:
+                xl_rm = pd.ExcelFile("nfl_stats1.xlsx")
+                if "Roster_Moves" in xl_rm.sheet_names:
+                    df_roster_moves = pd.read_excel(xl_rm, sheet_name="Roster_Moves")
+            except Exception:
+                df_roster_moves = pd.DataFrame()
+
+        rm_json_data = (
+            (starters_data or {}).get("roster_moves")
+            if isinstance(starters_data, dict) and (starters_data or {}).get("roster_moves")
+            else (cargar_traspasos_roster_nfl(forzar_sync=False) if cargar_traspasos_roster_nfl is not None else {})
+        )
+        if df_roster_moves.empty and isinstance(rm_json_data, dict) and rm_json_data.get("moves"):
+            df_roster_moves = pd.DataFrame(rm_json_data.get("moves", []))
+
+        if not df_roster_moves.empty:
+            st.dataframe(df_roster_moves, use_container_width=True, hide_index=True)
+        else:
+            st.info(
+                "✅ Todos los jugadores registrados en `NFL_Stats` y `Player_Props_Baseline` permanecen en sus "
+                "equipos actuales según los rosters vivos de ESPN (`Sin cambios` de franquicia o cortes a `FA`)."
+            )
+
+        tx_recientes = (rm_json_data or {}).get("recent_espn_transactions", []) if isinstance(rm_json_data, dict) else []
+        if tx_recientes:
+            with st.expander(f"📡 Feed Oficial de Transacciones Recientes ESPN NFL ({len(tx_recientes)} movimientos)", expanded=False):
+                st.dataframe(pd.DataFrame(tx_recientes), use_container_width=True, hide_index=True)
 
         # Tabla detallada desde la hoja 'Injuries_Live' o nfl_starters_verified.json
         df_inj_live = pd.DataFrame()

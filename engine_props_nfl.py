@@ -37,10 +37,12 @@ from openpyxl.utils import get_column_letter
 try:
     from sync_injuries_nfl import (
         cargar_estado_titulares_y_clima,
+        cargar_traspasos_roster_nfl,
         consultar_clima_open_meteo_estadio,
     )
 except Exception:
     cargar_estado_titulares_y_clima = None  # type: ignore
+    cargar_traspasos_roster_nfl = None  # type: ignore
     consultar_clima_open_meteo_estadio = None  # type: ignore
 
 DEFAULT_PROPS_EXCEL_PATH = "nfl_stats1.xlsx"
@@ -667,14 +669,18 @@ def simular_prop_jugador_lognormal(
         )
         mediana_raw = base_yds * desv_dvp_rb * factor_script_rb
 
-    # Factor conservador del 92% en primer juego de regreso ('RECIEN_ACTIVADO')
-    # o descuento preventivo del -8% si 'QUESTIONABLE_GTD'
+    # Factor conservador del 92% en primer juego de regreso ('RECIEN_ACTIVADO'),
+    # descuento preventivo del -8% si 'QUESTIONABLE_GTD', o factor de adaptación del 85%
+    # en nuevo equipo tras traspaso/firma ('TRASPASO_NUEVO_EQUIPO')
     if status_up == "RECIEN_ACTIVADO":
         mediana_raw *= 0.92
         notas_ajuste.append("RecienActivado(Factor_92%)")
     elif status_up == "QUESTIONABLE_GTD":
         mediana_raw *= 0.92
         notas_ajuste.append("Questionable_GTD(-8%)")
+    elif status_up == "TRASPASO_NUEVO_EQUIPO":
+        mediana_raw *= 0.85
+        notas_ajuste.append("TraspasoNuevoEquipo(Adaptacion_85%)")
 
     # Si el diferencial bruto era muy estrecho (< 4% de la línea), desplazar según la ventaja neta de EPA
     if abs(mediana_raw - linea_mercado) < (0.045 * linea_mercado):
@@ -936,8 +942,16 @@ def simular_player_props_partido(
             starters_verified = cargar_estado_titulares_y_clima(forzar_sync=False)
         except Exception:
             starters_verified = {}
-    sv_equipos = (starters_verified or {}).get("equipos", {}) if isinstance(starters_verified, dict) else {}
+    sv_equipos = (starters_verified or {}).get("equipos", (starters_verified or {}).get("teams", {})) if isinstance(starters_verified, dict) else {}
     sv_clima_map = (starters_verified or {}).get("clima_por_local", {}) if isinstance(starters_verified, dict) else {}
+    rm_payload = (starters_verified or {}).get("roster_moves", {}) if isinstance(starters_verified, dict) else {}
+    if not rm_payload and cargar_traspasos_roster_nfl is not None:
+        try:
+            rm_payload = cargar_traspasos_roster_nfl(forzar_sync=False)
+        except Exception:
+            rm_payload = {}
+    rm_by_prev = (rm_payload or {}).get("by_prev_team", {}) if isinstance(rm_payload, dict) else {}
+    rm_by_curr = (rm_payload or {}).get("by_current_team", {}) if isinstance(rm_payload, dict) else {}
     clima_home = sv_clima_map.get(home, sv_clima_map.get(TEAM_ABBR_ALIASES.get(home, ""), {}))
     if not clima_home and consultar_clima_open_meteo_estadio is not None:
         try:
@@ -1004,6 +1018,17 @@ def simular_player_props_partido(
         epa_off_own = float(st_own.get("EPA_Pass_Off", 0.05))
 
         # Evaluar primero qué jugadores están activos y calcular el Usage Vacuum (65% del Role_Share de WR1/TE1 ausentes)
+        # Bloquear al 100% cualquier prop bajo su equipo anterior ('Equipo_Prev') o si fue cortado ('FA')
+        bajas_traspaso_list = sv_team.get("traspasos_bajas") or rm_by_prev.get(team_actual, []) or []
+        altas_traspaso_list = sv_team.get("traspasos_altas") or rm_by_curr.get(team_actual, []) or []
+        claves_bloqueadas_traspaso_o_fa: Set[str] = set()
+        for m_baja in bajas_traspaso_list:
+            nm_b = str(m_baja.get("Player", "")).strip()
+            if nm_b:
+                claves_bloqueadas_traspaso_o_fa.add(_clave_jugador_equipo(team_actual, nm_b))
+                claves_bloqueadas_traspaso_o_fa.add(nm_b.upper())
+                claves_bloqueadas_traspaso_o_fa.add(_limpiar_sufijos_nombre(nm_b))
+
         filas_activas: List[Tuple[pd.Series, str]] = []
         role_share_vacante_wr_te = 0.0
         wr1_te1_out_set = {
@@ -1017,6 +1042,16 @@ def simular_player_props_partido(
             p_rs = float(row.get("Role_Share", 0.25) or 0.25)
             clave_p = _clave_jugador_equipo(team_actual, p_name)
             limpio_p = _limpiar_sufijos_nombre(p_name)
+
+            # Bloqueo 100% si el jugador fue traspasado a otro equipo o cortado como 'FA'
+            if (
+                clave_p in claves_bloqueadas_traspaso_o_fa
+                or p_name.upper() in claves_bloqueadas_traspaso_o_fa
+                or limpio_p in claves_bloqueadas_traspaso_o_fa
+            ):
+                if p_pos in ("WR", "WR1", "WR2", "TE"):
+                    role_share_vacante_wr_te += p_rs
+                continue
 
             st_verif = (
                 status_por_clave.get(clave_p)
@@ -1040,10 +1075,44 @@ def simular_player_props_partido(
                 continue
 
             # Solo simular props de jugadores con estado permitido
-            if st_verif not in {"ACTIVO_CONFIRMADO", "RECIEN_ACTIVADO", "QUESTIONABLE_GTD"}:
+            if st_verif not in {"ACTIVO_CONFIRMADO", "RECIEN_ACTIVADO", "QUESTIONABLE_GTD", "TRASPASO_NUEVO_EQUIPO"}:
                 continue
 
             filas_activas.append((row, st_verif))
+
+        # Migrar jugadores recién adquiridos por traspaso/firma en su nuevo equipo ('Equipo_Actual')
+        # con factor de adaptación conservador del 85% y reequilibrar el Role_Share de su nueva unidad
+        nombres_ya_en_equipo = {_limpiar_sufijos_nombre(str(r.get("Player", ""))) for r, _ in filas_activas}
+        for m_alta in altas_traspaso_list:
+            if str(m_alta.get("Equipo_Actual", "")).strip().upper() == "FA":
+                continue
+            nm_a = str(m_alta.get("Player", "")).strip()
+            pos_a = str(m_alta.get("Pos", "WR")).strip().upper()
+            if not nm_a or _limpiar_sufijos_nombre(nm_a) in nombres_ya_en_equipo:
+                continue
+            if jugador_esta_inactivo(
+                team_actual,
+                nm_a,
+                reporte_inactivos=reporte_inactivos,
+                inactivos_extra=inactivos_extra,
+            ):
+                continue
+
+            factor_adap = float(m_alta.get("Factor_Adaptacion", 0.85) or 0.85)
+            serie_migrada = pd.Series(
+                {
+                    "Team": team_actual,
+                    "Player": nm_a,
+                    "Pos": pos_a,
+                    "Role_Share": round(float(m_alta.get("Role_Share_Base", 0.22) or 0.22) * factor_adap, 3),
+                    "Catch_Rate": float(m_alta.get("Catch_Rate", 0.65) or 0.65),
+                    "Yds_Per_Unit": float(m_alta.get("Yds_Per_Unit", 7.5) or 7.5),
+                    "Baseline_Yds": float(m_alta.get("Baseline_Yds", 45.0) or 45.0),
+                    "TD_Rate": round(float(m_alta.get("TD_Rate", 0.20) or 0.20) * factor_adap, 3),
+                }
+            )
+            filas_activas.append((serie_migrada, "TRASPASO_NUEVO_EQUIPO"))
+            nombres_ya_en_equipo.add(_limpiar_sufijos_nombre(nm_a))
 
         # Si WR1/TE1 está reportado fuera en ESPN pero no estaba en la hoja base, sumar vacuum estándar
         if role_share_vacante_wr_te == 0.0 and wr1_te1_out_set:
@@ -1057,9 +1126,10 @@ def simular_player_props_partido(
         )
         pool_redistribuible = 0.65 * role_share_vacante_wr_te
 
-        # Si hay un receptor recién activado, normalizar el Role_Share del resto de compañeros
-        hay_receptor_recien_activado = any(
-            st_v == "RECIEN_ACTIVADO" and str(r.get("Pos", "")).strip().upper() in ("WR", "WR1", "WR2", "TE")
+        # Si hay un receptor recién activado o recién llegado por traspaso, reequilibrar el Role_Share de la unidad
+        hay_receptor_recien_incorporado = any(
+            st_v in {"RECIEN_ACTIVADO", "TRASPASO_NUEVO_EQUIPO"}
+            and str(r.get("Pos", "")).strip().upper() in ("WR", "WR1", "WR2", "TE")
             for r, st_v in filas_activas
         )
 
@@ -1078,7 +1148,11 @@ def simular_player_props_partido(
             if pos in ("WR", "WR1", "WR2", "TE"):
                 if pool_redistribuible > 0.0 and receptores_activos_rs_total > 0.0:
                     vacuum_boost = pool_redistribuible * (role_share / receptores_activos_rs_total)
-                if hay_receptor_recien_activado and st_verif != "RECIEN_ACTIVADO" and receptores_activos_rs_total > 1.05:
+                if (
+                    hay_receptor_recien_incorporado
+                    and st_verif not in {"RECIEN_ACTIVADO", "TRASPASO_NUEVO_EQUIPO"}
+                    and receptores_activos_rs_total > 1.02
+                ):
                     role_share = role_share / receptores_activos_rs_total
 
             if pos.startswith("WR"):
