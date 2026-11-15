@@ -34,6 +34,15 @@ import requests
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 
+try:
+    from sync_injuries_nfl import (
+        cargar_estado_titulares_y_clima,
+        consultar_clima_open_meteo_estadio,
+    )
+except Exception:
+    cargar_estado_titulares_y_clima = None  # type: ignore
+    consultar_clima_open_meteo_estadio = None  # type: ignore
+
 DEFAULT_PROPS_EXCEL_PATH = "nfl_stats1.xlsx"
 FALLBACK_PROPS_EXCEL_PATH = "nfl_stats.xlsx"
 ESPN_NFL_INJURIES_URL = "https://site.api.espn.com/apis/site/v2/sports/football/nfl/injuries"
@@ -538,6 +547,9 @@ def simular_prop_jugador_lognormal(
     pressure_pct_rival: float = 0.245,
     epa_off_equipo: float = 0.05,
     es_qb_suplente: bool = False,
+    status_jugador: str = "ACTIVO_CONFIRMADO",
+    usage_vacuum_boost_rs: float = 0.0,
+    clima_adverso: bool = False,
     kickoff_str: str = "DOM 13:00 ET",
     kickoff_sort_key: Tuple[int, int, int, int] = (0, 4, 13, 0),
     linea_mercado_externa: Optional[float] = None,
@@ -554,21 +566,27 @@ def simular_prop_jugador_lognormal(
          (J.J. McCarthy es QB1 titular confirmado, exento de castigo de suplente).
       3. Regla de Protección al Receptor Élite (Alpha Receiver Filter): si Role_Share >= 26.0%,
          prohibido emitir señales de UNDER cuando la línea de mercado es < 72.5 yardas.
-      4. Evaluación de valor esperado positivo (+EV > 0.0% y % Cubre >= 54.5%).
+      4. Ajustes por Estado Verificado ('RECIEN_ACTIVADO' 92%, 'QUESTIONABLE_GTD' -8%),
+         redistribución del 65% de 'Role_Share' (Usage Vacuum) por bajas de WR1/TE1 y
+         castigo de -8% a yardas por pase/recepción con clima adverso en estadios abiertos.
+      5. Evaluación de valor esperado positivo (+EV > 0.0% y % Cubre >= 54.5%).
     """
     pos_clean = pos.strip().upper()
     metrica = METRICA_POR_POSICION.get(pos_clean, "Rec Yds")
     nombre_up = player_name.strip().upper()
+    status_up = str(status_jugador or "ACTIVO_CONFIRMADO").strip().upper()
 
     base_yds = max(5.0, float(baseline_yds))
     mult_dvp = float(np.clip(factor_dvp, 0.60, 1.65))
 
-    # Corrección de Role_Share (Target Share) para receptores Alfa subestimados en hoja base
+    # Corrección de Role_Share (Target Share) para receptores Alfa + Usage Vacuum (65% de WR1/TE1 ausente)
     role_share_eff = float(role_share)
     if pos_clean in ("WR", "WR1", "WR2", "TE"):
         floor_rs = ALPHA_RECEIVERS_ROLE_SHARE_FLOOR.get(nombre_up, 0.0)
         if floor_rs > role_share_eff:
             role_share_eff = floor_rs
+        if usage_vacuum_boost_rs > 0.0:
+            role_share_eff = min(0.42, role_share_eff + float(usage_vacuum_boost_rs))
 
     es_alpha_receiver = (
         pos_clean in ("WR", "WR1", "WR2", "TE")
@@ -585,9 +603,11 @@ def simular_prop_jugador_lognormal(
         else:
             linea_mercado = _redondear_a_medio_punto(base_yds)
 
-    notas_ajuste: List[str] = []
+    notas_ajuste: List[str] = [f"Status:{status_up}"]
+    pass_rate_eff = float(pass_rate_equipo) * (0.94 if clima_adverso else 1.0)
+
     if pos_clean == "QB":
-        pass_rate_clean = float(np.clip(pass_rate_equipo, 0.45, 0.68))
+        pass_rate_clean = float(np.clip(pass_rate_eff, 0.43, 0.68))
         volumen_pase_directo = base_yds * pass_rate_clean
         factor_esquema_pase = pass_rate_clean / PASS_RATE_LEAGUE_BASELINE
 
@@ -605,15 +625,28 @@ def simular_prop_jugador_lognormal(
             notas_ajuste.append("QB_Backup:-18%")
         else:
             notas_ajuste.append("QB1_Titular")
+
+        if clima_adverso:
+            mediana_raw *= 0.92
+            notas_ajuste.append("ClimaAdverso(Viento/Lluvia):-8%_PassYds")
     elif pos_clean in ("WR", "WR1", "WR2", "TE"):
         volumen_pase_directo = 0.0
         # Amplificar diferencial de matchup DvP para reflejar ventajas reales de cobertura
         desv_dvp_rec = 1.0 + 1.35 * (mult_dvp - 1.0)
         mediana_raw = base_yds * desv_dvp_rec
 
+        if usage_vacuum_boost_rs > 0.0:
+            ratio_rs_boost = 1.0 + min(0.28, float(usage_vacuum_boost_rs) / max(0.12, float(role_share)))
+            mediana_raw *= ratio_rs_boost
+            notas_ajuste.append(f"UsageVacuum(+{usage_vacuum_boost_rs*100:.1f}%_RS)")
+
         if es_qb_suplente:
             mediana_raw *= QB_BACKUP_RECEIVER_MULTIPLIER
             notas_ajuste.append("Castigo_QB_Suplente:-15%")
+
+        if clima_adverso:
+            mediana_raw *= 0.92
+            notas_ajuste.append("ClimaAdverso:-8%_RecYds")
 
         if es_alpha_receiver:
             # En receptores Alfa (Role_Share >= 26%) con línea < 72.5 yds, prohibido emitir UNDER;
@@ -629,10 +662,19 @@ def simular_prop_jugador_lognormal(
         desv_dvp_rb = 1.0 + 1.40 * (mult_dvp - 1.0)
         factor_script_rb = (
             1.07
-            if (pass_rate_equipo < 0.548 or es_qb_suplente)
-            else (0.94 if pass_rate_equipo > 0.595 and mult_dvp <= 1.0 else 1.0)
+            if (pass_rate_eff < 0.548 or es_qb_suplente or clima_adverso)
+            else (0.94 if pass_rate_eff > 0.595 and mult_dvp <= 1.0 else 1.0)
         )
         mediana_raw = base_yds * desv_dvp_rb * factor_script_rb
+
+    # Factor conservador del 92% en primer juego de regreso ('RECIEN_ACTIVADO')
+    # o descuento preventivo del -8% si 'QUESTIONABLE_GTD'
+    if status_up == "RECIEN_ACTIVADO":
+        mediana_raw *= 0.92
+        notas_ajuste.append("RecienActivado(Factor_92%)")
+    elif status_up == "QUESTIONABLE_GTD":
+        mediana_raw *= 0.92
+        notas_ajuste.append("Questionable_GTD(-8%)")
 
     # Si el diferencial bruto era muy estrecho (< 4% de la línea), desplazar según la ventaja neta de EPA
     if abs(mediana_raw - linea_mercado) < (0.045 * linea_mercado):
@@ -870,11 +912,16 @@ def simular_player_props_partido(
     kickoff_sort_key: Tuple[int, int, int, int] = (0, 4, 13, 0),
     n_sims: int = 5000,
     incluir_anytime_td: bool = False,
+    starters_verified: Optional[Dict[str, Any]] = None,
 ) -> List[Dict[str, Any]]:
     """
     Simula los Player Props (5,000 iteraciones de Monte Carlo) para todos los titulares
-    activos de Visitante (Team A) vs Local (Team B), descartando automáticamente
-    jugadores inactivos ('Out', 'DNP', 'IR') en ESPN y aplicando los ajustes de calidad.
+    activos de Visitante (Team A) vs Local (Team B), aplicando:
+      - Filtro estricto de estado ('ACTIVO_CONFIRMADO', 'RECIEN_ACTIVADO', 'QUESTIONABLE_GTD').
+        Se descarta al 100% cualquier jugador en 'OUT_INACTIVO', 'Doubtful' o fuera del roster.
+      - Redistribución del 65% de 'Role_Share' (Usage Vacuum) cuando WR1 o TE1 está fuera.
+      - Factor conservador del 92% a 'RECIEN_ACTIVADO' y descuento de -8% a 'QUESTIONABLE_GTD'.
+      - Clima adverso Open-Meteo en estadio abierto (-6% Pass_Rate y -8% yardas de pase/recepción).
     """
     away = away_abbr.strip().upper()
     home = home_abbr.strip().upper()
@@ -883,6 +930,21 @@ def simular_player_props_partido(
     st_away = stats_por_equipo.get(away, stats_por_equipo.get(TEAM_ABBR_ALIASES.get(away, ""), {}))
     st_home = stats_por_equipo.get(home, stats_por_equipo.get(TEAM_ABBR_ALIASES.get(home, ""), {}))
     lineas_ext = lineas_mercado_props or {}
+
+    if starters_verified is None and cargar_estado_titulares_y_clima is not None:
+        try:
+            starters_verified = cargar_estado_titulares_y_clima(forzar_sync=False)
+        except Exception:
+            starters_verified = {}
+    sv_equipos = (starters_verified or {}).get("equipos", {}) if isinstance(starters_verified, dict) else {}
+    sv_clima_map = (starters_verified or {}).get("clima_por_local", {}) if isinstance(starters_verified, dict) else {}
+    clima_home = sv_clima_map.get(home, sv_clima_map.get(TEAM_ABBR_ALIASES.get(home, ""), {}))
+    if not clima_home and consultar_clima_open_meteo_estadio is not None:
+        try:
+            clima_home = consultar_clima_open_meteo_estadio(home)
+        except Exception:
+            clima_home = {}
+    clima_adverso_flag = bool((clima_home or {}).get("clima_adverso", False))
 
     resultados: List[Dict[str, Any]] = []
     if df_props_baseline is None or df_props_baseline.empty:
@@ -900,6 +962,19 @@ def simular_player_props_partido(
         if df_team.empty:
             continue
 
+        sv_team = sv_equipos.get(team_actual, sv_equipos.get(TEAM_ABBR_ALIASES.get(team_actual, ""), {})) or {}
+        sv_opp = sv_equipos.get(opp_actual, sv_equipos.get(TEAM_ABBR_ALIASES.get(opp_actual, ""), {})) or {}
+
+        # Mapa de estado verificado de jugadores del equipo
+        status_por_clave: Dict[str, str] = {}
+        for t_item in sv_team.get("titulares", []) or []:
+            nm_t = str(t_item.get("player_name", "")).strip()
+            st_t = str(t_item.get("status", "ACTIVO_CONFIRMADO")).strip().upper()
+            if nm_t:
+                status_por_clave[_clave_jugador_equipo(team_actual, nm_t)] = st_t
+                status_por_clave[nm_t.upper()] = st_t
+                status_por_clave[_limpiar_sufijos_nombre(nm_t)] = st_t
+
         qb_rows = df_team[df_team["Pos"] == "QB"]
         qb_name_team = (
             str(qb_rows.iloc[0]["Player"]).strip()
@@ -911,7 +986,8 @@ def simular_player_props_partido(
             qb_name_team,
             reporte_inactivos=reporte_inactivos,
             inactivos_extra=inactivos_extra,
-        )
+        ) or bool(sv_team.get("qb1_out_or_replaced", False))
+
         es_qb_backup = es_qb_suplente_o_bajo_volumen(
             team_abbr=team_actual,
             qb_name=qb_name_team,
@@ -920,21 +996,77 @@ def simular_player_props_partido(
         )
 
         pass_rate_own = float(st_own.get("Pass_Rate", PASS_RATE_LEAGUE_BASELINE))
+        if qb_out_flag or qb_inactivo_espn:
+            pass_rate_own = max(0.42, pass_rate_own * 0.90)
         pressure_pct_opp = float(st_rival.get("Pressure_Pct", 0.245))
+        if int(sv_team.get("ol_out_count", 0) or 0) >= 2:
+            pressure_pct_opp = min(0.45, pressure_pct_opp + 0.035)
         epa_off_own = float(st_own.get("EPA_Pass_Off", 0.05))
 
-        wr_counter = 0
+        # Evaluar primero qué jugadores están activos y calcular el Usage Vacuum (65% del Role_Share de WR1/TE1 ausentes)
+        filas_activas: List[Tuple[pd.Series, str]] = []
+        role_share_vacante_wr_te = 0.0
+        wr1_te1_out_set = {
+            _limpiar_sufijos_nombre(str(x))
+            for x in (sv_team.get("wr1_te1_out_players", []) or [])
+        }
+
         for _, row in df_team.iterrows():
+            p_name = str(row.get("Player", "")).strip()
+            p_pos = str(row.get("Pos", "WR")).strip().upper()
+            p_rs = float(row.get("Role_Share", 0.25) or 0.25)
+            clave_p = _clave_jugador_equipo(team_actual, p_name)
+            limpio_p = _limpiar_sufijos_nombre(p_name)
+
+            st_verif = (
+                status_por_clave.get(clave_p)
+                or status_por_clave.get(p_name.upper())
+                or status_por_clave.get(limpio_p)
+                or "ACTIVO_CONFIRMADO"
+            )
+
+            es_baja = (
+                st_verif in {"OUT_INACTIVO", "DOUBTFUL", "INACTIVE", "IR", "OUT"}
+                or jugador_esta_inactivo(
+                    team_actual,
+                    p_name,
+                    reporte_inactivos=reporte_inactivos,
+                    inactivos_extra=inactivos_extra,
+                )
+            )
+            if es_baja:
+                if p_pos in ("WR", "WR1", "WR2", "TE"):
+                    role_share_vacante_wr_te += p_rs
+                continue
+
+            # Solo simular props de jugadores con estado permitido
+            if st_verif not in {"ACTIVO_CONFIRMADO", "RECIEN_ACTIVADO", "QUESTIONABLE_GTD"}:
+                continue
+
+            filas_activas.append((row, st_verif))
+
+        # Si WR1/TE1 está reportado fuera en ESPN pero no estaba en la hoja base, sumar vacuum estándar
+        if role_share_vacante_wr_te == 0.0 and wr1_te1_out_set:
+            role_share_vacante_wr_te = 0.24 * len(wr1_te1_out_set)
+
+        # Redistribuir el 65% de Role_Share vacante (Usage Vacuum) entre los receptores activos (WR/TE)
+        receptores_activos_rs_total = sum(
+            float(r.get("Role_Share", 0.22) or 0.22)
+            for r, _ in filas_activas
+            if str(r.get("Pos", "")).strip().upper() in ("WR", "WR1", "WR2", "TE")
+        )
+        pool_redistribuible = 0.65 * role_share_vacante_wr_te
+
+        # Si hay un receptor recién activado, normalizar el Role_Share del resto de compañeros
+        hay_receptor_recien_activado = any(
+            st_v == "RECIEN_ACTIVADO" and str(r.get("Pos", "")).strip().upper() in ("WR", "WR1", "WR2", "TE")
+            for r, st_v in filas_activas
+        )
+
+        wr_counter = 0
+        for row, st_verif in filas_activas:
             player_name = str(row.get("Player", "")).strip()
             pos = str(row.get("Pos", "WR")).strip().upper()
-
-            if jugador_esta_inactivo(
-                team_actual,
-                player_name,
-                reporte_inactivos=reporte_inactivos,
-                inactivos_extra=inactivos_extra,
-            ):
-                continue
 
             baseline_yds = float(row.get("Baseline_Yds", 45.0) or 45.0)
             td_rate = float(row.get("TD_Rate", 0.20) or 0.20)
@@ -942,11 +1074,23 @@ def simular_player_props_partido(
             catch_rate = float(row.get("Catch_Rate", 0.65) or 0.65)
             yds_per_unit = float(row.get("Yds_Per_Unit", 7.5) or 7.5)
 
+            vacuum_boost = 0.0
+            if pos in ("WR", "WR1", "WR2", "TE"):
+                if pool_redistribuible > 0.0 and receptores_activos_rs_total > 0.0:
+                    vacuum_boost = pool_redistribuible * (role_share / receptores_activos_rs_total)
+                if hay_receptor_recien_activado and st_verif != "RECIEN_ACTIVADO" and receptores_activos_rs_total > 1.05:
+                    role_share = role_share / receptores_activos_rs_total
+
             if pos.startswith("WR"):
                 wr_counter += 1
             wr_rank = wr_counter if pos.startswith("WR") else 1
 
             factor_dvp = obtener_factor_dvp_posicion(pos, st_rival, wr_rank=wr_rank)
+            # Si la defensa rival tiene titulares clave ausentes (CB1/EDGE/LB), incrementar factor DvP
+            def_bajas_opp = int(sv_opp.get("def_key_out_count", 0) or 0)
+            if def_bajas_opp > 0:
+                factor_dvp += 0.03 * min(3, def_bajas_opp)
+
             linea_ext = lineas_ext.get(f"{player_name}_{pos}") or lineas_ext.get(player_name)
 
             prop_yds = simular_prop_jugador_lognormal(
@@ -965,6 +1109,9 @@ def simular_player_props_partido(
                 pressure_pct_rival=pressure_pct_opp,
                 epa_off_equipo=epa_off_own,
                 es_qb_suplente=es_qb_backup,
+                status_jugador=st_verif,
+                usage_vacuum_boost_rs=vacuum_boost,
+                clima_adverso=clima_adverso_flag,
                 kickoff_str=kickoff_str,
                 kickoff_sort_key=kickoff_sort_key,
                 linea_mercado_externa=linea_ext,

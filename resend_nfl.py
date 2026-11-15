@@ -53,6 +53,16 @@ from engine_props_nfl import (
     ordenar_props_multinivel_por_juego,
     simular_player_props_jornada,
 )
+try:
+    from sync_injuries_nfl import (
+        cargar_estado_titulares_y_clima,
+        obtener_bloque_estado_partido,
+        sincronizar_lesiones_titulares_y_clima_nfl,
+    )
+except Exception:
+    cargar_estado_titulares_y_clima = None  # type: ignore
+    obtener_bloque_estado_partido = None  # type: ignore
+    sincronizar_lesiones_titulares_y_clima_nfl = None  # type: ignore
 
 RESEND_API_URL = "https://api.resend.com/emails"
 ESPN_NFL_INJURIES_URL = "https://site.api.espn.com/apis/site/v2/sports/football/nfl/injuries"
@@ -271,6 +281,13 @@ def ejecutar_pipeline_simulaciones_nfl(
     reporte_bajas = consultar_reporte_bajas_nfl(nfl_stats)
     partidos = obtener_calendario_nfl_semana(semana=semana_activa, api_key=odds_api_key)
 
+    starters_verified: Dict[str, Any] = {}
+    if cargar_estado_titulares_y_clima is not None:
+        try:
+            starters_verified = cargar_estado_titulares_y_clima(forzar_sync=False)
+        except Exception:
+            starters_verified = {}
+
     partidos_pendientes = [p for p in partidos if not p.get("finalizado", False)]
     partidos_objetivo = partidos_pendientes if partidos_pendientes else partidos
 
@@ -320,6 +337,19 @@ def ejecutar_pipeline_simulaciones_nfl(
         sim_record["fuente_odds"] = lineas_mercado["fuente_odds"]
         sim_record["bajas_clave_away"] = ", ".join(bajas_away.get("bajas_clave", [])) or "Sin bajas críticas QB"
         sim_record["bajas_clave_home"] = ", ".join(bajas_home.get("bajas_clave", [])) or "Sin bajas críticas QB"
+        if obtener_bloque_estado_partido is not None:
+            try:
+                bloque_est = obtener_bloque_estado_partido(
+                    away_abbr=away,
+                    home_abbr=home,
+                    starters_verified=starters_verified,
+                )
+                sim_record["bloque_estado_partido"] = bloque_est
+                sim_record["linea_1_qb_clima"] = bloque_est.get("linea_1_qb_clima", sim_record.get("linea_1_qb_clima", ""))
+                sim_record["linea_2_out_gtd"] = bloque_est.get("linea_2_out_gtd", sim_record.get("linea_2_out_gtd", ""))
+                sim_record["linea_3_activados"] = bloque_est.get("linea_3_activados", sim_record.get("linea_3_activados", ""))
+            except Exception:
+                pass
         resultados_simulados.append(sim_record)
 
         matchup_label = f"{away} @ {home}"
@@ -855,6 +885,28 @@ def construir_html_reporte_nfl(
                 '</div>'
             )
 
+        linea_1_qb_clima = str(
+            s.get("linea_1_qb_clima")
+            or f"QB1: {s.get('away_qb', away)} [OK] vs {s.get('home_qb', home)} [OK] | Clima: {s.get('resumen_clima', s.get('tipo_estadio', 'Outdoor'))}"
+        )
+        linea_2_out_gtd = str(
+            s.get("linea_2_out_gtd")
+            or "🔴 OUT / GTD: Sin bajas titulares reportadas"
+        )
+        linea_3_activados = str(
+            s.get("linea_3_activados")
+            or "🟢 ACTIVADOS: Sin novedades"
+        )
+        bloque_estado_html = (
+            f'<div style="background:#0d1117; border:1px solid #30363d; border-left:3px solid #58a6ff; '
+            f'border-radius:6px; padding:7px 10px; margin-bottom:9px; font-family:monospace; font-size:11.2px; '
+            f'color:#e6edf3; line-height:1.5;">'
+            f'<div style="color:#f0f6fc; font-weight:700;">🏈 {linea_1_qb_clima}</div>'
+            f'<div style="color:#ffa657; margin-top:2px;">{linea_2_out_gtd}</div>'
+            f'<div style="color:#3fb950; margin-top:2px;">{linea_3_activados}</div>'
+            f'</div>'
+        )
+
         tarjetas_partidos_html += (
             f'<div style="background-color:#161b22; border:1px solid #30363d; border-radius:10px; '
             f'padding:14px 15px; margin-bottom:14px;">'
@@ -868,9 +920,10 @@ def construir_html_reporte_nfl(
             f'🕒 {hora_cst}'
             f'</span>'
             f'</div>'
-            f'<div style="font-family:monospace; font-size:11.5px; color:#8b949e; margin-bottom:4px;">'
-            f'{away_full} en {home_full} · {s.get("tipo_estadio", "Outdoor")}'
+            f'<div style="font-family:monospace; font-size:11.5px; color:#8b949e; margin-bottom:6px;">'
+            f'{away_full} en {home_full} · {s.get("resumen_clima", s.get("tipo_estadio", "Outdoor"))}'
             f'</div>'
+            f'{bloque_estado_html}'
             f'<div style="background:#0d1117; border:1px solid #21262d; border-radius:6px; '
             f'padding:7px 10px; margin-bottom:9px; font-family:monospace; font-size:12px; color:#e6edf3;">'
             f'📊 <b>Marcador Proyectado:</b> <span style="color:#10b981; font-weight:800;">{away} {s["away_pts"]:.1f} - {s["home_pts"]:.1f} {home}</span> '
@@ -1076,6 +1129,12 @@ def generar_pdf_briefing_nfl(
             f"[{away}] @ [{home}] | {hora_cst} | Proy: {away} {away_pts:.1f} - {home_pts:.1f} {home} "
             f"(Mkt: {home} {sp_mkt_home:+.1f} | O/U {tot_mkt:.1f})"
         )
+        ln1_pdf = str(s.get("linea_1_qb_clima") or f"QB1: {s.get('away_qb', away)} [OK] vs {s.get('home_qb', home)} [OK] | Clima: {s.get('resumen_clima', 'Outdoor')}")
+        ln2_pdf = str(s.get("linea_2_out_gtd") or "OUT / GTD: Sin bajas titulares reportadas")
+        ln3_pdf = str(s.get("linea_3_activados") or "ACTIVADOS: Sin novedades")
+        lineas_doc.append(f"  [ROSTER] {ln1_pdf}")
+        lineas_doc.append(f"  [BAJAS]  {ln2_pdf}")
+        lineas_doc.append(f"  [ACTIVO] {ln3_pdf}")
         lineas_doc.append(
             f"  [SPREAD] {ev_sp.get('recomendacion', home)} | Cuota: {_safe_float(ev_sp.get('cuota_mercado_decimal'), 1.91):.2f} | "
             f"Cubre: {sp_cov:.1f}% (5,000 sims) | EV: {_safe_float(ev_sp.get('ev_pct'), 0.0):+.1f}%"

@@ -941,6 +941,102 @@ def _simular_puntos_drives_estocasticos(
     return puntos_totales_equipo, td_drives_equipo
 
 
+def _aplicar_ajustes_lesiones_titulares_epa(
+    team_abbr: str,
+    team_st: Dict[str, Any],
+    team_verified: Optional[Dict[str, Any]] = None,
+    clima_adverso: bool = False,
+) -> Dict[str, Any]:
+    """
+    Aplica en 'engine_nfl.py' los ajustes cuantitativos de bajas ('OUT_INACTIVO' al 100%,
+    'DOUBTFUL' al 75%), recién activados ('RECIEN_ACTIVADO') y clima adverso:
+      - QB1 fuera o sustituido en Depth Chart: -0.15 a 'EPA_Pass_Off', -10% 'Pass_Rate'
+        y actualiza al QB titular real.
+      - WR1 o TE1 fuera: -0.035 a 'EPA_Pass_Off'.
+      - RB1 fuera: -0.035 a 'EPA_Rush_Off'.
+      - 2+ linieros ofensivos fuera: -0.03 a 'EPA_Rush_Off' y +0.035 a 'Pressure_Pct'.
+      - Defensivos clave fuera ('CB', 'DE', 'EDGE', 'LB'): +0.025 a 'EPA_Pass_Def' /
+        'EPA_Rush_Def' por titular ausente.
+      - Recién Activados ('RECIEN_ACTIVADO'): restaura contribución positiva de EPA
+        (+0.025 a +0.12 según posición).
+      - Clima adverso en estadio abierto (viento > 24 km/h o lluvia > 50%): -6% a 'Pass_Rate'.
+    """
+    st_adj = dict(team_st)
+    epa_pass_off = float(st_adj.get("EPA_Pass_Off", 0.0))
+    epa_rush_off = float(st_adj.get("EPA_Rush_Off", 0.0))
+    epa_pass_def = float(st_adj.get("EPA_Pass_Def", 0.0))
+    epa_rush_def = float(st_adj.get("EPA_Rush_Def", 0.0))
+    pass_rate = float(st_adj.get("Pass_Rate", 0.562))
+    pressure_pct = float(st_adj.get("Pressure_Pct", 0.245))
+    qb_name = str(st_adj.get("QB_Name", f"{team_abbr} QB1"))
+
+    if team_verified and isinstance(team_verified, dict):
+        starters_map = team_verified.get("starters", {}) or {}
+        qb_real = str(team_verified.get("qb1_name") or qb_name).strip()
+        if qb_real:
+            qb_name = qb_real
+
+        # 1. QB1 fuera o sustituido en Depth Chart
+        qb1_slot = starters_map.get("QB1", {}) or {}
+        qb1_st = str(qb1_slot.get("status", "")).upper()
+        if team_verified.get("qb1_out_or_replaced", False) or qb1_st in {"OUT_INACTIVO", "DOUBTFUL"}:
+            peso_qb = 0.75 if qb1_st == "DOUBTFUL" else 1.00
+            epa_pass_off -= 0.15 * peso_qb
+            pass_rate *= (1.0 - 0.10 * peso_qb)
+
+        # 2. WR1 o TE1 fuera
+        for slot_rec in ("WR1", "TE1"):
+            st_rec = str((starters_map.get(slot_rec, {}) or {}).get("status", "")).upper()
+            if st_rec in {"OUT_INACTIVO", "DOUBTFUL"}:
+                peso_r = 0.75 if st_rec == "DOUBTFUL" else 1.00
+                epa_pass_off -= 0.035 * peso_r
+
+        # 3. RB1 fuera
+        st_rb1 = str((starters_map.get("RB1", {}) or {}).get("status", "")).upper()
+        if team_verified.get("rb1_out", False) or st_rb1 in {"OUT_INACTIVO", "DOUBTFUL"}:
+            peso_rb = 0.75 if st_rb1 == "DOUBTFUL" else 1.00
+            epa_rush_off -= 0.035 * peso_rb
+
+        # 4. 2+ linieros ofensivos fuera
+        ol_out = int(team_verified.get("ol_out_count", 0))
+        if ol_out >= 2:
+            epa_rush_off -= 0.030
+            pressure_pct += 0.035
+
+        # 5. Defensivos clave fuera ('CB', 'DE', 'EDGE', 'LB')
+        def_out = int(team_verified.get("def_key_out_count", 0))
+        if def_out > 0:
+            epa_pass_def += 0.025 * min(4, def_out)
+            epa_rush_def += 0.025 * min(4, def_out)
+
+        # 6. Recién Activados ('RECIEN_ACTIVADO')
+        for slot_k, slot_obj in starters_map.items():
+            if str((slot_obj or {}).get("status", "")).upper() == "RECIEN_ACTIVADO":
+                if slot_k == "QB1":
+                    epa_pass_off += 0.12
+                elif slot_k in {"WR1", "WR2", "TE1"}:
+                    epa_pass_off += 0.035
+                elif slot_k == "RB1":
+                    epa_rush_off += 0.030
+                elif slot_k in {"LT", "LG", "C", "RG", "RT"}:
+                    epa_rush_off += 0.025
+                elif slot_k in {"CB1", "EDGE1", "MLB1"}:
+                    epa_pass_def -= 0.025
+                    epa_rush_def -= 0.025
+
+    if clima_adverso:
+        pass_rate *= 0.94
+
+    st_adj["QB_Name"] = qb_name
+    st_adj["EPA_Pass_Off"] = round(float(np.clip(epa_pass_off, -0.35, 0.38)), 4)
+    st_adj["EPA_Rush_Off"] = round(float(np.clip(epa_rush_off, -0.35, 0.35)), 4)
+    st_adj["EPA_Pass_Def"] = round(float(np.clip(epa_pass_def, -0.35, 0.35)), 4)
+    st_adj["EPA_Rush_Def"] = round(float(np.clip(epa_rush_def, -0.35, 0.35)), 4)
+    st_adj["Pass_Rate"] = round(float(np.clip(pass_rate, 0.42, 0.70)), 4)
+    st_adj["Pressure_Pct"] = round(float(np.clip(pressure_pct, 0.15, 0.42)), 4)
+    return st_adj
+
+
 # ==============================================================================
 # 3. FUNCIÓN PRINCIPAL DE SIMULACIÓN MONTE CARLO ORIENTADA A DRIVES DINÁMICOS
 # ==============================================================================
@@ -958,9 +1054,8 @@ def run_simulacion_nfl(
     Ejecuta 5,000 iteraciones de Simulación Discreta Orientada a Series Ofensivas:
       - Calcula drives dinámicos individuales ('drives_away', 'drives_home') por
         cruce de 'Pace_Sec', tiempo detenido y 'Success_Rate_Off' vs 'Success_Rate_Def'.
-      - Eleva el piso de eficiencia a TD ~23%-27% y FG ~15%-18% (~1.95-2.05 pts/drive),
-        ubicando la media de la liga entre 43.0 y 45.5 puntos totales.
-      - Otorga una Ventaja de Localía (HFA) de +1.50 a +2.00 puntos según la plaza.
+      - Incorpora los ajustes de lesiones titulares, recién activados y clima Open-Meteo
+        desde 'sync_injuries_nfl.py' ('nfl_starters_verified.json').
     """
     away_key = normalizar_abbr_nfl(away_abbr)
     home_key = normalizar_abbr_nfl(home_abbr)
@@ -969,15 +1064,54 @@ def run_simulacion_nfl(
     pool_activo = nfl_stats_dict if nfl_stats_dict else default_pool
     medias_liga = _calcular_medias_liga(pool_activo)
 
-    away_st = (
+    away_st_raw = (
         pool_activo.get(away_key)
         or pool_activo.get(away_abbr)
         or default_pool.get(away_key, DEFAULT_NFL_STATS_ROWS[0])
     )
-    home_st = (
+    home_st_raw = (
         pool_activo.get(home_key)
         or pool_activo.get(home_abbr)
         or default_pool.get(home_key, DEFAULT_NFL_STATS_ROWS[1])
+    )
+
+    # Cargar estado verificado de titulares y clima Open-Meteo si está disponible
+    bloque_estado_partido: Dict[str, Any] = {}
+    clima_info: Dict[str, Any] = {}
+    away_verified: Optional[Dict[str, Any]] = None
+    home_verified: Optional[Dict[str, Any]] = None
+    try:
+        import json as _json
+        import os as _os
+        if _os.path.exists("nfl_starters_verified.json"):
+            with open("nfl_starters_verified.json", "r", encoding="utf-8") as _f_st:
+                _st_global = _json.load(_f_st)
+            _teams_v = (_st_global or {}).get("teams", {}) or {}
+            _weather_v = (_st_global or {}).get("weather_by_matchup", {}) or {}
+            away_verified = _teams_v.get(away_key)
+            home_verified = _teams_v.get(home_key)
+            clima_info = _weather_v.get(f"{away_key} @ {home_key}", {}) or {}
+            from sync_injuries_nfl import obtener_bloque_estado_partido
+            bloque_estado_partido = obtener_bloque_estado_partido(away_key, home_key, estado_global=_st_global)
+    except Exception:
+        pass
+
+    clima_adverso_flag = bool(clima_info.get("clima_adverso", False))
+    ajuste_clima_open_meteo_pts = float(clima_info.get("ajuste_total_pts", 0.0))
+    if clima_info.get("wind_mph") is not None and float(viento_mph) <= 8.0:
+        viento_mph = float(clima_info["wind_mph"])
+
+    away_st = _aplicar_ajustes_lesiones_titulares_epa(
+        team_abbr=away_key,
+        team_st=away_st_raw,
+        team_verified=away_verified,
+        clima_adverso=clima_adverso_flag,
+    )
+    home_st = _aplicar_ajustes_lesiones_titulares_epa(
+        team_abbr=home_key,
+        team_st=home_st_raw,
+        team_verified=home_verified,
+        clima_adverso=clima_adverso_flag,
     )
 
     away_qb = str(away_st.get("QB_Name", f"{away_key} QB1"))
@@ -1169,9 +1303,11 @@ def run_simulacion_nfl(
     cuota_sp_away_dec = americano_a_decimal(mkt.get("cuota_spread_away_decimal", 1.91), 1.91)
 
     # 5. ANCLAJE BAYESIANO AL MERCADO (TOTALES Y SPREAD DE CONSENSO):
-    # - Total calibrado: 65% Modelo + 35% Total Mercado
+    # - Total calibrado: 65% Modelo + 35% Total Mercado + Ajuste Clima Open-Meteo (-2.5 a -4.5 pts si viento > 24 km/h o precip > 50%)
     # - Margen/Spread Final: (0.40 * Margen_Modelo) + (0.60 * Spread_Mercado)
     total_anclado = (MODEL_TOTAL_WEIGHT * raw_total_modelo) + (MARKET_TOTAL_WEIGHT * total_mercado)
+    if clima_adverso_flag and ajuste_clima_open_meteo_pts < 0.0:
+        total_anclado = max(30.5, total_anclado + ajuste_clima_open_meteo_pts)
     spread_final_home = (MODEL_SPREAD_WEIGHT * (-raw_margin_home)) + (MARKET_SPREAD_WEIGHT * spread_mercado_home)
     margen_final_home = -spread_final_home
 
@@ -1406,7 +1542,13 @@ def run_simulacion_nfl(
         "hfa_pts": round(hfa_nfl, 2),
         "viento_mph": round(viento_val, 1),
         "tipo_estadio": estadio_label,
-        "penalizacion_viento_pts": penalizacion_total_viento,
+        "penalizacion_viento_pts": round(penalizacion_total_viento + abs(ajuste_clima_open_meteo_pts), 2),
+        "clima_adverso": clima_adverso_flag,
+        "resumen_clima": str(clima_info.get("resumen_clima") or estadio_label),
+        "bloque_estado_partido": bloque_estado_partido,
+        "linea_1_qb_clima": str(bloque_estado_partido.get("linea_1_qb_clima") or f"QB1: {away_qb} [OK] vs {home_qb} [OK] | Clima: {estadio_label}"),
+        "linea_2_out_gtd": str(bloque_estado_partido.get("linea_2_out_gtd") or "🔴 OUT / GTD: Sin bajas titulares reportadas"),
+        "linea_3_activados": str(bloque_estado_partido.get("linea_3_activados") or "🟢 ACTIVADOS: Sin novedades"),
         "n_sims": n_sims,
         "mc_p10_total": round(float(np.percentile(total_sim, 10)), 1),
         "mc_p50_total": round(float(np.percentile(total_sim, 50)), 1),

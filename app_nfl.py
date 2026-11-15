@@ -49,6 +49,18 @@ from engine_props_nfl import (
     ordenar_props_multinivel_por_juego,
     simular_player_props_jornada,
 )
+try:
+    from sync_injuries_nfl import (
+        cargar_estado_titulares_y_clima,
+        ejecutar_autocalibracion_post_jornada,
+        obtener_bloque_estado_partido,
+        sincronizar_lesiones_titulares_y_clima_nfl,
+    )
+except Exception:
+    cargar_estado_titulares_y_clima = None  # type: ignore
+    ejecutar_autocalibracion_post_jornada = None  # type: ignore
+    obtener_bloque_estado_partido = None  # type: ignore
+    sincronizar_lesiones_titulares_y_clima_nfl = None  # type: ignore
 
 # ==============================================================================
 # CONFIGURACIÓN DE PÁGINA Y ESTILOS CSS (CYBER-QUANT / GLASSMORPHISM)
@@ -389,8 +401,9 @@ def _render_logo_html(logo_str: str, abbr: str, size: int = 34) -> str:
 # ==============================================================================
 # FLUJO HÍBRIDO DE CARGA DE DATOS (REPOSITORIO LOCAL + UPLOADER OPCIONAL)
 # ==============================================================================
-NOMBRE_ARCHIVO_DEFECTO: str = "nfl_stats.xlsx"
+NOMBRE_ARCHIVO_DEFECTO: str = "nfl_stats1.xlsx"
 ARCHIVOS_RESPALDO_REPO: List[str] = [
+    "nfl_stats1.xlsx",
     "nfl_stats.xlsx",
     "nfl_stats.csv",
     "nfl_stats_completo.csv",
@@ -1003,11 +1016,12 @@ def render_vista_cartelera() -> None:
         )
 
     # SEPARACIÓN DE VISTAS MEDIANTE ST.TABS
-    tab_vivo, tab_props, tab_auditoria = st.tabs(
+    tab_vivo, tab_props, tab_lesiones, tab_auditoria = st.tabs(
         [
             "🏈 Cartelera & Momios en Vivo",
             "🎯 Player Props & Matchups",
-            "📈 Auditoría & Calibración",
+            "🏥 Titulares, Lesiones & Activados",
+            "📊 Auditoría & Calibración (Audit_Log)",
         ]
     )
 
@@ -1181,12 +1195,28 @@ def render_vista_cartelera() -> None:
                         ou_over_val = float(sim.get("over_pct", 50.0))
                         ou_under_val = float(sim.get("under_pct", 50.0))
 
+                        ln1_card = str(
+                            sim.get("linea_1_qb_clima")
+                            or f"QB1: {sim['away_qb']} [OK] vs {sim['home_qb']} [OK] | Clima: {sim.get('resumen_clima', sim['tipo_estadio'])}"
+                        )
+                        ln2_card = str(
+                            sim.get("linea_2_out_gtd")
+                            or "🔴 OUT / GTD: Sin bajas titulares reportadas"
+                        )
+                        ln3_card = str(
+                            sim.get("linea_3_activados")
+                            or "🟢 ACTIVADOS: Sin novedades"
+                        )
+
                         mc_breakdown_html = (
                             f'<div class="mc-breakdown-box">'
-                            f'<div class="mc-breakdown-header">📊 DESGLOSE 5,000 SIMULACIONES (MONTE CARLO)</div>'
+                            f'<div class="mc-breakdown-header">📊 DESGLOSE 5,000 SIMULACIONES & ESTADO DE TITULARES</div>'
                             f'<div class="mc-breakdown-line">🏈 Moneyline {ml_eq_nombre}: <b>{ml_mod_val:.1f}%</b> | Casas: {ml_casas_val:.1f}% | ESPN FPI: {ml_fpi_val:.1f}%</div>'
                             f'<div class="mc-breakdown-line">🛡️ Spread {sp_eq_nombre} ({sp_linea_val:+.1f}): <b>{sp_cubre_val:.1f}% cubre</b></div>'
                             f'<div class="mc-breakdown-line">🎯 Total ({ou_linea_val:.1f}): <b>Más de {ou_linea_val:.1f} en {ou_over_val:.1f}%</b> (Menos: {ou_under_val:.1f}%)</div>'
+                            f'<div class="mc-breakdown-line" style="border-top:1px dashed rgba(148,163,184,0.25); padding-top:4px; margin-top:4px; color:#F8FAFC;">📋 {ln1_card}</div>'
+                            f'<div class="mc-breakdown-line" style="color:#FBBF24;">{ln2_card}</div>'
+                            f'<div class="mc-breakdown-line" style="color:#34D399;">{ln3_card}</div>'
                             f'</div>'
                         )
 
@@ -1369,8 +1399,6 @@ def render_vista_cartelera() -> None:
             if filtro_metrica_prop == "🔥 Todos los Props +EV por Juego (Cubre ≥ 54.5% · EV > 0%)":
                 df_inst_only = filtrar_cartera_institucional_props(
                     df_filtrado_props,
-                    min_cover_pct=54.5,
-                    min_ev_pct=0.0,
                     max_picks=None,
                 )
                 if not df_inst_only.empty:
@@ -1571,10 +1599,116 @@ def render_vista_cartelera() -> None:
                 )
 
     # --------------------------------------------------------------------------
-    # PESTAÑA 3: AUDITORÍA & CALIBRACIÓN MASIVA (SIN BADGES DE APUESTAS)
+    # PESTAÑA 3: TITULARES, LESIONES, RECIÉN ACTIVADOS & CLIMA EN VIVO (OPEN-METEO)
+    # --------------------------------------------------------------------------
+    with tab_lesiones:
+        st.markdown(
+            "#### 🏥 Monitor en Vivo de Titulares Clave, Bajas (`OUT` / `GTD`), Recién Activados y Clima Open-Meteo"
+        )
+        col_sync_info, col_sync_btn = st.columns([3.2, 1.4])
+        with col_sync_info:
+            st.caption(
+                "Cruza los endpoints oficiales de ESPN (`injuries`, `depthcharts` y `summary?event={id}`) "
+                "y el pronóstico horario de Open-Meteo para estadios abiertos (`OUTDOOR`)."
+            )
+        with col_sync_btn:
+            if st.button(
+                "🔄 Sincronizar ESPN & Clima en Vivo",
+                key=f"btn_sync_injuries_s{semana}",
+                use_container_width=True,
+                type="primary",
+            ):
+                if sincronizar_lesiones_titulares_y_clima_nfl is not None:
+                    with st.spinner("Sincronizando Depth Charts, Inactivos de ESPN y Clima Open-Meteo..."):
+                        sincronizar_lesiones_titulares_y_clima_nfl(semana=semana, guardar_excel=True)
+                    st.session_state.simulaciones_cache = {}
+                    st.toast("✅ Lesiones, titulares verificados y clima Open-Meteo actualizados.")
+                    st.rerun()
+
+        starters_data = (
+            cargar_estado_titulares_y_clima(forzar_sync=False)
+            if cargar_estado_titulares_y_clima is not None
+            else {}
+        )
+        ts_cst = str((starters_data or {}).get("timestamp_cst", "Sincronización local activa"))
+        st.caption(f"⏱️ Última marca de tiempo verificada: **{ts_cst}**")
+
+        # Tarjetas de estado compacto de 3 líneas por partido
+        st.markdown("##### 🏟️ Estado de Titulares y Clima por Partido")
+        for row_s in range(0, len(partidos), 2):
+            cols_st = st.columns(2)
+            for idx_s, p_st in enumerate(partidos[row_s : row_s + 2]):
+                with cols_st[idx_s]:
+                    aw_s = p_st["away_abbr"]
+                    hm_s = p_st["home_abbr"]
+                    sim_s = obtener_simulacion_partido(p_st)
+                    ln1_s = str(sim_s.get("linea_1_qb_clima") or f"QB1: {sim_s['away_qb']} [OK] vs {sim_s['home_qb']} [OK] | Clima: {sim_s['tipo_estadio']}")
+                    ln2_s = str(sim_s.get("linea_2_out_gtd") or "🔴 OUT / GTD: Sin bajas titulares reportadas")
+                    ln3_s = str(sim_s.get("linea_3_activados") or "🟢 ACTIVADOS: Sin novedades")
+                    card_st_html = (
+                        f'<div style="background-color:#0d1117; border:1px solid #30363d; border-left:4px solid #38bdf8; '
+                        f'border-radius:10px; padding:12px 14px; margin-bottom:10px; font-family:JetBrains Mono,monospace;">'
+                        f'<div style="font-size:0.88rem; font-weight:800; color:#f8fafc; margin-bottom:5px;">'
+                        f'{aw_s} @ {hm_s} · <span style="color:#38bdf8;">{p_st.get("hora", "DOM")}</span>'
+                        f'</div>'
+                        f'<div style="font-size:0.76rem; color:#e2e8f0; margin-bottom:3px;">🏈 {ln1_s}</div>'
+                        f'<div style="font-size:0.75rem; color:#fbbf24; margin-bottom:3px;">{ln2_s}</div>'
+                        f'<div style="font-size:0.75rem; color:#34d399;">{ln3_s}</div>'
+                        f'</div>'
+                    )
+                    st.markdown(card_st_html, unsafe_allow_html=True)
+
+        # Tabla detallada desde la hoja 'Injuries_Live' o nfl_starters_verified.json
+        df_inj_live = pd.DataFrame()
+        if os.path.exists("nfl_stats1.xlsx"):
+            try:
+                xl_inj = pd.ExcelFile("nfl_stats1.xlsx")
+                if "Injuries_Live" in xl_inj.sheet_names:
+                    df_inj_live = pd.read_excel(xl_inj, sheet_name="Injuries_Live")
+            except Exception:
+                df_inj_live = pd.DataFrame()
+
+        if df_inj_live.empty and isinstance(starters_data, dict):
+            filas_st_fallback = []
+            for eq_k, eq_info in (starters_data.get("equipos", {}) or {}).items():
+                for t_row in eq_info.get("titulares", []) or []:
+                    filas_st_fallback.append(
+                        {
+                            "Team": eq_k,
+                            "Slot": t_row.get("slot", ""),
+                            "Position": t_row.get("position", ""),
+                            "Player": t_row.get("player_name", ""),
+                            "Status_Clasificado": t_row.get("status", "ACTIVO_CONFIRMADO"),
+                            "Raw_ESPN_Status": t_row.get("raw_espn_status", "ACTIVE"),
+                            "Injury_Detail": t_row.get("detail", ""),
+                            "Recien_Activado": bool(t_row.get("recien_activado", False)),
+                        }
+                    )
+            df_inj_live = pd.DataFrame(filas_st_fallback)
+
+        if not df_inj_live.empty:
+            st.markdown("##### 📋 Registro Oficial de Titulares #1 y Reporte de Lesiones (`Injuries_Live`)")
+            f_col1, f_col2 = st.columns(2)
+            with f_col1:
+                equipos_inj_opts = ["Todos"] + sorted(df_inj_live["Team"].astype(str).unique().tolist())
+                sel_eq_inj = st.selectbox("Filtrar por Equipo", options=equipos_inj_opts, index=0, key="sb_inj_team")
+            with f_col2:
+                estados_inj_opts = ["Todos", "OUT_INACTIVO", "QUESTIONABLE_GTD", "RECIEN_ACTIVADO", "ACTIVO_CONFIRMADO"]
+                sel_st_inj = st.selectbox("Filtrar por Estado Clasificado", options=estados_inj_opts, index=0, key="sb_inj_status")
+
+            df_inj_view = df_inj_live.copy()
+            if sel_eq_inj != "Todos":
+                df_inj_view = df_inj_view[df_inj_view["Team"].astype(str) == sel_eq_inj]
+            if sel_st_inj != "Todos" and "Status_Clasificado" in df_inj_view.columns:
+                df_inj_view = df_inj_view[df_inj_view["Status_Clasificado"].astype(str) == sel_st_inj]
+
+            st.dataframe(df_inj_view, use_container_width=True, hide_index=True)
+
+    # --------------------------------------------------------------------------
+    # PESTAÑA 4: AUDITORÍA & CALIBRACIÓN MASIVA (AUDIT_LOG)
     # --------------------------------------------------------------------------
     with tab_auditoria:
-        st.markdown("#### 📈 Auditoría Post-Partido (`STATUS_FINAL`) y Calibración Bayesiana / Kalman")
+        st.markdown("#### 📊 Auditoría Post-Partido (`STATUS_FINAL`) y Bucle de Auto-Calibración Bayesiana (`Audit_Log`)")
 
         if not partidos_finalizados:
             st.info(
@@ -1603,8 +1737,16 @@ def render_vista_cartelera() -> None:
                     type="primary",
                 ):
                     n_cal = calibrar_todos_los_finalizados(partidos_finalizados)
+                    if ejecutar_autocalibracion_post_jornada is not None:
+                        try:
+                            ejecutar_autocalibracion_post_jornada(
+                                semana=semana,
+                                partidos_finalizados=partidos_finalizados,
+                            )
+                        except Exception:
+                            pass
                     st.toast(
-                        f"⚡ Calibración masiva completada sobre {n_cal} partido(s) finalizado(s)."
+                        f"⚡ Calibración masiva completada sobre {n_cal} partido(s) finalizado(s) y registrada en Audit_Log."
                     )
                     st.rerun()
 
@@ -1721,6 +1863,45 @@ def render_vista_cartelera() -> None:
                         ):
                             st.session_state.partido_seleccionado = partido
                             st.rerun()
+
+        # Mostrar la hoja 'Audit_Log' desde 'nfl_stats1.xlsx' y botón para ejecutar auto-calibración post-jornada
+        st.markdown("---")
+        col_al_hdr, col_al_btn = st.columns([3.2, 1.4])
+        with col_al_hdr:
+            st.markdown("##### 📓 Historial Persistente de Auto-Calibración Bayesiana (`Audit_Log` en `nfl_stats1.xlsx`)")
+        with col_al_btn:
+            if st.button(
+                "📈 Ejecutar Auto-Calibración en Excel",
+                key=f"btn_run_audit_log_excel_s{semana}",
+                use_container_width=True,
+            ):
+                if ejecutar_autocalibracion_post_jornada is not None:
+                    res_al = ejecutar_autocalibracion_post_jornada(
+                        semana=semana,
+                        partidos_finalizados=partidos_finalizados if partidos_finalizados else None,
+                    )
+                    st.toast(
+                        f"✅ Audit_Log actualizado: {res_al.get('partidos_calibrados', 0)} partido(s), "
+                        f"{res_al.get('registros_audit_log_nuevos', 0)} registro(s) añadidos."
+                    )
+                    st.rerun()
+
+        df_audit_log_sheet = pd.DataFrame()
+        if os.path.exists("nfl_stats1.xlsx"):
+            try:
+                xl_al = pd.ExcelFile("nfl_stats1.xlsx")
+                if "Audit_Log" in xl_al.sheet_names:
+                    df_audit_log_sheet = pd.read_excel(xl_al, sheet_name="Audit_Log")
+            except Exception:
+                df_audit_log_sheet = pd.DataFrame()
+
+        if not df_audit_log_sheet.empty:
+            st.dataframe(df_audit_log_sheet, use_container_width=True, hide_index=True)
+        else:
+            st.caption(
+                "La hoja `Audit_Log` está lista en `nfl_stats1.xlsx`. Al concluir los partidos de la jornada o ejecutar "
+                "la calibración post-partido, se registrarán aquí los ajustes de `EPA_Off_Prev -> EPA_Off_New` y `EPA_Def_Prev -> EPA_Def_New`."
+            )
 
 
 # ==============================================================================
