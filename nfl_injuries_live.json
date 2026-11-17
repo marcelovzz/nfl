@@ -1,52 +1,7 @@
 {
-  "timestamp_cst": "2026-11-16 22:40:05 CST",
+  "timestamp_cst": "2026-11-17 14:32:29 CST",
   "semana": 10,
   "weather_by_matchup": {
-    "LAC @ BAL": {
-      "home_abbr": "BAL",
-      "stadium": "M&T Bank Stadium",
-      "roof": "OUTDOOR",
-      "temp_c": 15.0,
-      "temp_f": 59.0,
-      "wind_kmh": 11.0,
-      "wind_mph": 6.8,
-      "precip_prob": 10.0,
-      "clima_adverso": false,
-      "ajuste_total_pts": 0.0,
-      "pass_rate_multiplier": 1.0,
-      "pass_yds_multiplier": 1.0,
-      "resumen_clima": "Abierto · 59°F (15°C) · Viento 7 mph (11 km/h) · Lluvia 10%"
-    },
-    "WAS @ NYG": {
-      "home_abbr": "NYG",
-      "stadium": "MetLife Stadium",
-      "roof": "OUTDOOR",
-      "temp_c": 15.0,
-      "temp_f": 59.0,
-      "wind_kmh": 11.0,
-      "wind_mph": 6.8,
-      "precip_prob": 10.0,
-      "clima_adverso": false,
-      "ajuste_total_pts": 0.0,
-      "pass_rate_multiplier": 1.0,
-      "pass_yds_multiplier": 1.0,
-      "resumen_clima": "Abierto · 59°F (15°C) · Viento 7 mph (11 km/h) · Lluvia 10%"
-    },
-    "NE @ DET": {
-      "home_abbr": "DET",
-      "stadium": "Ford Field",
-      "roof": "DOME",
-      "temp_c": 21.0,
-      "temp_f": 70.0,
-      "wind_kmh": 0.0,
-      "wind_mph": 0.0,
-      "precip_prob": 0.0,
-      "clima_adverso": false,
-      "ajuste_total_pts": 0.0,
-      "pass_rate_multiplier": 1.0,
-      "pass_yds_multiplier": 1.0,
-      "resumen_clima": "Domo (Ford Field · 70°F)"
-    },
     "KC @ ATL": {
       "home_abbr": "ATL",
       "stadium": "Mercedes-Benz Stadium",
@@ -62,125 +17,35 @@
       "pass_yds_multiplier": 1.0,
       "resumen_clima": "Domo (Mercedes-Benz Stadium · 70°F)"
     },
+    "PIT @ CIN": {
+      "home_abbr": "CIN",
+      "stadium": "Paycor Stadium",
+      "roof": "OUTDOOR",
+      "temp_c": 12.6,
+      "temp_f": 54.7,
+      "wind_kmh": 3.3,
+      "wind_mph": 2.1,
+      "precip_prob": 0.0,
+      "clima_adverso": false,
+      "ajuste_total_pts": 0.0,
+      "pass_rate_multiplier": 1.0,
+      "pass_yds_multiplier": 1.0,
+      "resumen_clima": "Abierto · 55°F (13°C) · Viento 2 mph (3 km/h) · Lluvia 0%"
+    },
     "HOU @ CLE": {
       "home_abbr": "CLE",
       "stadium": "Huntington Bank Field",
       "roof": "OUTDOOR",
-      "temp_c": 15.0,
-      "temp_f": 59.0,
-      "wind_kmh": 11.0,
-      "wind_mph": 6.8,
-      "precip_prob": 10.0,
-      "clima_adverso": false,
-      "ajuste_total_pts": 0.0,
-      "pass_rate_multiplier": 1.0,
-      "pass_yds_multiplier": 1.0,
-      "resumen_clima": "Abierto · 59°F (15°C) · Viento 7 mph (11 km/h) · Lluvia 10%"
-    },
-    "MIN @ GB": {
-      "home_abbr": "GB",
-      "stadium": "Lambeau Field",
-      "roof": "OUTDOOR",
-      "temp_c": 15.0,
-      "temp_f": 59.0,
-      "wind_kmh": 11.0,
-      "wind_mph": 6.8,
-      "precip_prob": 10.0,
-      "clima_adverso": false,
-      "ajuste_total_pts": 0.0,
-      "pass_rate_multiplier": 1.0,
-      "pass_yds_multiplier": 1.0,
-      "resumen_clima": "Abierto · 59°F (15°C) · Viento 7 mph (11 km/h) · Lluvia 10%"
-    },
-    "JAX @ TEN": {
-      "home_abbr": "TEN",
-      "stadium": "Nissan Stadium",
-      "roof": "OUTDOOR",
-      "temp_c": 15.0,
-      "temp_f": 59.0,
-      "wind_kmh": 11.0,
-      "wind_mph": 6.8,
-      "precip_prob": 10.0,
-      "clima_adverso": false,
-      "ajuste_total_pts": 0.0,
-      "pass_rate_multiplier": 1.0,
-      "pass_yds_multiplier": 1.0,
-      "resumen_clima": "Abierto · 59°F (15°C) · Viento 7 mph (11 km/h) · Lluvia 10%"
-    },
-    "MIA @ IND": {
-      "home_abbr": "IND",
-      "stadium": "Lucas Oil Stadium",
-      "roof": "DOME",
-      "temp_c": 21.0,
-      "temp_f": 70.0,
-      "wind_kmh": 0.0,
-      "wind_mph": 0.0,
+      "temp_c": 11.7,
+      "temp_f": 53.1,
+      "wind_kmh": 5.4,
+      "wind_mph": 3.4,
       "precip_prob": 0.0,
       "clima_adverso": false,
       "ajuste_total_pts": 0.0,
       "pass_rate_multiplier": 1.0,
       "pass_yds_multiplier": 1.0,
-      "resumen_clima": "Domo (Lucas Oil Stadium · 70°F)"
-    },
-    "CAR @ NO": {
-      "home_abbr": "NO",
-      "stadium": "Caesars Superdome",
-      "roof": "DOME",
-      "temp_c": 21.0,
-      "temp_f": 70.0,
-      "wind_kmh": 0.0,
-      "wind_mph": 0.0,
-      "precip_prob": 0.0,
-      "clima_adverso": false,
-      "ajuste_total_pts": 0.0,
-      "pass_rate_multiplier": 1.0,
-      "pass_yds_multiplier": 1.0,
-      "resumen_clima": "Domo (Caesars Superdome · 70°F)"
-    },
-    "BUF @ NYJ": {
-      "home_abbr": "NYJ",
-      "stadium": "MetLife Stadium",
-      "roof": "OUTDOOR",
-      "temp_c": 15.0,
-      "temp_f": 59.0,
-      "wind_kmh": 11.0,
-      "wind_mph": 6.8,
-      "precip_prob": 10.0,
-      "clima_adverso": false,
-      "ajuste_total_pts": 0.0,
-      "pass_rate_multiplier": 1.0,
-      "pass_yds_multiplier": 1.0,
-      "resumen_clima": "Abierto · 59°F (15°C) · Viento 7 mph (11 km/h) · Lluvia 10%"
-    },
-    "SEA @ LV": {
-      "home_abbr": "LV",
-      "stadium": "Allegiant Stadium",
-      "roof": "DOME",
-      "temp_c": 21.0,
-      "temp_f": 70.0,
-      "wind_kmh": 0.0,
-      "wind_mph": 0.0,
-      "precip_prob": 0.0,
-      "clima_adverso": false,
-      "ajuste_total_pts": 0.0,
-      "pass_rate_multiplier": 1.0,
-      "pass_yds_multiplier": 1.0,
-      "resumen_clima": "Domo (Allegiant Stadium · 70°F)"
-    },
-    "LA @ ARI": {
-      "home_abbr": "ARI",
-      "stadium": "State Farm Stadium",
-      "roof": "DOME",
-      "temp_c": 21.0,
-      "temp_f": 70.0,
-      "wind_kmh": 0.0,
-      "wind_mph": 0.0,
-      "precip_prob": 0.0,
-      "clima_adverso": false,
-      "ajuste_total_pts": 0.0,
-      "pass_rate_multiplier": 1.0,
-      "pass_yds_multiplier": 1.0,
-      "resumen_clima": "Domo (State Farm Stadium · 70°F)"
+      "resumen_clima": "Abierto · 53°F (12°C) · Viento 3 mph (5 km/h) · Lluvia 0%"
     },
     "SF @ DAL": {
       "home_abbr": "DAL",
@@ -197,29 +62,164 @@
       "pass_yds_multiplier": 1.0,
       "resumen_clima": "Domo (AT&T Stadium · 70°F)"
     },
-    "PIT @ CIN": {
-      "home_abbr": "CIN",
-      "stadium": "Paycor Stadium",
-      "roof": "OUTDOOR",
-      "temp_c": 15.0,
-      "temp_f": 59.0,
-      "wind_kmh": 11.0,
-      "wind_mph": 6.8,
-      "precip_prob": 10.0,
+    "NE @ DET": {
+      "home_abbr": "DET",
+      "stadium": "Ford Field",
+      "roof": "DOME",
+      "temp_c": 21.0,
+      "temp_f": 70.0,
+      "wind_kmh": 0.0,
+      "wind_mph": 0.0,
+      "precip_prob": 0.0,
       "clima_adverso": false,
       "ajuste_total_pts": 0.0,
       "pass_rate_multiplier": 1.0,
       "pass_yds_multiplier": 1.0,
-      "resumen_clima": "Abierto · 59°F (15°C) · Viento 7 mph (11 km/h) · Lluvia 10%"
+      "resumen_clima": "Domo (Ford Field · 70°F)"
+    },
+    "MIN @ GB": {
+      "home_abbr": "GB",
+      "stadium": "Lambeau Field",
+      "roof": "OUTDOOR",
+      "temp_c": 13.5,
+      "temp_f": 56.3,
+      "wind_kmh": 16.1,
+      "wind_mph": 10.0,
+      "precip_prob": 0.0,
+      "clima_adverso": false,
+      "ajuste_total_pts": 0.0,
+      "pass_rate_multiplier": 1.0,
+      "pass_yds_multiplier": 1.0,
+      "resumen_clima": "Abierto · 56°F (14°C) · Viento 10 mph (16 km/h) · Lluvia 0%"
+    },
+    "JAX @ TEN": {
+      "home_abbr": "TEN",
+      "stadium": "Nissan Stadium",
+      "roof": "OUTDOOR",
+      "temp_c": 17.1,
+      "temp_f": 62.8,
+      "wind_kmh": 4.0,
+      "wind_mph": 2.5,
+      "precip_prob": 0.0,
+      "clima_adverso": false,
+      "ajuste_total_pts": 0.0,
+      "pass_rate_multiplier": 1.0,
+      "pass_yds_multiplier": 1.0,
+      "resumen_clima": "Abierto · 63°F (17°C) · Viento 2 mph (4 km/h) · Lluvia 0%"
+    },
+    "MIA @ IND": {
+      "home_abbr": "IND",
+      "stadium": "Lucas Oil Stadium",
+      "roof": "DOME",
+      "temp_c": 21.0,
+      "temp_f": 70.0,
+      "wind_kmh": 0.0,
+      "wind_mph": 0.0,
+      "precip_prob": 0.0,
+      "clima_adverso": false,
+      "ajuste_total_pts": 0.0,
+      "pass_rate_multiplier": 1.0,
+      "pass_yds_multiplier": 1.0,
+      "resumen_clima": "Domo (Lucas Oil Stadium · 70°F)"
+    },
+    "SEA @ LV": {
+      "home_abbr": "LV",
+      "stadium": "Allegiant Stadium",
+      "roof": "DOME",
+      "temp_c": 21.0,
+      "temp_f": 70.0,
+      "wind_kmh": 0.0,
+      "wind_mph": 0.0,
+      "precip_prob": 0.0,
+      "clima_adverso": false,
+      "ajuste_total_pts": 0.0,
+      "pass_rate_multiplier": 1.0,
+      "pass_yds_multiplier": 1.0,
+      "resumen_clima": "Domo (Allegiant Stadium · 70°F)"
+    },
+    "CAR @ NO": {
+      "home_abbr": "NO",
+      "stadium": "Caesars Superdome",
+      "roof": "DOME",
+      "temp_c": 21.0,
+      "temp_f": 70.0,
+      "wind_kmh": 0.0,
+      "wind_mph": 0.0,
+      "precip_prob": 0.0,
+      "clima_adverso": false,
+      "ajuste_total_pts": 0.0,
+      "pass_rate_multiplier": 1.0,
+      "pass_yds_multiplier": 1.0,
+      "resumen_clima": "Domo (Caesars Superdome · 70°F)"
+    },
+    "WAS @ NYG": {
+      "home_abbr": "NYG",
+      "stadium": "MetLife Stadium",
+      "roof": "OUTDOOR",
+      "temp_c": 14.2,
+      "temp_f": 57.6,
+      "wind_kmh": 9.7,
+      "wind_mph": 6.0,
+      "precip_prob": 0.0,
+      "clima_adverso": false,
+      "ajuste_total_pts": 0.0,
+      "pass_rate_multiplier": 1.0,
+      "pass_yds_multiplier": 1.0,
+      "resumen_clima": "Abierto · 58°F (14°C) · Viento 6 mph (10 km/h) · Lluvia 0%"
+    },
+    "BUF @ NYJ": {
+      "home_abbr": "NYJ",
+      "stadium": "MetLife Stadium",
+      "roof": "OUTDOOR",
+      "temp_c": 14.2,
+      "temp_f": 57.6,
+      "wind_kmh": 9.7,
+      "wind_mph": 6.0,
+      "precip_prob": 0.0,
+      "clima_adverso": false,
+      "ajuste_total_pts": 0.0,
+      "pass_rate_multiplier": 1.0,
+      "pass_yds_multiplier": 1.0,
+      "resumen_clima": "Abierto · 58°F (14°C) · Viento 6 mph (10 km/h) · Lluvia 0%"
+    },
+    "LA @ ARI": {
+      "home_abbr": "ARI",
+      "stadium": "State Farm Stadium",
+      "roof": "DOME",
+      "temp_c": 21.0,
+      "temp_f": 70.0,
+      "wind_kmh": 0.0,
+      "wind_mph": 0.0,
+      "precip_prob": 0.0,
+      "clima_adverso": false,
+      "ajuste_total_pts": 0.0,
+      "pass_rate_multiplier": 1.0,
+      "pass_yds_multiplier": 1.0,
+      "resumen_clima": "Domo (State Farm Stadium · 70°F)"
+    },
+    "LAC @ BAL": {
+      "home_abbr": "BAL",
+      "stadium": "M&T Bank Stadium",
+      "roof": "OUTDOOR",
+      "temp_c": 14.3,
+      "temp_f": 57.7,
+      "wind_kmh": 4.2,
+      "wind_mph": 2.6,
+      "precip_prob": 0.0,
+      "clima_adverso": false,
+      "ajuste_total_pts": 0.0,
+      "pass_rate_multiplier": 1.0,
+      "pass_yds_multiplier": 1.0,
+      "resumen_clima": "Abierto · 58°F (14°C) · Viento 3 mph (4 km/h) · Lluvia 0%"
     }
   },
   "roster_moves": {
-    "timestamp_cst": "2026-11-16 22:40:05 CST",
+    "timestamp_cst": "2026-11-17 14:32:29 CST",
     "new_team_adaptation_factor": 0.85,
     "total_moves": 2,
     "moves": [
       {
-        "Timestamp_CST": "2026-11-16 22:40:05 CST",
+        "Timestamp_CST": "2026-11-17 14:32:29 CST",
         "Player": "J. Downs",
         "Pos": "WR",
         "Equipo_Prev": "IND",
@@ -235,7 +235,7 @@
         "player_key": "J_DOWNS"
       },
       {
-        "Timestamp_CST": "2026-11-16 22:40:05 CST",
+        "Timestamp_CST": "2026-11-17 14:32:29 CST",
         "Player": "K. Cousins",
         "Pos": "QB",
         "Equipo_Prev": "LV",
@@ -254,7 +254,7 @@
     "by_prev_team": {
       "IND": [
         {
-          "Timestamp_CST": "2026-11-16 22:40:05 CST",
+          "Timestamp_CST": "2026-11-17 14:32:29 CST",
           "Player": "J. Downs",
           "Pos": "WR",
           "Equipo_Prev": "IND",
@@ -272,7 +272,7 @@
       ],
       "LV": [
         {
-          "Timestamp_CST": "2026-11-16 22:40:05 CST",
+          "Timestamp_CST": "2026-11-17 14:32:29 CST",
           "Player": "K. Cousins",
           "Pos": "QB",
           "Equipo_Prev": "LV",
@@ -292,7 +292,7 @@
     "by_current_team": {
       "KC": [
         {
-          "Timestamp_CST": "2026-11-16 22:40:05 CST",
+          "Timestamp_CST": "2026-11-17 14:32:29 CST",
           "Player": "J. Downs",
           "Pos": "WR",
           "Equipo_Prev": "IND",
@@ -310,7 +310,7 @@
       ],
       "MIN": [
         {
-          "Timestamp_CST": "2026-11-16 22:40:05 CST",
+          "Timestamp_CST": "2026-11-17 14:32:29 CST",
           "Player": "K. Cousins",
           "Pos": "QB",
           "Equipo_Prev": "LV",
@@ -357,17 +357,14 @@
       ],
       "IND": [
         "Baja: J. Downs (WR -> KC)",
-        "FIRMA_ALTA: Signed CB Johnathan Edwards from the practice squad to the active roster. S...",
-        "FIRMA_ALTA: Placed LB Akeem Davis-Gaither and TE Mo Alie-Coxon on injured reserve. Acti..."
+        "FIRMA_ALTA: Signed CB Johnathan Edwards from the practice squad to the active roster. S..."
       ],
       "KC": [
-        "Alta: J. Downs (WR, ex-IND · 85%)",
-        "FIRMA_ALTA: Elevated RB Nate Carter and WR Jacob De Jesus from the practice squad."
+        "Alta: J. Downs (WR, ex-IND · 85%)"
       ],
       "LV": [
         "Baja: K. Cousins (QB -> MIN)",
-        "CORTE_FA: Signed QB Brett Rypien to the practice squad. Released DE Bralen Trice from...",
-        "FIRMA_ALTA: Elevated TE Carter Runyon from the practice squad."
+        "CORTE_FA: Signed QB Brett Rypien to the practice squad. Released DE Bralen Trice from..."
       ],
       "LA": [
         "CORTE_FA: Placed C Dylan McMahon on injured reserve. Waived WR Brennan Presley. Relea..."
@@ -401,15 +398,36 @@
       ],
       "WAS": [],
       "CAR": [
+        "FIRMA_ALTA: Signed TE Joshua Simon to the practice squad.",
         "CORTE_FA: Signed DB Marco Wilson from the practice squad to the active roster. Waived..."
       ],
       "JAX": [],
       "BAL": [
         "FIRMA_ALTA: Signed OT Chuma Edoga from the practice squad to the active roster. Elevate..."
       ],
-      "HOU": []
+      "HOU": [
+        "CORTE_FA: Placed LB Azeez Al-Shaair on injured reserve. Signed DE Sabastian Harsh to ..."
+      ]
     },
     "recent_espn_transactions": [
+      {
+        "team": "WAS",
+        "date": "2026-11-17T08:00Z",
+        "type": "MOVIMIENTO",
+        "description": "Designated RB Jacory Croskey-Merritt to return from injured reserve."
+      },
+      {
+        "team": "CAR",
+        "date": "2026-11-17T08:00Z",
+        "type": "FIRMA_ALTA",
+        "description": "Signed TE Joshua Simon to the practice squad."
+      },
+      {
+        "team": "HOU",
+        "date": "2026-11-17T08:00Z",
+        "type": "CORTE_FA",
+        "description": "Placed LB Azeez Al-Shaair on injured reserve. Signed DE Sabastian Harsh to the practice squad. Released DT Junior Tafuna from the practice squad."
+      },
       {
         "team": "DET",
         "date": "2026-11-16T08:00Z",
@@ -541,30 +559,60 @@
         "date": "2026-11-14T08:00Z",
         "type": "CORTE_FA",
         "description": "Placed G Peter Skoronski and P Tommy Townsend on injured reserve. Signed G Chandler Zavala, DB Isaiah Oliver and P Thomas Morstead to the active roster. Waived RB Michael Carter. Elevated WR Xavier Restrepo and LB Dominique Hampton from the practice squad."
-      },
-      {
-        "team": "IND",
-        "date": "2026-11-14T08:00Z",
-        "type": "FIRMA_ALTA",
-        "description": "Placed LB Akeem Davis-Gaither and TE Mo Alie-Coxon on injured reserve. Activated DE Arden Key from injured reserve. Signed LB West Weeks to the active roster. Elevated S Jacob Bobenmoyer and WR Quez Watkins from the practice squad."
-      },
-      {
-        "team": "KC",
-        "date": "2026-11-14T08:00Z",
-        "type": "FIRMA_ALTA",
-        "description": "Elevated RB Nate Carter and WR Jacob De Jesus from the practice squad."
-      },
-      {
-        "team": "LV",
-        "date": "2026-11-14T08:00Z",
-        "type": "FIRMA_ALTA",
-        "description": "Elevated TE Carter Runyon from the practice squad."
       }
     ]
   },
   "teams": {
     "ARI": {
       "injuries": [
+        {
+          "team": "ARI",
+          "player": "James Conner",
+          "short_name": "James Conner",
+          "pos": "RB",
+          "pos_group": "RB",
+          "raw_status": "Injured Reserve",
+          "status_code": "OUT_INACTIVO",
+          "comment": "event_summary:401873061",
+          "canonical_key": "ARI_J_CONNER",
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
+        },
+        {
+          "team": "ARI",
+          "player": "Jayden Williams",
+          "short_name": "Jayden Williams",
+          "pos": "OT",
+          "pos_group": "OL",
+          "raw_status": "Questionable",
+          "status_code": "QUESTIONABLE_GTD",
+          "comment": "event_summary:401873061",
+          "canonical_key": "ARI_J_WILLIAMS",
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
+        },
+        {
+          "team": "ARI",
+          "player": "Hjalte Froholdt",
+          "short_name": "Hjalte Froholdt",
+          "pos": "C",
+          "pos_group": "OL",
+          "raw_status": "Questionable",
+          "status_code": "QUESTIONABLE_GTD",
+          "comment": "event_summary:401873061",
+          "canonical_key": "ARI_H_FROHOLDT",
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
+        },
+        {
+          "team": "ARI",
+          "player": "Jon Gaines II",
+          "short_name": "Jon Gaines II",
+          "pos": "G",
+          "pos_group": "OL",
+          "raw_status": "Questionable",
+          "status_code": "QUESTIONABLE_GTD",
+          "comment": "event_summary:401873061",
+          "canonical_key": "ARI_J_GAINES",
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
+        },
         {
           "team": "ARI",
           "player": "Jordan Burch",
@@ -575,60 +623,12 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873061",
           "canonical_key": "ARI_J_BURCH",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
-        },
-        {
-          "team": "ARI",
-          "player": "Andrew Wingard",
-          "short_name": "Andrew Wingard",
-          "pos": "S",
-          "pos_group": "CB",
-          "raw_status": "Out",
-          "status_code": "OUT_INACTIVO",
-          "comment": "event_summary:401873061",
-          "canonical_key": "ARI_A_WINGARD",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
-        },
-        {
-          "team": "ARI",
-          "player": "Jon Gaines II",
-          "short_name": "Jon Gaines II",
-          "pos": "G",
-          "pos_group": "OL",
-          "raw_status": "Out",
-          "status_code": "OUT_INACTIVO",
-          "comment": "event_summary:401873061",
-          "canonical_key": "ARI_J_GAINES",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
-        },
-        {
-          "team": "ARI",
-          "player": "Hjalte Froholdt",
-          "short_name": "Hjalte Froholdt",
-          "pos": "C",
-          "pos_group": "OL",
-          "raw_status": "Out",
-          "status_code": "OUT_INACTIVO",
-          "comment": "event_summary:401873061",
-          "canonical_key": "ARI_H_FROHOLDT",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
-        },
-        {
-          "team": "ARI",
-          "player": "Jayden Williams",
-          "short_name": "Jayden Williams",
-          "pos": "OT",
-          "pos_group": "OL",
-          "raw_status": "Out",
-          "status_code": "OUT_INACTIVO",
-          "comment": "event_summary:401873061",
-          "canonical_key": "ARI_J_WILLIAMS",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         }
       ],
       "summary": {
         "team": "ARI",
-        "timestamp_cst": "2026-11-16 22:40:05 CST",
+        "timestamp_cst": "2026-11-17 14:32:29 CST",
         "qb1_name": "Carson Beck",
         "qb1_base": "G. Minshew",
         "qb1_status": "ACTIVO_CONFIRMADO",
@@ -636,21 +636,20 @@
         "qb1_out_or_replaced": false,
         "rb1_out": false,
         "wr1_te1_out_players": [],
-        "ol_out_count": 3,
-        "def_key_out_count": 2,
+        "ol_out_count": 0,
+        "def_key_out_count": 1,
         "recien_activados": [
-          "Joey Aguilar (QB)",
-          "Starling Thomas V (CB)",
-          "Eku Leota (LB)"
+          "Andrew Wingard (S)"
         ],
         "bajas_out_doubtful": [
-          "Jayden Williams (LT - Out)",
-          "Hjalte Froholdt (C - Out)",
-          "Jordan Burch (LB - Out)",
-          "Andrew Wingard (S - Out)",
-          "Jon Gaines II (G - Out)"
+          "James Conner (RB - Injured Reserve)",
+          "Jordan Burch (LB - Out)"
         ],
-        "questionable_gtd": [],
+        "questionable_gtd": [
+          "Jayden Williams (LT - GTD)",
+          "Hjalte Froholdt (C - GTD)",
+          "Jon Gaines II (G - GTD)"
+        ],
         "traspasos_altas": [],
         "traspasos_bajas": [],
         "traspasos_resumen": [],
@@ -705,8 +704,8 @@
             "pos": "LT",
             "player": "Jayden Williams",
             "backup": "Josh Fryar",
-            "status": "OUT_INACTIVO",
-            "raw_status": "Out",
+            "status": "QUESTIONABLE_GTD",
+            "raw_status": "Questionable",
             "canonical_key": "ARI_J_WILLIAMS"
           },
           "LG": {
@@ -723,8 +722,8 @@
             "pos": "C",
             "player": "Hjalte Froholdt",
             "backup": "Jon Gaines II",
-            "status": "OUT_INACTIVO",
-            "raw_status": "Out",
+            "status": "QUESTIONABLE_GTD",
+            "raw_status": "Questionable",
             "canonical_key": "ARI_H_FROHOLDT"
           },
           "RG": {
@@ -823,9 +822,9 @@
             "slot": "LT",
             "position": "LT",
             "player_name": "Jayden Williams",
-            "status": "OUT_INACTIVO",
-            "raw_espn_status": "Out",
-            "detail": "Out",
+            "status": "QUESTIONABLE_GTD",
+            "raw_espn_status": "Questionable",
+            "detail": "Questionable",
             "recien_activado": false
           },
           {
@@ -841,9 +840,9 @@
             "slot": "C",
             "position": "C",
             "player_name": "Hjalte Froholdt",
-            "status": "OUT_INACTIVO",
-            "raw_espn_status": "Out",
-            "detail": "Out",
+            "status": "QUESTIONABLE_GTD",
+            "raw_espn_status": "Questionable",
+            "detail": "Questionable",
             "recien_activado": false
           },
           {
@@ -906,7 +905,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873058",
           "canonical_key": "ATL_D_DEABLO",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         },
         {
           "team": "ATL",
@@ -918,7 +917,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873058",
           "canonical_key": "ATL_Z_BRANCH",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         },
         {
           "team": "ATL",
@@ -930,7 +929,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873058",
           "canonical_key": "ATL_B_ROBINSON",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         },
         {
           "team": "ATL",
@@ -942,7 +941,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873058",
           "canonical_key": "ATL_S_EBUKAM",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         },
         {
           "team": "ATL",
@@ -954,12 +953,12 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873058",
           "canonical_key": "ATL_A_THOMPSON",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         }
       ],
       "summary": {
         "team": "ATL",
-        "timestamp_cst": "2026-11-16 22:40:05 CST",
+        "timestamp_cst": "2026-11-17 14:32:29 CST",
         "qb1_name": "Michael Penix Jr.",
         "qb1_base": "M. Penix Jr.",
         "qb1_status": "ACTIVO_CONFIRMADO",
@@ -969,13 +968,7 @@
         "wr1_te1_out_players": [],
         "ol_out_count": 0,
         "def_key_out_count": 3,
-        "recien_activados": [
-          "A.J. Terrell Jr. (CB1)",
-          "Andy Dalton (QB)",
-          "Avieon Terrell (CB)",
-          "Cameron Williams (OL)",
-          "Jack Strand (QB)"
-        ],
+        "recien_activados": [],
         "bajas_out_doubtful": [
           "Bijan Robinson (RB1 - Injured Reserve)",
           "Divine Deablo (LB - Out)",
@@ -1085,8 +1078,8 @@
             "pos": "LCB",
             "player": "A.J. Terrell Jr.",
             "backup": "Mike Ford Jr.",
-            "status": "RECIEN_ACTIVADO",
-            "raw_status": "Activated (Prev: OUT)",
+            "status": "ACTIVO_CONFIRMADO",
+            "raw_status": "Active",
             "canonical_key": "ATL_A_TERRELL"
           },
           "EDGE1": {
@@ -1203,10 +1196,10 @@
             "slot": "CB1",
             "position": "LCB",
             "player_name": "A.J. Terrell Jr.",
-            "status": "RECIEN_ACTIVADO",
-            "raw_espn_status": "Activated (Prev: OUT)",
-            "detail": "Activated (Prev: OUT)",
-            "recien_activado": true
+            "status": "ACTIVO_CONFIRMADO",
+            "raw_espn_status": "Active",
+            "detail": "Active",
+            "recien_activado": false
           },
           {
             "slot": "EDGE1",
@@ -1233,6 +1226,18 @@
       "injuries": [
         {
           "team": "BAL",
+          "player": "Jaylinn Hawkins",
+          "short_name": "Jaylinn Hawkins",
+          "pos": "S",
+          "pos_group": "CB",
+          "raw_status": "Questionable",
+          "status_code": "QUESTIONABLE_GTD",
+          "comment": "event_summary:401873065",
+          "canonical_key": "BAL_J_HAWKINS",
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
+        },
+        {
+          "team": "BAL",
           "player": "Nnamdi Madubuike",
           "short_name": "Nnamdi Madubuike",
           "pos": "DT",
@@ -1241,7 +1246,7 @@
           "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873065",
           "canonical_key": "BAL_N_MADUBUIKE",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         },
         {
           "team": "BAL",
@@ -1253,48 +1258,36 @@
           "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873065",
           "canonical_key": "BAL_O_IOANE",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         },
         {
           "team": "BAL",
-          "player": "Kedon Slovis",
-          "short_name": "Kedon Slovis",
+          "player": "Adam Randall",
+          "short_name": "Adam Randall",
+          "pos": "RB",
+          "pos_group": "RB",
+          "raw_status": "Injured Reserve",
+          "status_code": "OUT_INACTIVO",
+          "comment": "event_summary:401873065",
+          "canonical_key": "BAL_A_RANDALL",
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
+        },
+        {
+          "team": "BAL",
+          "player": "Lamar Jackson",
+          "short_name": "Lamar Jackson",
           "pos": "QB",
           "pos_group": "QB",
-          "raw_status": "Out",
+          "raw_status": "Injured Reserve",
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873065",
-          "canonical_key": "BAL_K_SLOVIS",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
-        },
-        {
-          "team": "BAL",
-          "player": "Aeneas Peebles",
-          "short_name": "Aeneas Peebles",
-          "pos": "DT",
-          "pos_group": "EDGE",
-          "raw_status": "Out",
-          "status_code": "OUT_INACTIVO",
-          "comment": "event_summary:401873065",
-          "canonical_key": "BAL_A_PEEBLES",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
-        },
-        {
-          "team": "BAL",
-          "player": "Chandler Rivers",
-          "short_name": "Chandler Rivers",
-          "pos": "CB",
-          "pos_group": "CB",
-          "raw_status": "Out",
-          "status_code": "OUT_INACTIVO",
-          "comment": "event_summary:401873065",
-          "canonical_key": "BAL_C_RIVERS",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "canonical_key": "BAL_L_JACKSON",
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         }
       ],
       "summary": {
         "team": "BAL",
-        "timestamp_cst": "2026-11-16 22:40:05 CST",
+        "timestamp_cst": "2026-11-17 14:32:29 CST",
         "qb1_name": "Jacoby Brissett",
         "qb1_base": "J. Fagnano",
         "qb1_status": "ACTIVO_CONFIRMADO",
@@ -1303,21 +1296,20 @@
         "rb1_out": false,
         "wr1_te1_out_players": [],
         "ol_out_count": 0,
-        "def_key_out_count": 2,
+        "def_key_out_count": 0,
         "recien_activados": [
-          "Adam Randall (RB)",
-          "Jaylinn Hawkins (S)",
-          "Lamar Jackson (QB)",
-          "Tyler Huntley (QB)"
+          "Kedon Slovis (QB)",
+          "Aeneas Peebles (DT)",
+          "Chandler Rivers (CB)"
         ],
         "bajas_out_doubtful": [
-          "Kedon Slovis (QB - Out)",
-          "Aeneas Peebles (DT - Out)",
-          "Chandler Rivers (CB - Out)"
+          "Adam Randall (RB - Injured Reserve)",
+          "Lamar Jackson (QB - Injured Reserve)"
         ],
         "questionable_gtd": [
           "Olaivavega Ioane (RG - GTD)",
-          "Nnamdi Madubuike (EDGE1 - GTD)"
+          "Nnamdi Madubuike (EDGE1 - GTD)",
+          "Jaylinn Hawkins (S - GTD)"
         ],
         "traspasos_altas": [],
         "traspasos_bajas": [],
@@ -1576,7 +1568,7 @@
           "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873054",
           "canonical_key": "BUF_D_WILLIAMS",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         },
         {
           "team": "BUF",
@@ -1588,7 +1580,7 @@
           "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873054",
           "canonical_key": "BUF_D_ALFORD",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         },
         {
           "team": "BUF",
@@ -1600,7 +1592,7 @@
           "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873054",
           "canonical_key": "BUF_C_BENFORD",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         },
         {
           "team": "BUF",
@@ -1612,7 +1604,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873054",
           "canonical_key": "BUF_T_SHAVERS",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         },
         {
           "team": "BUF",
@@ -1624,12 +1616,12 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873054",
           "canonical_key": "BUF_J_PALMER",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         }
       ],
       "summary": {
         "team": "BUF",
-        "timestamp_cst": "2026-11-16 22:40:05 CST",
+        "timestamp_cst": "2026-11-17 14:32:29 CST",
         "qb1_name": "Josh Allen",
         "qb1_base": "J. Allen",
         "qb1_status": "ACTIVO_CONFIRMADO",
@@ -1639,10 +1631,7 @@
         "wr1_te1_out_players": [],
         "ol_out_count": 0,
         "def_key_out_count": 0,
-        "recien_activados": [
-          "Ar'maj Reed-Adams (G)",
-          "Jalon Kilgore (S)"
-        ],
+        "recien_activados": [],
         "bajas_out_doubtful": [
           "Tyrell Shavers (WR - Out)",
           "Joshua Palmer (WR - Injured Reserve)"
@@ -1901,27 +1890,27 @@
       "injuries": [
         {
           "team": "CAR",
-          "player": "Bobby Okereke",
-          "short_name": "Bobby Okereke",
-          "pos": "LB",
-          "pos_group": "LB",
-          "raw_status": "Out",
-          "status_code": "OUT_INACTIVO",
-          "comment": "event_summary:401873055",
-          "canonical_key": "CAR_B_OKEREKE",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
-        },
-        {
-          "team": "CAR",
           "player": "Will Lee III",
           "short_name": "Will Lee III",
           "pos": "CB",
           "pos_group": "CB",
-          "raw_status": "Out",
-          "status_code": "OUT_INACTIVO",
+          "raw_status": "Questionable",
+          "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873055",
           "canonical_key": "CAR_W_LEE",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
+        },
+        {
+          "team": "CAR",
+          "player": "Bobby Okereke",
+          "short_name": "Bobby Okereke",
+          "pos": "LB",
+          "pos_group": "LB",
+          "raw_status": "Questionable",
+          "status_code": "QUESTIONABLE_GTD",
+          "comment": "event_summary:401873055",
+          "canonical_key": "CAR_B_OKEREKE",
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         },
         {
           "team": "CAR",
@@ -1933,7 +1922,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873055",
           "canonical_key": "CAR_B_CHRISTENSEN",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         },
         {
           "team": "CAR",
@@ -1945,7 +1934,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873055",
           "canonical_key": "CAR_M_JACKSON",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         },
         {
           "team": "CAR",
@@ -1957,12 +1946,12 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873055",
           "canonical_key": "CAR_J_BROOKS",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         }
       ],
       "summary": {
         "team": "CAR",
-        "timestamp_cst": "2026-11-16 22:40:05 CST",
+        "timestamp_cst": "2026-11-17 14:32:29 CST",
         "qb1_name": "Bryce Young",
         "qb1_base": "B. Young",
         "qb1_status": "ACTIVO_CONFIRMADO",
@@ -1971,23 +1960,21 @@
         "rb1_out": false,
         "wr1_te1_out_players": [],
         "ol_out_count": 1,
-        "def_key_out_count": 3,
-        "recien_activados": [
-          "Haynes King (QB)",
-          "Ja'Tavion Sanders (TE)",
-          "Sam Hecht (C)"
-        ],
+        "def_key_out_count": 1,
+        "recien_activados": [],
         "bajas_out_doubtful": [
-          "Bobby Okereke (LB - Out)",
-          "Will Lee III (CB - Out)",
           "Brady Christensen (G - Injured Reserve)",
           "Mike Jackson (CB - Injured Reserve)",
           "Jonathon Brooks (RB - Injured Reserve)"
         ],
-        "questionable_gtd": [],
+        "questionable_gtd": [
+          "Will Lee III (CB - GTD)",
+          "Bobby Okereke (LB - GTD)"
+        ],
         "traspasos_altas": [],
         "traspasos_bajas": [],
         "traspasos_resumen": [
+          "FIRMA_ALTA: Signed TE Joshua Simon to the practice squad.",
           "CORTE_FA: Signed DB Marco Wilson from the practice squad to the active roster. Waived..."
         ],
         "starters": {
@@ -2234,7 +2221,7 @@
       "injuries": [],
       "summary": {
         "team": "CHI",
-        "timestamp_cst": "2026-11-16 22:40:05 CST",
+        "timestamp_cst": "2026-11-17 14:32:29 CST",
         "qb1_name": "C. Williams",
         "qb1_base": "C. Williams",
         "qb1_status": "ACTIVO_CONFIRMADO",
@@ -2498,11 +2485,23 @@
           "short_name": "Kyle Dugger",
           "pos": "S",
           "pos_group": "CB",
-          "raw_status": "Out",
-          "status_code": "OUT_INACTIVO",
+          "raw_status": "Questionable",
+          "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873064",
           "canonical_key": "CIN_K_DUGGER",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
+        },
+        {
+          "team": "CIN",
+          "player": "Myles Hinton",
+          "short_name": "Myles Hinton",
+          "pos": "OT",
+          "pos_group": "OL",
+          "raw_status": "Questionable",
+          "status_code": "QUESTIONABLE_GTD",
+          "comment": "event_summary:401873064",
+          "canonical_key": "CIN_M_HINTON",
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         },
         {
           "team": "CIN",
@@ -2514,7 +2513,7 @@
           "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873064",
           "canonical_key": "CIN_O_BURKS",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         },
         {
           "team": "CIN",
@@ -2526,19 +2525,7 @@
           "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873064",
           "canonical_key": "CIN_D_RISNER",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
-        },
-        {
-          "team": "CIN",
-          "player": "Myles Hinton",
-          "short_name": "Myles Hinton",
-          "pos": "OT",
-          "pos_group": "OL",
-          "raw_status": "Out",
-          "status_code": "OUT_INACTIVO",
-          "comment": "event_summary:401873064",
-          "canonical_key": "CIN_M_HINTON",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         },
         {
           "team": "CIN",
@@ -2550,12 +2537,12 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873064",
           "canonical_key": "CIN_A_IOSIVAS",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         }
       ],
       "summary": {
         "team": "CIN",
-        "timestamp_cst": "2026-11-16 22:40:05 CST",
+        "timestamp_cst": "2026-11-17 14:32:29 CST",
         "qb1_name": "Joe Burrow",
         "qb1_base": "J. Burrow",
         "qb1_status": "ACTIVO_CONFIRMADO",
@@ -2563,18 +2550,16 @@
         "qb1_out_or_replaced": false,
         "rb1_out": false,
         "wr1_te1_out_players": [],
-        "ol_out_count": 1,
-        "def_key_out_count": 1,
-        "recien_activados": [
-          "Brian Parker II (OT)"
-        ],
+        "ol_out_count": 0,
+        "def_key_out_count": 0,
+        "recien_activados": [],
         "bajas_out_doubtful": [
-          "Kyle Dugger (S - Out)",
-          "Myles Hinton (OT - Out)",
           "Andrei Iosivas (WR - Injured Reserve)"
         ],
         "questionable_gtd": [
           "Dalton Risner (RG - GTD)",
+          "Kyle Dugger (S - GTD)",
+          "Myles Hinton (OT - GTD)",
           "Oren Burks (LB - GTD)"
         ],
         "traspasos_altas": [],
@@ -2832,7 +2817,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873056",
           "canonical_key": "CLE_R_HICKMAN",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         },
         {
           "team": "CLE",
@@ -2844,7 +2829,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873056",
           "canonical_key": "CLE_M_BURTON",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         },
         {
           "team": "CLE",
@@ -2856,7 +2841,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873056",
           "canonical_key": "CLE_K_DAVIS",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         },
         {
           "team": "CLE",
@@ -2868,7 +2853,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873056",
           "canonical_key": "CLE_T_JENKINS",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         },
         {
           "team": "CLE",
@@ -2880,12 +2865,12 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873056",
           "canonical_key": "CLE_R_SANDERS",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         }
       ],
       "summary": {
         "team": "CLE",
-        "timestamp_cst": "2026-11-16 22:40:05 CST",
+        "timestamp_cst": "2026-11-17 14:32:29 CST",
         "qb1_name": "Deshaun Watson",
         "qb1_base": "S. Sanders",
         "qb1_status": "ACTIVO_CONFIRMADO",
@@ -2895,12 +2880,7 @@
         "wr1_te1_out_players": [],
         "ol_out_count": 1,
         "def_key_out_count": 2,
-        "recien_activados": [
-          "Dillon Gabriel (QB)",
-          "Noah Igbinoghene (CB)",
-          "Justin Jefferson (LB)",
-          "Parker Brailsford (C)"
-        ],
+        "recien_activados": [],
         "bajas_out_doubtful": [
           "Ronnie Hickman (S - Out)",
           "Michael Burton (FB - Injured Reserve)",
@@ -3158,6 +3138,54 @@
       "injuries": [
         {
           "team": "DAL",
+          "player": "Juanyeh Thomas",
+          "short_name": "Juanyeh Thomas",
+          "pos": "S",
+          "pos_group": "CB",
+          "raw_status": "Questionable",
+          "status_code": "QUESTIONABLE_GTD",
+          "comment": "event_summary:401873063",
+          "canonical_key": "DAL_J_THOMAS",
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
+        },
+        {
+          "team": "DAL",
+          "player": "P.J. Locke",
+          "short_name": "P.J. Locke",
+          "pos": "S",
+          "pos_group": "CB",
+          "raw_status": "Questionable",
+          "status_code": "QUESTIONABLE_GTD",
+          "comment": "event_summary:401873063",
+          "canonical_key": "DAL_P_LOCKE",
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
+        },
+        {
+          "team": "DAL",
+          "player": "Jonathan Mingo",
+          "short_name": "Jonathan Mingo",
+          "pos": "WR",
+          "pos_group": "WR",
+          "raw_status": "Questionable",
+          "status_code": "QUESTIONABLE_GTD",
+          "comment": "event_summary:401873063",
+          "canonical_key": "DAL_J_MINGO",
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
+        },
+        {
+          "team": "DAL",
+          "player": "Donovan Ezeiruaku",
+          "short_name": "Donovan Ezeiruaku",
+          "pos": "LB",
+          "pos_group": "LB",
+          "raw_status": "Questionable",
+          "status_code": "QUESTIONABLE_GTD",
+          "comment": "event_summary:401873063",
+          "canonical_key": "DAL_D_EZEIRUAKU",
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
+        },
+        {
+          "team": "DAL",
           "player": "DaRon Bland",
           "short_name": "DaRon Bland",
           "pos": "CB",
@@ -3166,60 +3194,12 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873063",
           "canonical_key": "DAL_D_BLAND",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
-        },
-        {
-          "team": "DAL",
-          "player": "Tyler Booker",
-          "short_name": "Tyler Booker",
-          "pos": "G",
-          "pos_group": "OL",
-          "raw_status": "Out",
-          "status_code": "OUT_INACTIVO",
-          "comment": "event_summary:401873063",
-          "canonical_key": "DAL_T_BOOKER",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
-        },
-        {
-          "team": "DAL",
-          "player": "Jonathan Mingo",
-          "short_name": "Jonathan Mingo",
-          "pos": "WR",
-          "pos_group": "WR",
-          "raw_status": "Out",
-          "status_code": "OUT_INACTIVO",
-          "comment": "event_summary:401873063",
-          "canonical_key": "DAL_J_MINGO",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
-        },
-        {
-          "team": "DAL",
-          "player": "Juanyeh Thomas",
-          "short_name": "Juanyeh Thomas",
-          "pos": "S",
-          "pos_group": "CB",
-          "raw_status": "Out",
-          "status_code": "OUT_INACTIVO",
-          "comment": "event_summary:401873063",
-          "canonical_key": "DAL_J_THOMAS",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
-        },
-        {
-          "team": "DAL",
-          "player": "P.J. Locke",
-          "short_name": "P.J. Locke",
-          "pos": "S",
-          "pos_group": "CB",
-          "raw_status": "Out",
-          "status_code": "OUT_INACTIVO",
-          "comment": "event_summary:401873063",
-          "canonical_key": "DAL_P_LOCKE",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         }
       ],
       "summary": {
         "team": "DAL",
-        "timestamp_cst": "2026-11-16 22:40:05 CST",
+        "timestamp_cst": "2026-11-17 14:32:29 CST",
         "qb1_name": "Dak Prescott",
         "qb1_base": "D. Prescott",
         "qb1_status": "ACTIVO_CONFIRMADO",
@@ -3227,20 +3207,20 @@
         "qb1_out_or_replaced": false,
         "rb1_out": false,
         "wr1_te1_out_players": [],
-        "ol_out_count": 1,
-        "def_key_out_count": 3,
+        "ol_out_count": 0,
+        "def_key_out_count": 1,
         "recien_activados": [
-          "Derion Kendrick (CB)",
-          "Ajani Cornelius (OT)"
+          "Tyler Booker (RG)"
         ],
         "bajas_out_doubtful": [
-          "Tyler Booker (RG - Out)",
-          "DaRon Bland (CB - Out)",
-          "Jonathan Mingo (WR - Out)",
-          "Juanyeh Thomas (S - Out)",
-          "P.J. Locke (S - Out)"
+          "DaRon Bland (CB - Out)"
         ],
-        "questionable_gtd": [],
+        "questionable_gtd": [
+          "Juanyeh Thomas (S - GTD)",
+          "P.J. Locke (S - GTD)",
+          "Jonathan Mingo (WR - GTD)",
+          "Donovan Ezeiruaku (LB - GTD)"
+        ],
         "traspasos_altas": [],
         "traspasos_bajas": [],
         "traspasos_resumen": [
@@ -3314,7 +3294,7 @@
             "slot": "C",
             "pos": "C",
             "player": "Cooper Beebe",
-            "backup": "Matt Hennessy",
+            "backup": "Nick Leverett",
             "status": "ACTIVO_CONFIRMADO",
             "raw_status": "Active",
             "canonical_key": "DAL_C_BEEBE"
@@ -3324,8 +3304,8 @@
             "pos": "RG",
             "player": "Tyler Booker",
             "backup": "T.J. Bass",
-            "status": "OUT_INACTIVO",
-            "raw_status": "Out",
+            "status": "RECIEN_ACTIVADO",
+            "raw_status": "Activated (Prev: OUT)",
             "canonical_key": "DAL_T_BOOKER"
           },
           "RT": {
@@ -3442,10 +3422,10 @@
             "slot": "RG",
             "position": "RG",
             "player_name": "Tyler Booker",
-            "status": "OUT_INACTIVO",
-            "raw_espn_status": "Out",
-            "detail": "Out",
-            "recien_activado": false
+            "status": "RECIEN_ACTIVADO",
+            "raw_espn_status": "Activated (Prev: OUT)",
+            "detail": "Activated (Prev: OUT)",
+            "recien_activado": true
           },
           {
             "slot": "RT",
@@ -3490,7 +3470,7 @@
       "injuries": [],
       "summary": {
         "team": "DEN",
-        "timestamp_cst": "2026-11-16 22:40:05 CST",
+        "timestamp_cst": "2026-11-17 14:32:29 CST",
         "qb1_name": "B. Nix",
         "qb1_base": "B. Nix",
         "qb1_status": "ACTIVO_CONFIRMADO",
@@ -3750,6 +3730,30 @@
       "injuries": [
         {
           "team": "DET",
+          "player": "Cade Mays",
+          "short_name": "Cade Mays",
+          "pos": "C",
+          "pos_group": "OL",
+          "raw_status": "Doubtful",
+          "status_code": "DOUBTFUL",
+          "comment": "event_summary:401873053",
+          "canonical_key": "DET_C_MAYS",
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
+        },
+        {
+          "team": "DET",
+          "player": "D.J. Reed",
+          "short_name": "D.J. Reed",
+          "pos": "CB",
+          "pos_group": "CB",
+          "raw_status": "Questionable",
+          "status_code": "QUESTIONABLE_GTD",
+          "comment": "event_summary:401873053",
+          "canonical_key": "DET_D_REED",
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
+        },
+        {
+          "team": "DET",
           "player": "Aidan Hutchinson",
           "short_name": "Aidan Hutchinson",
           "pos": "DE",
@@ -3758,31 +3762,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873053",
           "canonical_key": "DET_A_HUTCHINSON",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
-        },
-        {
-          "team": "DET",
-          "player": "D.J. Reed",
-          "short_name": "D.J. Reed",
-          "pos": "CB",
-          "pos_group": "CB",
-          "raw_status": "Out",
-          "status_code": "OUT_INACTIVO",
-          "comment": "event_summary:401873053",
-          "canonical_key": "DET_D_REED",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
-        },
-        {
-          "team": "DET",
-          "player": "Cade Mays",
-          "short_name": "Cade Mays",
-          "pos": "C",
-          "pos_group": "OL",
-          "raw_status": "Out",
-          "status_code": "OUT_INACTIVO",
-          "comment": "event_summary:401873053",
-          "canonical_key": "DET_C_MAYS",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         },
         {
           "team": "DET",
@@ -3794,7 +3774,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873053",
           "canonical_key": "DET_K_JOSEPH",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         },
         {
           "team": "DET",
@@ -3806,12 +3786,12 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873053",
           "canonical_key": "DET_J_CAMPBELL",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         }
       ],
       "summary": {
         "team": "DET",
-        "timestamp_cst": "2026-11-16 22:40:05 CST",
+        "timestamp_cst": "2026-11-17 14:32:29 CST",
         "qb1_name": "Jared Goff",
         "qb1_base": "J. Goff",
         "qb1_status": "ACTIVO_CONFIRMADO",
@@ -3820,20 +3800,17 @@
         "rb1_out": false,
         "wr1_te1_out_players": [],
         "ol_out_count": 1,
-        "def_key_out_count": 4,
-        "recien_activados": [
-          "Mekhi Wingo (DT)",
-          "Amen Ogbongbemiga (LB)",
-          "Ahmed Hassanein (DE)"
-        ],
+        "def_key_out_count": 3,
+        "recien_activados": [],
         "bajas_out_doubtful": [
-          "Cade Mays (C - Out)",
-          "D.J. Reed (CB1 - Out)",
+          "Cade Mays (C - Doubtful)",
           "Aidan Hutchinson (DE - Out)",
           "Kerby Joseph (S - Out)",
           "Jack Campbell (LB - Injured Reserve)"
         ],
-        "questionable_gtd": [],
+        "questionable_gtd": [
+          "D.J. Reed (CB1 - GTD)"
+        ],
         "traspasos_altas": [],
         "traspasos_bajas": [],
         "traspasos_resumen": [
@@ -3909,8 +3886,8 @@
             "pos": "C",
             "player": "Cade Mays",
             "backup": "Juice Scruggs",
-            "status": "OUT_INACTIVO",
-            "raw_status": "Out",
+            "status": "DOUBTFUL",
+            "raw_status": "Doubtful",
             "canonical_key": "DET_C_MAYS"
           },
           "RG": {
@@ -3936,8 +3913,8 @@
             "pos": "LCB",
             "player": "D.J. Reed",
             "backup": "Khalil Dorsey",
-            "status": "OUT_INACTIVO",
-            "raw_status": "Out",
+            "status": "QUESTIONABLE_GTD",
+            "raw_status": "Questionable",
             "canonical_key": "DET_D_REED"
           },
           "EDGE1": {
@@ -4027,9 +4004,9 @@
             "slot": "C",
             "position": "C",
             "player_name": "Cade Mays",
-            "status": "OUT_INACTIVO",
-            "raw_espn_status": "Out",
-            "detail": "Out",
+            "status": "DOUBTFUL",
+            "raw_espn_status": "Doubtful",
+            "detail": "Doubtful",
             "recien_activado": false
           },
           {
@@ -4054,9 +4031,9 @@
             "slot": "CB1",
             "position": "LCB",
             "player_name": "D.J. Reed",
-            "status": "OUT_INACTIVO",
-            "raw_espn_status": "Out",
-            "detail": "Out",
+            "status": "QUESTIONABLE_GTD",
+            "raw_espn_status": "Questionable",
+            "detail": "Questionable",
             "recien_activado": false
           },
           {
@@ -4084,6 +4061,18 @@
       "injuries": [
         {
           "team": "GB",
+          "player": "Josh Jacobs",
+          "short_name": "Josh Jacobs",
+          "pos": "RB",
+          "pos_group": "RB",
+          "raw_status": "Out",
+          "status_code": "OUT_INACTIVO",
+          "comment": "event_summary:401873060",
+          "canonical_key": "GB_J_JACOBS",
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
+        },
+        {
+          "team": "GB",
           "player": "Kevin Zeitler",
           "short_name": "Kevin Zeitler",
           "pos": "G",
@@ -4092,43 +4081,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873060",
           "canonical_key": "GB_K_ZEITLER",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
-        },
-        {
-          "team": "GB",
-          "player": "Brandon Cisse",
-          "short_name": "Brandon Cisse",
-          "pos": "CB",
-          "pos_group": "CB",
-          "raw_status": "Questionable",
-          "status_code": "QUESTIONABLE_GTD",
-          "comment": "event_summary:401873060",
-          "canonical_key": "GB_B_CISSE",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
-        },
-        {
-          "team": "GB",
-          "player": "Skyy Moore",
-          "short_name": "Skyy Moore",
-          "pos": "WR",
-          "pos_group": "WR",
-          "raw_status": "Questionable",
-          "status_code": "QUESTIONABLE_GTD",
-          "comment": "event_summary:401873060",
-          "canonical_key": "GB_S_MOORE",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
-        },
-        {
-          "team": "GB",
-          "player": "Micah Parsons",
-          "short_name": "Micah Parsons",
-          "pos": "DE",
-          "pos_group": "EDGE",
-          "raw_status": "Out",
-          "status_code": "OUT_INACTIVO",
-          "comment": "event_summary:401873060",
-          "canonical_key": "GB_M_PARSONS",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         },
         {
           "team": "GB",
@@ -4140,32 +4093,56 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873060",
           "canonical_key": "GB_S_RHYAN",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
+        },
+        {
+          "team": "GB",
+          "player": "Zaire Franklin",
+          "short_name": "Zaire Franklin",
+          "pos": "LB",
+          "pos_group": "LB",
+          "raw_status": "Out",
+          "status_code": "OUT_INACTIVO",
+          "comment": "event_summary:401873060",
+          "canonical_key": "GB_Z_FRANKLIN",
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
+        },
+        {
+          "team": "GB",
+          "player": "Brandon Cisse",
+          "short_name": "Brandon Cisse",
+          "pos": "CB",
+          "pos_group": "CB",
+          "raw_status": "Questionable",
+          "status_code": "QUESTIONABLE_GTD",
+          "comment": "event_summary:401873060",
+          "canonical_key": "GB_B_CISSE",
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         }
       ],
       "summary": {
         "team": "GB",
-        "timestamp_cst": "2026-11-16 22:40:05 CST",
+        "timestamp_cst": "2026-11-17 14:32:29 CST",
         "qb1_name": "Jordan Love",
         "qb1_base": "J. Love",
         "qb1_status": "ACTIVO_CONFIRMADO",
         "qb1_tag": "OK",
         "qb1_out_or_replaced": false,
-        "rb1_out": false,
+        "rb1_out": true,
         "wr1_te1_out_players": [],
         "ol_out_count": 2,
         "def_key_out_count": 1,
         "recien_activados": [
-          "Zaire Franklin (LB)"
+          "Micah Parsons (DE)"
         ],
         "bajas_out_doubtful": [
+          "Josh Jacobs (RB1 - Out)",
           "Sean Rhyan (C - Out)",
           "Kevin Zeitler (RG - Out)",
-          "Micah Parsons (DE - Out)"
+          "Zaire Franklin (LB - Out)"
         ],
         "questionable_gtd": [
-          "Brandon Cisse (CB - GTD)",
-          "Skyy Moore (WR - GTD)"
+          "Brandon Cisse (CB - GTD)"
         ],
         "traspasos_altas": [],
         "traspasos_bajas": [],
@@ -4188,8 +4165,8 @@
             "pos": "RB",
             "player": "Josh Jacobs",
             "backup": "Kaleb Johnson",
-            "status": "ACTIVO_CONFIRMADO",
-            "raw_status": "Active",
+            "status": "OUT_INACTIVO",
+            "raw_status": "Out",
             "canonical_key": "GB_J_JACOBS"
           },
           "WR1": {
@@ -4306,9 +4283,9 @@
             "slot": "RB1",
             "position": "RB",
             "player_name": "Josh Jacobs",
-            "status": "ACTIVO_CONFIRMADO",
-            "raw_espn_status": "Active",
-            "detail": "Active",
+            "status": "OUT_INACTIVO",
+            "raw_espn_status": "Out",
+            "detail": "Out",
             "recien_activado": false
           },
           {
@@ -4421,11 +4398,35 @@
           "short_name": "Azeez Al-Shaair",
           "pos": "LB",
           "pos_group": "LB",
-          "raw_status": "Out",
+          "raw_status": "Injured Reserve",
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873056",
           "canonical_key": "HOU_A_SHAAIR",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
+        },
+        {
+          "team": "HOU",
+          "player": "Danielle Hunter",
+          "short_name": "Danielle Hunter",
+          "pos": "DE",
+          "pos_group": "EDGE",
+          "raw_status": "Questionable",
+          "status_code": "QUESTIONABLE_GTD",
+          "comment": "event_summary:401873056",
+          "canonical_key": "HOU_D_HUNTER",
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
+        },
+        {
+          "team": "HOU",
+          "player": "Brevin Jordan",
+          "short_name": "Brevin Jordan",
+          "pos": "TE",
+          "pos_group": "TE",
+          "raw_status": "Questionable",
+          "status_code": "QUESTIONABLE_GTD",
+          "comment": "event_summary:401873056",
+          "canonical_key": "HOU_B_JORDAN",
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         },
         {
           "team": "HOU",
@@ -4437,7 +4438,7 @@
           "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873056",
           "canonical_key": "HOU_J_HUMMEL",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         },
         {
           "team": "HOU",
@@ -4449,36 +4450,12 @@
           "status_code": "DOUBTFUL",
           "comment": "event_summary:401873056",
           "canonical_key": "HOU_W_MARKS",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
-        },
-        {
-          "team": "HOU",
-          "player": "Marvin Harrison Jr.",
-          "short_name": "Marvin Harrison Jr.",
-          "pos": "WR",
-          "pos_group": "WR",
-          "raw_status": "Out",
-          "status_code": "OUT_INACTIVO",
-          "comment": "event_summary:401873056",
-          "canonical_key": "HOU_M_HARRISON",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
-        },
-        {
-          "team": "HOU",
-          "player": "Danielle Hunter",
-          "short_name": "Danielle Hunter",
-          "pos": "DE",
-          "pos_group": "EDGE",
-          "raw_status": "Out",
-          "status_code": "OUT_INACTIVO",
-          "comment": "event_summary:401873056",
-          "canonical_key": "HOU_D_HUNTER",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         }
       ],
       "summary": {
         "team": "HOU",
-        "timestamp_cst": "2026-11-16 22:40:05 CST",
+        "timestamp_cst": "2026-11-17 14:32:29 CST",
         "qb1_name": "C.J. Stroud",
         "qb1_base": "C.J. Stroud",
         "qb1_status": "ACTIVO_CONFIRMADO",
@@ -4487,23 +4464,24 @@
         "rb1_out": false,
         "wr1_te1_out_players": [],
         "ol_out_count": 0,
-        "def_key_out_count": 2,
+        "def_key_out_count": 1,
         "recien_activados": [
-          "Keylan Rutledge (LG)",
-          "Wyatt Teller (G)"
+          "Marvin Harrison Jr. (WR)"
         ],
         "bajas_out_doubtful": [
-          "Azeez Al-Shaair (LB - Out)",
-          "Woody Marks (RB - Doubtful)",
-          "Marvin Harrison Jr. (WR - Out)",
-          "Danielle Hunter (DE - Out)"
+          "Azeez Al-Shaair (LB - Injured Reserve)",
+          "Woody Marks (RB - Doubtful)"
         ],
         "questionable_gtd": [
+          "Danielle Hunter (DE - GTD)",
+          "Brevin Jordan (TE - GTD)",
           "Jake Hummel (LB - GTD)"
         ],
         "traspasos_altas": [],
         "traspasos_bajas": [],
-        "traspasos_resumen": [],
+        "traspasos_resumen": [
+          "CORTE_FA: Placed LB Azeez Al-Shaair on injured reserve. Signed DE Sabastian Harsh to ..."
+        ],
         "starters": {
           "QB1": {
             "slot": "QB1",
@@ -4564,8 +4542,8 @@
             "pos": "LG",
             "player": "Keylan Rutledge",
             "backup": "Febechi Nwaiwu",
-            "status": "RECIEN_ACTIVADO",
-            "raw_status": "Activated (Prev: OUT)",
+            "status": "ACTIVO_CONFIRMADO",
+            "raw_status": "Active",
             "canonical_key": "HOU_K_RUTLEDGE"
           },
           "C": {
@@ -4599,7 +4577,7 @@
             "slot": "CB1",
             "pos": "LCB",
             "player": "Derek Stingley Jr.",
-            "backup": "Jaylin Smith",
+            "backup": "Ja'Marcus Ingram",
             "status": "ACTIVO_CONFIRMADO",
             "raw_status": "Active",
             "canonical_key": "HOU_D_STINGLEY"
@@ -4616,11 +4594,11 @@
           "MLB1": {
             "slot": "MLB1",
             "pos": "WLB",
-            "player": "Henry To'oTo'o",
+            "player": "Jake Hansen",
             "backup": "E.J. Speed",
             "status": "ACTIVO_CONFIRMADO",
             "raw_status": "Active",
-            "canonical_key": "HOU_H_O"
+            "canonical_key": "HOU_J_HANSEN"
           }
         },
         "titulares": [
@@ -4682,10 +4660,10 @@
             "slot": "LG",
             "position": "LG",
             "player_name": "Keylan Rutledge",
-            "status": "RECIEN_ACTIVADO",
-            "raw_espn_status": "Activated (Prev: OUT)",
-            "detail": "Activated (Prev: OUT)",
-            "recien_activado": true
+            "status": "ACTIVO_CONFIRMADO",
+            "raw_espn_status": "Active",
+            "detail": "Active",
+            "recien_activado": false
           },
           {
             "slot": "C",
@@ -4735,7 +4713,7 @@
           {
             "slot": "MLB1",
             "position": "WLB",
-            "player_name": "Henry To'oTo'o",
+            "player_name": "Jake Hansen",
             "status": "ACTIVO_CONFIRMADO",
             "raw_espn_status": "Active",
             "detail": "Active",
@@ -4748,51 +4726,39 @@
       "injuries": [
         {
           "team": "IND",
-          "player": "Will Mallory",
-          "short_name": "Will Mallory",
-          "pos": "TE",
-          "pos_group": "TE",
-          "raw_status": "Out",
+          "player": "Jaylon Carlies",
+          "short_name": "Jaylon Carlies",
+          "pos": "LB",
+          "pos_group": "LB",
+          "raw_status": "Injured Reserve",
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873059",
-          "canonical_key": "IND_W_MALLORY",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "canonical_key": "IND_J_CARLIES",
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         },
         {
           "team": "IND",
-          "player": "Anthony Gould",
-          "short_name": "Anthony Gould",
-          "pos": "WR",
-          "pos_group": "WR",
+          "player": "Luke Rhodes",
+          "short_name": "Luke Rhodes",
+          "pos": "LS",
+          "pos_group": "LS",
           "raw_status": "Questionable",
           "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873059",
-          "canonical_key": "IND_A_GOULD",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "canonical_key": "IND_L_RHODES",
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         },
         {
           "team": "IND",
-          "player": "Charvarius Ward",
-          "short_name": "Charvarius Ward",
-          "pos": "CB",
-          "pos_group": "CB",
+          "player": "Jerry Tillery",
+          "short_name": "Jerry Tillery",
+          "pos": "DT",
+          "pos_group": "EDGE",
           "raw_status": "Questionable",
           "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873059",
-          "canonical_key": "IND_C_WARD",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
-        },
-        {
-          "team": "IND",
-          "player": "Sauce Gardner",
-          "short_name": "Sauce Gardner",
-          "pos": "CB",
-          "pos_group": "CB",
-          "raw_status": "Questionable",
-          "status_code": "QUESTIONABLE_GTD",
-          "comment": "event_summary:401873059",
-          "canonical_key": "IND_S_GARDNER",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "canonical_key": "IND_J_TILLERY",
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         },
         {
           "team": "IND",
@@ -4800,16 +4766,28 @@
           "short_name": "Jalen Travis",
           "pos": "OT",
           "pos_group": "OL",
-          "raw_status": "Out",
-          "status_code": "OUT_INACTIVO",
+          "raw_status": "Doubtful",
+          "status_code": "DOUBTFUL",
           "comment": "event_summary:401873059",
           "canonical_key": "IND_J_TRAVIS",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
+        },
+        {
+          "team": "IND",
+          "player": "Will Mallory",
+          "short_name": "Will Mallory",
+          "pos": "TE",
+          "pos_group": "TE",
+          "raw_status": "Questionable",
+          "status_code": "QUESTIONABLE_GTD",
+          "comment": "event_summary:401873059",
+          "canonical_key": "IND_W_MALLORY",
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         }
       ],
       "summary": {
         "team": "IND",
-        "timestamp_cst": "2026-11-16 22:40:05 CST",
+        "timestamp_cst": "2026-11-17 14:32:29 CST",
         "qb1_name": "Daniel Jones",
         "qb1_base": "D. Jones",
         "qb1_status": "ACTIVO_CONFIRMADO",
@@ -4818,24 +4796,21 @@
         "rb1_out": false,
         "wr1_te1_out_players": [],
         "ol_out_count": 1,
-        "def_key_out_count": 0,
-        "recien_activados": [
-          "Riley Leonard (QB)",
-          "Luke Rhodes (LS)"
-        ],
+        "def_key_out_count": 1,
+        "recien_activados": [],
         "bajas_out_doubtful": [
-          "Jalen Travis (RT - Out)",
-          "Will Mallory (TE - Out)"
+          "Jalen Travis (RT - Doubtful)",
+          "Jaylon Carlies (LB - Injured Reserve)"
         ],
         "questionable_gtd": [
-          "Sauce Gardner (CB1 - GTD)",
-          "Anthony Gould (WR - GTD)",
-          "Charvarius Ward (CB - GTD)"
+          "Luke Rhodes (LS - GTD)",
+          "Jerry Tillery (DT - GTD)",
+          "Will Mallory (TE - GTD)"
         ],
         "traspasos_altas": [],
         "traspasos_bajas": [
           {
-            "Timestamp_CST": "2026-11-16 22:40:05 CST",
+            "Timestamp_CST": "2026-11-17 14:32:29 CST",
             "Player": "J. Downs",
             "Pos": "WR",
             "Equipo_Prev": "IND",
@@ -4853,8 +4828,7 @@
         ],
         "traspasos_resumen": [
           "Baja: J. Downs (WR -> KC)",
-          "FIRMA_ALTA: Signed CB Johnathan Edwards from the practice squad to the active roster. S...",
-          "FIRMA_ALTA: Placed LB Akeem Davis-Gaither and TE Mo Alie-Coxon on injured reserve. Acti..."
+          "FIRMA_ALTA: Signed CB Johnathan Edwards from the practice squad to the active roster. S..."
         ],
         "starters": {
           "QB1": {
@@ -4943,8 +4917,8 @@
             "pos": "RT",
             "player": "Jalen Travis",
             "backup": "Matt Goncalves",
-            "status": "OUT_INACTIVO",
-            "raw_status": "Out",
+            "status": "DOUBTFUL",
+            "raw_status": "Doubtful",
             "canonical_key": "IND_J_TRAVIS"
           },
           "CB1": {
@@ -4952,8 +4926,8 @@
             "pos": "LCB",
             "player": "Sauce Gardner",
             "backup": "Kenneth Harris",
-            "status": "QUESTIONABLE_GTD",
-            "raw_status": "Questionable",
+            "status": "ACTIVO_CONFIRMADO",
+            "raw_status": "Active",
             "canonical_key": "IND_S_GARDNER"
           },
           "EDGE1": {
@@ -5061,18 +5035,18 @@
             "slot": "RT",
             "position": "RT",
             "player_name": "Jalen Travis",
-            "status": "OUT_INACTIVO",
-            "raw_espn_status": "Out",
-            "detail": "Out",
+            "status": "DOUBTFUL",
+            "raw_espn_status": "Doubtful",
+            "detail": "Doubtful",
             "recien_activado": false
           },
           {
             "slot": "CB1",
             "position": "LCB",
             "player_name": "Sauce Gardner",
-            "status": "QUESTIONABLE_GTD",
-            "raw_espn_status": "Questionable",
-            "detail": "Questionable",
+            "status": "ACTIVO_CONFIRMADO",
+            "raw_espn_status": "Active",
+            "detail": "Active",
             "recien_activado": false
           },
           {
@@ -5108,7 +5082,7 @@
           "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873057",
           "canonical_key": "JAX_R_HAINSEY",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         },
         {
           "team": "JAX",
@@ -5120,7 +5094,7 @@
           "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873057",
           "canonical_key": "JAX_D_STRIGGOW",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         },
         {
           "team": "JAX",
@@ -5132,7 +5106,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873057",
           "canonical_key": "JAX_B_GREEN",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         },
         {
           "team": "JAX",
@@ -5144,7 +5118,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873057",
           "canonical_key": "JAX_E_MURRAY",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         },
         {
           "team": "JAX",
@@ -5156,12 +5130,12 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873057",
           "canonical_key": "JAX_D_HAMILTON",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         }
       ],
       "summary": {
         "team": "JAX",
-        "timestamp_cst": "2026-11-16 22:40:05 CST",
+        "timestamp_cst": "2026-11-17 14:32:29 CST",
         "qb1_name": "Trevor Lawrence",
         "qb1_base": "T. Lawrence",
         "qb1_status": "ACTIVO_CONFIRMADO",
@@ -5171,11 +5145,7 @@
         "wr1_te1_out_players": [],
         "ol_out_count": 0,
         "def_key_out_count": 3,
-        "recien_activados": [
-          "CJ Williams (WR)",
-          "Wesley Williams (DE)",
-          "Albert Regis (DT)"
-        ],
+        "recien_activados": [],
         "bajas_out_doubtful": [
           "B.J. Green II (DE - Injured Reserve)",
           "Eric Murray (S - Injured Reserve)",
@@ -5436,11 +5406,11 @@
           "short_name": "Peter Woods",
           "pos": "DT",
           "pos_group": "EDGE",
-          "raw_status": "Out",
-          "status_code": "OUT_INACTIVO",
+          "raw_status": "Questionable",
+          "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873058",
           "canonical_key": "KC_P_WOODS",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         },
         {
           "team": "KC",
@@ -5448,23 +5418,11 @@
           "short_name": "Kenneth Walker III",
           "pos": "RB",
           "pos_group": "RB",
-          "raw_status": "Out",
-          "status_code": "OUT_INACTIVO",
+          "raw_status": "Questionable",
+          "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873058",
           "canonical_key": "KC_K_WALKER",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
-        },
-        {
-          "team": "KC",
-          "player": "Jaydn Ott",
-          "short_name": "Jaydn Ott",
-          "pos": "RB",
-          "pos_group": "RB",
-          "raw_status": "Out",
-          "status_code": "OUT_INACTIVO",
-          "comment": "event_summary:401873058",
-          "canonical_key": "KC_J_OTT",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         },
         {
           "team": "KC",
@@ -5472,11 +5430,23 @@
           "short_name": "Jaylon Moore",
           "pos": "OT",
           "pos_group": "OL",
-          "raw_status": "Out",
-          "status_code": "OUT_INACTIVO",
+          "raw_status": "Questionable",
+          "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873058",
           "canonical_key": "KC_J_MOORE",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
+        },
+        {
+          "team": "KC",
+          "player": "Jaydn Ott",
+          "short_name": "Jaydn Ott",
+          "pos": "RB",
+          "pos_group": "RB",
+          "raw_status": "Questionable",
+          "status_code": "QUESTIONABLE_GTD",
+          "comment": "event_summary:401873058",
+          "canonical_key": "KC_J_OTT",
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         },
         {
           "team": "KC",
@@ -5488,35 +5458,34 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873058",
           "canonical_key": "KC_J_WILEY",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         }
       ],
       "summary": {
         "team": "KC",
-        "timestamp_cst": "2026-11-16 22:40:05 CST",
+        "timestamp_cst": "2026-11-17 14:32:29 CST",
         "qb1_name": "Patrick Mahomes",
         "qb1_base": "P. Mahomes",
         "qb1_status": "ACTIVO_CONFIRMADO",
         "qb1_tag": "OK",
         "qb1_out_or_replaced": false,
-        "rb1_out": true,
+        "rb1_out": false,
         "wr1_te1_out_players": [],
-        "ol_out_count": 1,
-        "def_key_out_count": 1,
-        "recien_activados": [
-          "Garrett Nussmeier (QB)"
-        ],
+        "ol_out_count": 0,
+        "def_key_out_count": 0,
+        "recien_activados": [],
         "bajas_out_doubtful": [
-          "Kenneth Walker III (RB1 - Out)",
-          "Jaylon Moore (RT - Out)",
-          "Peter Woods (DT - Out)",
-          "Jaydn Ott (RB - Out)",
           "Jared Wiley (TE - Out)"
         ],
-        "questionable_gtd": [],
+        "questionable_gtd": [
+          "Kenneth Walker III (RB1 - GTD)",
+          "Jaylon Moore (RT - GTD)",
+          "Peter Woods (DT - GTD)",
+          "Jaydn Ott (RB - GTD)"
+        ],
         "traspasos_altas": [
           {
-            "Timestamp_CST": "2026-11-16 22:40:05 CST",
+            "Timestamp_CST": "2026-11-17 14:32:29 CST",
             "Player": "J. Downs",
             "Pos": "WR",
             "Equipo_Prev": "IND",
@@ -5534,8 +5503,7 @@
         ],
         "traspasos_bajas": [],
         "traspasos_resumen": [
-          "Alta: J. Downs (WR, ex-IND · 85%)",
-          "FIRMA_ALTA: Elevated RB Nate Carter and WR Jacob De Jesus from the practice squad."
+          "Alta: J. Downs (WR, ex-IND · 85%)"
         ],
         "starters": {
           "QB1": {
@@ -5552,8 +5520,8 @@
             "pos": "RB",
             "player": "Kenneth Walker III",
             "backup": "Emmett Johnson",
-            "status": "OUT_INACTIVO",
-            "raw_status": "Out",
+            "status": "QUESTIONABLE_GTD",
+            "raw_status": "Questionable",
             "canonical_key": "KC_K_WALKER"
           },
           "WR1": {
@@ -5624,8 +5592,8 @@
             "pos": "RT",
             "player": "Jaylon Moore",
             "backup": "Joshua Ezeudu",
-            "status": "OUT_INACTIVO",
-            "raw_status": "Out",
+            "status": "QUESTIONABLE_GTD",
+            "raw_status": "Questionable",
             "canonical_key": "KC_J_MOORE"
           },
           "CB1": {
@@ -5670,9 +5638,9 @@
             "slot": "RB1",
             "position": "RB",
             "player_name": "Kenneth Walker III",
-            "status": "OUT_INACTIVO",
-            "raw_espn_status": "Out",
-            "detail": "Out",
+            "status": "QUESTIONABLE_GTD",
+            "raw_espn_status": "Questionable",
+            "detail": "Questionable",
             "recien_activado": false
           },
           {
@@ -5742,9 +5710,9 @@
             "slot": "RT",
             "position": "RT",
             "player_name": "Jaylon Moore",
-            "status": "OUT_INACTIVO",
-            "raw_espn_status": "Out",
-            "detail": "Out",
+            "status": "QUESTIONABLE_GTD",
+            "raw_espn_status": "Questionable",
+            "detail": "Questionable",
             "recien_activado": false
           },
           {
@@ -5781,27 +5749,15 @@
       "injuries": [
         {
           "team": "LA",
-          "player": "Dylan McMahon",
-          "short_name": "Dylan McMahon",
-          "pos": "C",
-          "pos_group": "OL",
-          "raw_status": "Injured Reserve",
+          "player": "Joe Cardona",
+          "short_name": "Joe Cardona",
+          "pos": "LS",
+          "pos_group": "LS",
+          "raw_status": "Out",
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873061",
-          "canonical_key": "LA_D_MCMAHON",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
-        },
-        {
-          "team": "LA",
-          "player": "Coleman Shelton",
-          "short_name": "Coleman Shelton",
-          "pos": "C",
-          "pos_group": "OL",
-          "raw_status": "Doubtful",
-          "status_code": "DOUBTFUL",
-          "comment": "event_summary:401873061",
-          "canonical_key": "LA_C_SHELTON",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "canonical_key": "LA_J_CARDONA",
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         },
         {
           "team": "LA",
@@ -5813,19 +5769,31 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873061",
           "canonical_key": "LA_S_AVILA",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         },
         {
           "team": "LA",
-          "player": "Joe Cardona",
-          "short_name": "Joe Cardona",
-          "pos": "LS",
-          "pos_group": "LS",
-          "raw_status": "Out",
+          "player": "Dylan McMahon",
+          "short_name": "Dylan McMahon",
+          "pos": "C",
+          "pos_group": "OL",
+          "raw_status": "Injured Reserve",
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873061",
-          "canonical_key": "LA_J_CARDONA",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "canonical_key": "LA_D_MCMAHON",
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
+        },
+        {
+          "team": "LA",
+          "player": "Coleman Shelton",
+          "short_name": "Coleman Shelton",
+          "pos": "C",
+          "pos_group": "OL",
+          "raw_status": "Doubtful",
+          "status_code": "DOUBTFUL",
+          "comment": "event_summary:401873061",
+          "canonical_key": "LA_C_SHELTON",
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         },
         {
           "team": "LA",
@@ -5837,12 +5805,12 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873061",
           "canonical_key": "LA_D_ADAMS",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         }
       ],
       "summary": {
         "team": "LA",
-        "timestamp_cst": "2026-11-16 22:40:05 CST",
+        "timestamp_cst": "2026-11-17 14:32:29 CST",
         "qb1_name": "Matthew Stafford",
         "qb1_base": "M. Stafford",
         "qb1_status": "ACTIVO_CONFIRMADO",
@@ -5852,17 +5820,12 @@
         "wr1_te1_out_players": [],
         "ol_out_count": 3,
         "def_key_out_count": 0,
-        "recien_activados": [
-          "Ty Simpson (QB)",
-          "Keagen Trost (OT)",
-          "Darryl Peterson III (LB)",
-          "Maximus Pulley (S)"
-        ],
+        "recien_activados": [],
         "bajas_out_doubtful": [
           "Steve Avila (LG - Out)",
           "Coleman Shelton (C - Doubtful)",
-          "Dylan McMahon (C - Injured Reserve)",
           "Joe Cardona (LS - Out)",
+          "Dylan McMahon (C - Injured Reserve)",
           "Davante Adams (WR - Injured Reserve)"
         ],
         "questionable_gtd": [],
@@ -6115,6 +6078,42 @@
       "injuries": [
         {
           "team": "LAC",
+          "player": "Kendall Williamson",
+          "short_name": "Kendall Williamson",
+          "pos": "S",
+          "pos_group": "CB",
+          "raw_status": "Questionable",
+          "status_code": "QUESTIONABLE_GTD",
+          "comment": "event_summary:401873065",
+          "canonical_key": "LAC_K_WILLIAMSON",
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
+        },
+        {
+          "team": "LAC",
+          "player": "Isas Waxter",
+          "short_name": "Isas Waxter",
+          "pos": "CB",
+          "pos_group": "CB",
+          "raw_status": "Questionable",
+          "status_code": "QUESTIONABLE_GTD",
+          "comment": "event_summary:401873065",
+          "canonical_key": "LAC_I_WAXTER",
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
+        },
+        {
+          "team": "LAC",
+          "player": "Ladd McConkey",
+          "short_name": "Ladd McConkey",
+          "pos": "WR",
+          "pos_group": "WR",
+          "raw_status": "Questionable",
+          "status_code": "QUESTIONABLE_GTD",
+          "comment": "event_summary:401873065",
+          "canonical_key": "LAC_L_MCCONKEY",
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
+        },
+        {
+          "team": "LAC",
           "player": "Rodney Shelley",
           "short_name": "Rodney Shelley",
           "pos": "CB",
@@ -6123,7 +6122,7 @@
           "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873065",
           "canonical_key": "LAC_R_SHELLEY",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         },
         {
           "team": "LAC",
@@ -6131,52 +6130,16 @@
           "short_name": "Brenen Thompson",
           "pos": "WR",
           "pos_group": "WR",
-          "raw_status": "Out",
-          "status_code": "OUT_INACTIVO",
+          "raw_status": "Questionable",
+          "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873065",
           "canonical_key": "LAC_B_THOMPSON",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
-        },
-        {
-          "team": "LAC",
-          "player": "Justin Eboigbe",
-          "short_name": "Justin Eboigbe",
-          "pos": "DT",
-          "pos_group": "EDGE",
-          "raw_status": "Out",
-          "status_code": "OUT_INACTIVO",
-          "comment": "event_summary:401873065",
-          "canonical_key": "LAC_J_EBOIGBE",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
-        },
-        {
-          "team": "LAC",
-          "player": "Isas Waxter",
-          "short_name": "Isas Waxter",
-          "pos": "CB",
-          "pos_group": "CB",
-          "raw_status": "Out",
-          "status_code": "OUT_INACTIVO",
-          "comment": "event_summary:401873065",
-          "canonical_key": "LAC_I_WAXTER",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
-        },
-        {
-          "team": "LAC",
-          "player": "Kendall Williamson",
-          "short_name": "Kendall Williamson",
-          "pos": "S",
-          "pos_group": "CB",
-          "raw_status": "Out",
-          "status_code": "OUT_INACTIVO",
-          "comment": "event_summary:401873065",
-          "canonical_key": "LAC_K_WILLIAMSON",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         }
       ],
       "summary": {
         "team": "LAC",
-        "timestamp_cst": "2026-11-16 22:40:05 CST",
+        "timestamp_cst": "2026-11-17 14:32:29 CST",
         "qb1_name": "Justin Herbert",
         "qb1_base": "J. Herbert",
         "qb1_status": "ACTIVO_CONFIRMADO",
@@ -6185,20 +6148,17 @@
         "rb1_out": false,
         "wr1_te1_out_players": [],
         "ol_out_count": 0,
-        "def_key_out_count": 3,
+        "def_key_out_count": 0,
         "recien_activados": [
-          "Ladd McConkey (WR1)",
-          "Branson Taylor (G)",
-          "Trey Pipkins III (OT)"
+          "Justin Eboigbe (DT)"
         ],
-        "bajas_out_doubtful": [
-          "Brenen Thompson (WR - Out)",
-          "Justin Eboigbe (DT - Out)",
-          "Isas Waxter (CB - Out)",
-          "Kendall Williamson (S - Out)"
-        ],
+        "bajas_out_doubtful": [],
         "questionable_gtd": [
-          "Rodney Shelley (CB - GTD)"
+          "Ladd McConkey (WR1 - GTD)",
+          "Kendall Williamson (S - GTD)",
+          "Isas Waxter (CB - GTD)",
+          "Rodney Shelley (CB - GTD)",
+          "Brenen Thompson (WR - GTD)"
         ],
         "traspasos_altas": [],
         "traspasos_bajas": [],
@@ -6219,7 +6179,7 @@
             "slot": "RB1",
             "pos": "RB",
             "player": "Omarion Hampton",
-            "backup": "Kimani Vidal",
+            "backup": "Keaton Mitchell",
             "status": "ACTIVO_CONFIRMADO",
             "raw_status": "Active",
             "canonical_key": "LAC_O_HAMPTON"
@@ -6228,16 +6188,16 @@
             "slot": "WR1",
             "pos": "WR",
             "player": "Ladd McConkey",
-            "backup": "KeAndre Lambert-Smith",
-            "status": "RECIEN_ACTIVADO",
-            "raw_status": "Activated (Prev: OUT)",
+            "backup": "Derius Davis",
+            "status": "QUESTIONABLE_GTD",
+            "raw_status": "Questionable",
             "canonical_key": "LAC_L_MCCONKEY"
           },
           "WR2": {
             "slot": "WR2",
             "pos": "WR",
             "player": "Quentin Johnston",
-            "backup": "Brenen Thompson",
+            "backup": "KeAndre Lambert-Smith",
             "status": "ACTIVO_CONFIRMADO",
             "raw_status": "Active",
             "canonical_key": "LAC_Q_JOHNSTON"
@@ -6347,10 +6307,10 @@
             "slot": "WR1",
             "position": "WR",
             "player_name": "Ladd McConkey",
-            "status": "RECIEN_ACTIVADO",
-            "raw_espn_status": "Activated (Prev: OUT)",
-            "detail": "Activated (Prev: OUT)",
-            "recien_activado": true
+            "status": "QUESTIONABLE_GTD",
+            "raw_espn_status": "Questionable",
+            "detail": "Questionable",
+            "recien_activado": false
           },
           {
             "slot": "WR2",
@@ -6449,6 +6409,30 @@
       "injuries": [
         {
           "team": "LV",
+          "player": "Dont'e Thornton Jr.",
+          "short_name": "Dont'e Thornton Jr.",
+          "pos": "WR",
+          "pos_group": "WR",
+          "raw_status": "Questionable",
+          "status_code": "QUESTIONABLE_GTD",
+          "comment": "event_summary:401873062",
+          "canonical_key": "LV_D_THORNTON",
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
+        },
+        {
+          "team": "LV",
+          "player": "Thomas Booker IV",
+          "short_name": "Thomas Booker IV",
+          "pos": "DT",
+          "pos_group": "EDGE",
+          "raw_status": "Questionable",
+          "status_code": "QUESTIONABLE_GTD",
+          "comment": "event_summary:401873062",
+          "canonical_key": "LV_T_BOOKER",
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
+        },
+        {
+          "team": "LV",
           "player": "Brock Bowers",
           "short_name": "Brock Bowers",
           "pos": "TE",
@@ -6457,7 +6441,7 @@
           "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873062",
           "canonical_key": "LV_B_BOWERS",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         },
         {
           "team": "LV",
@@ -6469,31 +6453,7 @@
           "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873062",
           "canonical_key": "LV_K_PAYE",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
-        },
-        {
-          "team": "LV",
-          "player": "Thomas Booker IV",
-          "short_name": "Thomas Booker IV",
-          "pos": "DT",
-          "pos_group": "EDGE",
-          "raw_status": "Out",
-          "status_code": "OUT_INACTIVO",
-          "comment": "event_summary:401873062",
-          "canonical_key": "LV_T_BOOKER",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
-        },
-        {
-          "team": "LV",
-          "player": "Dont'e Thornton Jr.",
-          "short_name": "Dont'e Thornton Jr.",
-          "pos": "WR",
-          "pos_group": "WR",
-          "raw_status": "Out",
-          "status_code": "OUT_INACTIVO",
-          "comment": "event_summary:401873062",
-          "canonical_key": "LV_D_THORNTON",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         },
         {
           "team": "LV",
@@ -6505,12 +6465,12 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873062",
           "canonical_key": "LV_P_JOHNSON",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         }
       ],
       "summary": {
         "team": "LV",
-        "timestamp_cst": "2026-11-16 22:40:05 CST",
+        "timestamp_cst": "2026-11-17 14:32:29 CST",
         "qb1_name": "Fernando Mendoza",
         "qb1_base": "K. Cousins",
         "qb1_status": "ACTIVO_CONFIRMADO",
@@ -6519,25 +6479,21 @@
         "rb1_out": false,
         "wr1_te1_out_players": [],
         "ol_out_count": 0,
-        "def_key_out_count": 2,
-        "recien_activados": [
-          "Malik Benson (WR)",
-          "Tristin McCollum (S)",
-          "Dalton Johnson (S)"
-        ],
+        "def_key_out_count": 1,
+        "recien_activados": [],
         "bajas_out_doubtful": [
-          "Thomas Booker IV (DT - Out)",
-          "Dont'e Thornton Jr. (WR - Out)",
           "Patrick Johnson (DE - Injured Reserve)"
         ],
         "questionable_gtd": [
           "Brock Bowers (TE1 - GTD)",
+          "Dont'e Thornton Jr. (WR - GTD)",
+          "Thomas Booker IV (DT - GTD)",
           "Kwity Paye (DE - GTD)"
         ],
         "traspasos_altas": [],
         "traspasos_bajas": [
           {
-            "Timestamp_CST": "2026-11-16 22:40:05 CST",
+            "Timestamp_CST": "2026-11-17 14:32:29 CST",
             "Player": "K. Cousins",
             "Pos": "QB",
             "Equipo_Prev": "LV",
@@ -6555,8 +6511,7 @@
         ],
         "traspasos_resumen": [
           "Baja: K. Cousins (QB -> MIN)",
-          "CORTE_FA: Signed QB Brett Rypien to the practice squad. Released DE Bralen Trice from...",
-          "FIRMA_ALTA: Elevated TE Carter Runyon from the practice squad."
+          "CORTE_FA: Signed QB Brett Rypien to the practice squad. Released DE Bralen Trice from..."
         ],
         "starters": {
           "QB1": {
@@ -6802,6 +6757,42 @@
       "injuries": [
         {
           "team": "MIA",
+          "player": "Jared Wayne",
+          "short_name": "Jared Wayne",
+          "pos": "WR",
+          "pos_group": "WR",
+          "raw_status": "Questionable",
+          "status_code": "QUESTIONABLE_GTD",
+          "comment": "event_summary:401873059",
+          "canonical_key": "MIA_J_WAYNE",
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
+        },
+        {
+          "team": "MIA",
+          "player": "Chris Bell",
+          "short_name": "Chris Bell",
+          "pos": "WR",
+          "pos_group": "WR",
+          "raw_status": "Questionable",
+          "status_code": "QUESTIONABLE_GTD",
+          "comment": "event_summary:401873059",
+          "canonical_key": "MIA_C_BELL",
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
+        },
+        {
+          "team": "MIA",
+          "player": "Aaron Brewer",
+          "short_name": "Aaron Brewer",
+          "pos": "C",
+          "pos_group": "OL",
+          "raw_status": "Questionable",
+          "status_code": "QUESTIONABLE_GTD",
+          "comment": "event_summary:401873059",
+          "canonical_key": "MIA_A_BREWER",
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
+        },
+        {
+          "team": "MIA",
           "player": "Zeek Biggers",
           "short_name": "Zeek Biggers",
           "pos": "DT",
@@ -6810,7 +6801,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873059",
           "canonical_key": "MIA_Z_BIGGERS",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         },
         {
           "team": "MIA",
@@ -6822,48 +6813,12 @@
           "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873059",
           "canonical_key": "MIA_J_PHILLIPS",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
-        },
-        {
-          "team": "MIA",
-          "player": "Jared Wayne",
-          "short_name": "Jared Wayne",
-          "pos": "WR",
-          "pos_group": "WR",
-          "raw_status": "Out",
-          "status_code": "OUT_INACTIVO",
-          "comment": "event_summary:401873059",
-          "canonical_key": "MIA_J_WAYNE",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
-        },
-        {
-          "team": "MIA",
-          "player": "Aaron Brewer",
-          "short_name": "Aaron Brewer",
-          "pos": "C",
-          "pos_group": "OL",
-          "raw_status": "Out",
-          "status_code": "OUT_INACTIVO",
-          "comment": "event_summary:401873059",
-          "canonical_key": "MIA_A_BREWER",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
-        },
-        {
-          "team": "MIA",
-          "player": "Chris Bell",
-          "short_name": "Chris Bell",
-          "pos": "WR",
-          "pos_group": "WR",
-          "raw_status": "Out",
-          "status_code": "OUT_INACTIVO",
-          "comment": "event_summary:401873059",
-          "canonical_key": "MIA_C_BELL",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         }
       ],
       "summary": {
         "team": "MIA",
-        "timestamp_cst": "2026-11-16 22:40:05 CST",
+        "timestamp_cst": "2026-11-17 14:32:29 CST",
         "qb1_name": "Kyle McCord",
         "qb1_base": "M. Willis",
         "qb1_status": "ACTIVO_CONFIRMADO",
@@ -6871,18 +6826,16 @@
         "qb1_out_or_replaced": false,
         "rb1_out": false,
         "wr1_te1_out_players": [],
-        "ol_out_count": 1,
+        "ol_out_count": 0,
         "def_key_out_count": 1,
-        "recien_activados": [
-          "Caedan Wallace (OT)"
-        ],
+        "recien_activados": [],
         "bajas_out_doubtful": [
-          "Aaron Brewer (C - Out)",
-          "Zeek Biggers (DT - Out)",
-          "Jared Wayne (WR - Out)",
-          "Chris Bell (WR - Out)"
+          "Zeek Biggers (DT - Out)"
         ],
         "questionable_gtd": [
+          "Aaron Brewer (C - GTD)",
+          "Jared Wayne (WR - GTD)",
+          "Chris Bell (WR - GTD)",
           "Jordan Phillips (DT - GTD)"
         ],
         "traspasos_altas": [],
@@ -6959,8 +6912,8 @@
             "pos": "C",
             "player": "Aaron Brewer",
             "backup": "Andrew Meyer",
-            "status": "OUT_INACTIVO",
-            "raw_status": "Out",
+            "status": "QUESTIONABLE_GTD",
+            "raw_status": "Questionable",
             "canonical_key": "MIA_A_BREWER"
           },
           "RG": {
@@ -7077,9 +7030,9 @@
             "slot": "C",
             "position": "C",
             "player_name": "Aaron Brewer",
-            "status": "OUT_INACTIVO",
-            "raw_espn_status": "Out",
-            "detail": "Out",
+            "status": "QUESTIONABLE_GTD",
+            "raw_espn_status": "Questionable",
+            "detail": "Questionable",
             "recien_activado": false
           },
           {
@@ -7134,6 +7087,42 @@
       "injuries": [
         {
           "team": "MIN",
+          "player": "Tyrion Ingram-Dawkins",
+          "short_name": "Tyrion Ingram-Dawkins",
+          "pos": "DE",
+          "pos_group": "EDGE",
+          "raw_status": "Questionable",
+          "status_code": "QUESTIONABLE_GTD",
+          "comment": "event_summary:401873060",
+          "canonical_key": "MIN_T_DAWKINS",
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
+        },
+        {
+          "team": "MIN",
+          "player": "Jauan Jennings",
+          "short_name": "Jauan Jennings",
+          "pos": "WR",
+          "pos_group": "WR",
+          "raw_status": "Questionable",
+          "status_code": "QUESTIONABLE_GTD",
+          "comment": "event_summary:401873060",
+          "canonical_key": "MIN_J_JENNINGS",
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
+        },
+        {
+          "team": "MIN",
+          "player": "Blake Cashman",
+          "short_name": "Blake Cashman",
+          "pos": "LB",
+          "pos_group": "LB",
+          "raw_status": "Questionable",
+          "status_code": "QUESTIONABLE_GTD",
+          "comment": "event_summary:401873060",
+          "canonical_key": "MIN_B_CASHMAN",
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
+        },
+        {
+          "team": "MIN",
           "player": "Andrew Van Ginkel",
           "short_name": "Andrew Van Ginkel",
           "pos": "LB",
@@ -7142,7 +7131,7 @@
           "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873060",
           "canonical_key": "MIN_A_GINKEL",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         },
         {
           "team": "MIN",
@@ -7154,48 +7143,12 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873060",
           "canonical_key": "MIN_J_ADDISON",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
-        },
-        {
-          "team": "MIN",
-          "player": "T.J. Hockenson",
-          "short_name": "T.J. Hockenson",
-          "pos": "TE",
-          "pos_group": "TE",
-          "raw_status": "Out",
-          "status_code": "OUT_INACTIVO",
-          "comment": "event_summary:401873060",
-          "canonical_key": "MIN_T_HOCKENSON",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
-        },
-        {
-          "team": "MIN",
-          "player": "Tyrion Ingram-Dawkins",
-          "short_name": "Tyrion Ingram-Dawkins",
-          "pos": "DE",
-          "pos_group": "EDGE",
-          "raw_status": "Out",
-          "status_code": "OUT_INACTIVO",
-          "comment": "event_summary:401873060",
-          "canonical_key": "MIN_T_DAWKINS",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
-        },
-        {
-          "team": "MIN",
-          "player": "Blake Cashman",
-          "short_name": "Blake Cashman",
-          "pos": "LB",
-          "pos_group": "LB",
-          "raw_status": "Out",
-          "status_code": "OUT_INACTIVO",
-          "comment": "event_summary:401873060",
-          "canonical_key": "MIN_B_CASHMAN",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         }
       ],
       "summary": {
         "team": "MIN",
-        "timestamp_cst": "2026-11-16 22:40:05 CST",
+        "timestamp_cst": "2026-11-17 14:32:29 CST",
         "qb1_name": "Kirk Cousins",
         "qb1_base": "C. Wentz",
         "qb1_status": "ACTIVO_CONFIRMADO",
@@ -7203,26 +7156,25 @@
         "qb1_out_or_replaced": false,
         "rb1_out": false,
         "wr1_te1_out_players": [
-          "Jordan Addison",
-          "T.J. Hockenson"
+          "Jordan Addison"
         ],
         "ol_out_count": 0,
-        "def_key_out_count": 2,
+        "def_key_out_count": 0,
         "recien_activados": [
-          "Max Brosmer (QB)"
+          "T.J. Hockenson (TE1)"
         ],
         "bajas_out_doubtful": [
-          "Jordan Addison (WR2 - Out)",
-          "T.J. Hockenson (TE1 - Out)",
-          "Tyrion Ingram-Dawkins (DE - Out)",
-          "Blake Cashman (LB - Out)"
+          "Jordan Addison (WR2 - Out)"
         ],
         "questionable_gtd": [
-          "Andrew Van Ginkel (MLB1 - GTD)"
+          "Andrew Van Ginkel (MLB1 - GTD)",
+          "Tyrion Ingram-Dawkins (DE - GTD)",
+          "Jauan Jennings (WR - GTD)",
+          "Blake Cashman (LB - GTD)"
         ],
         "traspasos_altas": [
           {
-            "Timestamp_CST": "2026-11-16 22:40:05 CST",
+            "Timestamp_CST": "2026-11-17 14:32:29 CST",
             "Player": "K. Cousins",
             "Pos": "QB",
             "Equipo_Prev": "LV",
@@ -7284,8 +7236,8 @@
             "pos": "TE",
             "player": "T.J. Hockenson",
             "backup": "Gavin Bartholomew",
-            "status": "OUT_INACTIVO",
-            "raw_status": "Out",
+            "status": "RECIEN_ACTIVADO",
+            "raw_status": "Activated (Prev: OUT)",
             "canonical_key": "MIN_T_HOCKENSON"
           },
           "LT": {
@@ -7402,10 +7354,10 @@
             "slot": "TE1",
             "position": "TE",
             "player_name": "T.J. Hockenson",
-            "status": "OUT_INACTIVO",
-            "raw_espn_status": "Out",
-            "detail": "Out",
-            "recien_activado": false
+            "status": "RECIEN_ACTIVADO",
+            "raw_espn_status": "Activated (Prev: OUT)",
+            "detail": "Activated (Prev: OUT)",
+            "recien_activado": true
           },
           {
             "slot": "LT",
@@ -7486,18 +7438,6 @@
       "injuries": [
         {
           "team": "NE",
-          "player": "Walter Rouse",
-          "short_name": "Walter Rouse",
-          "pos": "OL",
-          "pos_group": "OL",
-          "raw_status": "Out",
-          "status_code": "OUT_INACTIVO",
-          "comment": "event_summary:401873053",
-          "canonical_key": "NE_W_ROUSE",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
-        },
-        {
-          "team": "NE",
           "player": "Brenden Schooler",
           "short_name": "Brenden Schooler",
           "pos": "S",
@@ -7506,7 +7446,19 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873053",
           "canonical_key": "NE_B_SCHOOLER",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
+        },
+        {
+          "team": "NE",
+          "player": "Walter Rouse",
+          "short_name": "Walter Rouse",
+          "pos": "OL",
+          "pos_group": "OL",
+          "raw_status": "Out",
+          "status_code": "OUT_INACTIVO",
+          "comment": "event_summary:401873053",
+          "canonical_key": "NE_W_ROUSE",
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         },
         {
           "team": "NE",
@@ -7518,7 +7470,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873053",
           "canonical_key": "NE_B_BROWN",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         },
         {
           "team": "NE",
@@ -7530,7 +7482,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873053",
           "canonical_key": "NE_C_DAVIS",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         },
         {
           "team": "NE",
@@ -7542,12 +7494,12 @@
           "status_code": "DOUBTFUL",
           "comment": "event_summary:401873053",
           "canonical_key": "NE_D_MAYE",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         }
       ],
       "summary": {
         "team": "NE",
-        "timestamp_cst": "2026-11-16 22:40:05 CST",
+        "timestamp_cst": "2026-11-17 14:32:29 CST",
         "qb1_name": "Tommy DeVito",
         "qb1_base": "D. Maye",
         "qb1_status": "DOUBTFUL",
@@ -7561,8 +7513,8 @@
         "bajas_out_doubtful": [
           "Tommy DeVito (QB1 - Doubtful)",
           "Carlton Davis III (CB1 - Out)",
-          "Walter Rouse (OL - Out)",
           "Brenden Schooler (S - Out)",
+          "Walter Rouse (OL - Out)",
           "Ben Brown (C - Out)"
         ],
         "questionable_gtd": [],
@@ -7646,7 +7598,7 @@
             "slot": "RG",
             "pos": "RG",
             "player": "Matt Pryor",
-            "backup": "Ben Brown",
+            "backup": "Mike Onwenu",
             "status": "ACTIVO_CONFIRMADO",
             "raw_status": "Active",
             "canonical_key": "NE_M_PRYOR"
@@ -7655,7 +7607,7 @@
             "slot": "RT",
             "pos": "RT",
             "player": "Morgan Moses",
-            "backup": "Caleb Lomu",
+            "backup": "Marcus Bryant",
             "status": "ACTIVO_CONFIRMADO",
             "raw_status": "Active",
             "canonical_key": "NE_M_MOSES"
@@ -7813,6 +7765,42 @@
       "injuries": [
         {
           "team": "NO",
+          "player": "Erik McCoy",
+          "short_name": "Erik McCoy",
+          "pos": "C",
+          "pos_group": "OL",
+          "raw_status": "Doubtful",
+          "status_code": "DOUBTFUL",
+          "comment": "event_summary:401873055",
+          "canonical_key": "NO_E_MCCOY",
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
+        },
+        {
+          "team": "NO",
+          "player": "CJ Donaldson",
+          "short_name": "CJ Donaldson",
+          "pos": "RB",
+          "pos_group": "RB",
+          "raw_status": "Questionable",
+          "status_code": "QUESTIONABLE_GTD",
+          "comment": "event_summary:401873055",
+          "canonical_key": "NO_C_DONALDSON",
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
+        },
+        {
+          "team": "NO",
+          "player": "Taliese Fuaga",
+          "short_name": "Taliese Fuaga",
+          "pos": "OT",
+          "pos_group": "OL",
+          "raw_status": "Doubtful",
+          "status_code": "DOUBTFUL",
+          "comment": "event_summary:401873055",
+          "canonical_key": "NO_T_FUAGA",
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
+        },
+        {
+          "team": "NO",
           "player": "Asim Richards",
           "short_name": "Asim Richards",
           "pos": "OT",
@@ -7821,43 +7809,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873055",
           "canonical_key": "NO_A_RICHARDS",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
-        },
-        {
-          "team": "NO",
-          "player": "Erik McCoy",
-          "short_name": "Erik McCoy",
-          "pos": "C",
-          "pos_group": "OL",
-          "raw_status": "Out",
-          "status_code": "OUT_INACTIVO",
-          "comment": "event_summary:401873055",
-          "canonical_key": "NO_E_MCCOY",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
-        },
-        {
-          "team": "NO",
-          "player": "Taliese Fuaga",
-          "short_name": "Taliese Fuaga",
-          "pos": "OT",
-          "pos_group": "OL",
-          "raw_status": "Out",
-          "status_code": "OUT_INACTIVO",
-          "comment": "event_summary:401873055",
-          "canonical_key": "NO_T_FUAGA",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
-        },
-        {
-          "team": "NO",
-          "player": "CJ Donaldson",
-          "short_name": "CJ Donaldson",
-          "pos": "RB",
-          "pos_group": "RB",
-          "raw_status": "Out",
-          "status_code": "OUT_INACTIVO",
-          "comment": "event_summary:401873055",
-          "canonical_key": "NO_C_DONALDSON",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         },
         {
           "team": "NO",
@@ -7869,12 +7821,12 @@
           "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873055",
           "canonical_key": "NO_P_WERNER",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         }
       ],
       "summary": {
         "team": "NO",
-        "timestamp_cst": "2026-11-16 22:40:05 CST",
+        "timestamp_cst": "2026-11-17 14:32:29 CST",
         "qb1_name": "Tyler Shough",
         "qb1_base": "T. Shough",
         "qb1_status": "ACTIVO_CONFIRMADO",
@@ -7884,17 +7836,14 @@
         "wr1_te1_out_players": [],
         "ol_out_count": 3,
         "def_key_out_count": 0,
-        "recien_activados": [
-          "Zach Wilson (QB)",
-          "Mike Reid (CB)"
-        ],
+        "recien_activados": [],
         "bajas_out_doubtful": [
-          "Erik McCoy (C - Out)",
-          "Taliese Fuaga (RT - Out)",
-          "Asim Richards (OT - Out)",
-          "CJ Donaldson (RB - Out)"
+          "Erik McCoy (C - Doubtful)",
+          "Taliese Fuaga (RT - Doubtful)",
+          "Asim Richards (OT - Out)"
         ],
         "questionable_gtd": [
+          "CJ Donaldson (RB - GTD)",
           "Pete Werner (LB - GTD)"
         ],
         "traspasos_altas": [],
@@ -7969,8 +7918,8 @@
             "pos": "C",
             "player": "Erik McCoy",
             "backup": "Cesar Ruiz",
-            "status": "OUT_INACTIVO",
-            "raw_status": "Out",
+            "status": "DOUBTFUL",
+            "raw_status": "Doubtful",
             "canonical_key": "NO_E_MCCOY"
           },
           "RG": {
@@ -7987,8 +7936,8 @@
             "pos": "RT",
             "player": "Taliese Fuaga",
             "backup": "Asim Richards",
-            "status": "OUT_INACTIVO",
-            "raw_status": "Out",
+            "status": "DOUBTFUL",
+            "raw_status": "Doubtful",
             "canonical_key": "NO_T_FUAGA"
           },
           "CB1": {
@@ -8087,9 +8036,9 @@
             "slot": "C",
             "position": "C",
             "player_name": "Erik McCoy",
-            "status": "OUT_INACTIVO",
-            "raw_espn_status": "Out",
-            "detail": "Out",
+            "status": "DOUBTFUL",
+            "raw_espn_status": "Doubtful",
+            "detail": "Doubtful",
             "recien_activado": false
           },
           {
@@ -8105,9 +8054,9 @@
             "slot": "RT",
             "position": "RT",
             "player_name": "Taliese Fuaga",
-            "status": "OUT_INACTIVO",
-            "raw_espn_status": "Out",
-            "detail": "Out",
+            "status": "DOUBTFUL",
+            "raw_espn_status": "Doubtful",
+            "detail": "Doubtful",
             "recien_activado": false
           },
           {
@@ -8148,11 +8097,11 @@
           "short_name": "Malik Harrison",
           "pos": "LB",
           "pos_group": "LB",
-          "raw_status": "Out",
-          "status_code": "OUT_INACTIVO",
+          "raw_status": "Questionable",
+          "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873052",
           "canonical_key": "NYG_M_HARRISON",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         },
         {
           "team": "NYG",
@@ -8164,7 +8113,7 @@
           "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873052",
           "canonical_key": "NYG_J_PINNOCK",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         },
         {
           "team": "NYG",
@@ -8176,7 +8125,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873052",
           "canonical_key": "NYG_T_TRACY",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         },
         {
           "team": "NYG",
@@ -8188,7 +8137,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873052",
           "canonical_key": "NYG_T_EDMUNDS",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         },
         {
           "team": "NYG",
@@ -8200,12 +8149,12 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873052",
           "canonical_key": "NYG_B_BERRIOS",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         }
       ],
       "summary": {
         "team": "NYG",
-        "timestamp_cst": "2026-11-16 22:40:05 CST",
+        "timestamp_cst": "2026-11-17 14:32:29 CST",
         "qb1_name": "J.J. McCarthy",
         "qb1_base": "J.J. McCarthy",
         "qb1_status": "ACTIVO_CONFIRMADO",
@@ -8214,19 +8163,15 @@
         "rb1_out": false,
         "wr1_te1_out_players": [],
         "ol_out_count": 0,
-        "def_key_out_count": 2,
-        "recien_activados": [
-          "Nikko Reed (CB)",
-          "Josh Sills (G)",
-          "CJ Okoye (DT)"
-        ],
+        "def_key_out_count": 1,
+        "recien_activados": [],
         "bajas_out_doubtful": [
-          "Malik Harrison (LB - Out)",
           "Tyrone Tracy Jr. (RB - Injured Reserve)",
           "Tremaine Edmunds (LB - Injured Reserve)",
           "Braxton Berrios (WR - Injured Reserve)"
         ],
         "questionable_gtd": [
+          "Malik Harrison (LB - GTD)",
           "Jason Pinnock (S - GTD)"
         ],
         "traspasos_altas": [],
@@ -8478,6 +8423,30 @@
       "injuries": [
         {
           "team": "NYJ",
+          "player": "Trevin Wallace",
+          "short_name": "Trevin Wallace",
+          "pos": "LB",
+          "pos_group": "LB",
+          "raw_status": "Questionable",
+          "status_code": "QUESTIONABLE_GTD",
+          "comment": "event_summary:401873054",
+          "canonical_key": "NYJ_T_WALLACE",
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
+        },
+        {
+          "team": "NYJ",
+          "player": "Jarvis Brownlee Jr.",
+          "short_name": "Jarvis Brownlee Jr.",
+          "pos": "CB",
+          "pos_group": "CB",
+          "raw_status": "Questionable",
+          "status_code": "QUESTIONABLE_GTD",
+          "comment": "event_summary:401873054",
+          "canonical_key": "NYJ_J_BROWNLEE",
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
+        },
+        {
+          "team": "NYJ",
           "player": "Dylan Parham",
           "short_name": "Dylan Parham",
           "pos": "G",
@@ -8486,7 +8455,7 @@
           "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873054",
           "canonical_key": "NYJ_D_PARHAM",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         },
         {
           "team": "NYJ",
@@ -8498,31 +8467,7 @@
           "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873054",
           "canonical_key": "NYJ_G_SMITH",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
-        },
-        {
-          "team": "NYJ",
-          "player": "Trevin Wallace",
-          "short_name": "Trevin Wallace",
-          "pos": "LB",
-          "pos_group": "LB",
-          "raw_status": "Out",
-          "status_code": "OUT_INACTIVO",
-          "comment": "event_summary:401873054",
-          "canonical_key": "NYJ_T_WALLACE",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
-        },
-        {
-          "team": "NYJ",
-          "player": "Jarvis Brownlee Jr.",
-          "short_name": "Jarvis Brownlee Jr.",
-          "pos": "CB",
-          "pos_group": "CB",
-          "raw_status": "Out",
-          "status_code": "OUT_INACTIVO",
-          "comment": "event_summary:401873054",
-          "canonical_key": "NYJ_J_BROWNLEE",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         },
         {
           "team": "NYJ",
@@ -8534,12 +8479,12 @@
           "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873054",
           "canonical_key": "NYJ_O_COOPER",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         }
       ],
       "summary": {
         "team": "NYJ",
-        "timestamp_cst": "2026-11-16 22:40:05 CST",
+        "timestamp_cst": "2026-11-17 14:32:29 CST",
         "qb1_name": "Geno Smith",
         "qb1_base": "G. Smith",
         "qb1_status": "QUESTIONABLE_GTD",
@@ -8548,18 +8493,15 @@
         "rb1_out": false,
         "wr1_te1_out_players": [],
         "ol_out_count": 0,
-        "def_key_out_count": 2,
-        "recien_activados": [
-          "Tim Patrick (WR)"
-        ],
-        "bajas_out_doubtful": [
-          "Trevin Wallace (LB - Out)",
-          "Jarvis Brownlee Jr. (CB - Out)"
-        ],
+        "def_key_out_count": 0,
+        "recien_activados": [],
+        "bajas_out_doubtful": [],
         "questionable_gtd": [
           "Geno Smith (QB1 - GTD)",
           "Omar Cooper Jr. (WR2 - GTD)",
-          "Dylan Parham (LG - GTD)"
+          "Dylan Parham (LG - GTD)",
+          "Trevin Wallace (LB - GTD)",
+          "Jarvis Brownlee Jr. (CB - GTD)"
         ],
         "traspasos_altas": [],
         "traspasos_bajas": [],
@@ -8808,7 +8750,7 @@
       "injuries": [],
       "summary": {
         "team": "PHI",
-        "timestamp_cst": "2026-11-16 22:40:05 CST",
+        "timestamp_cst": "2026-11-17 14:32:29 CST",
         "qb1_name": "J. Milton III",
         "qb1_base": "J. Milton III",
         "qb1_status": "ACTIVO_CONFIRMADO",
@@ -9070,6 +9012,18 @@
       "injuries": [
         {
           "team": "PIT",
+          "player": "DeShon Elliott",
+          "short_name": "DeShon Elliott",
+          "pos": "S",
+          "pos_group": "CB",
+          "raw_status": "Questionable",
+          "status_code": "QUESTIONABLE_GTD",
+          "comment": "event_summary:401873064",
+          "canonical_key": "PIT_D_ELLIOTT",
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
+        },
+        {
+          "team": "PIT",
           "player": "Mason McCormick",
           "short_name": "Mason McCormick",
           "pos": "G",
@@ -9078,7 +9032,7 @@
           "status_code": "DOUBTFUL",
           "comment": "event_summary:401873064",
           "canonical_key": "PIT_M_MCCORMICK",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         },
         {
           "team": "PIT",
@@ -9090,7 +9044,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873064",
           "canonical_key": "PIT_M_PITTMAN",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         },
         {
           "team": "PIT",
@@ -9102,19 +9056,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873064",
           "canonical_key": "PIT_R_WILSON",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
-        },
-        {
-          "team": "PIT",
-          "player": "DeShon Elliott",
-          "short_name": "DeShon Elliott",
-          "pos": "S",
-          "pos_group": "CB",
-          "raw_status": "Out",
-          "status_code": "OUT_INACTIVO",
-          "comment": "event_summary:401873064",
-          "canonical_key": "PIT_D_ELLIOTT",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         },
         {
           "team": "PIT",
@@ -9126,12 +9068,12 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873064",
           "canonical_key": "PIT_S_DAY",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         }
       ],
       "summary": {
         "team": "PIT",
-        "timestamp_cst": "2026-11-16 22:40:05 CST",
+        "timestamp_cst": "2026-11-17 14:32:29 CST",
         "qb1_name": "Aaron Rodgers",
         "qb1_base": "A. Rodgers",
         "qb1_status": "ACTIVO_CONFIRMADO",
@@ -9140,16 +9082,17 @@
         "rb1_out": false,
         "wr1_te1_out_players": [],
         "ol_out_count": 1,
-        "def_key_out_count": 2,
+        "def_key_out_count": 1,
         "recien_activados": [],
         "bajas_out_doubtful": [
           "Mason McCormick (LG - Doubtful)",
           "Michael Pittman Jr. (WR - Injured Reserve)",
           "Roman Wilson (WR - Injured Reserve)",
-          "DeShon Elliott (S - Out)",
           "Sebastian Joseph-Day (DT - Injured Reserve)"
         ],
-        "questionable_gtd": [],
+        "questionable_gtd": [
+          "DeShon Elliott (S - GTD)"
+        ],
         "traspasos_altas": [],
         "traspasos_bajas": [],
         "traspasos_resumen": [],
@@ -9397,18 +9340,6 @@
       "injuries": [
         {
           "team": "SEA",
-          "player": "George Holani",
-          "short_name": "George Holani",
-          "pos": "RB",
-          "pos_group": "RB",
-          "raw_status": "Questionable",
-          "status_code": "QUESTIONABLE_GTD",
-          "comment": "event_summary:401873062",
-          "canonical_key": "SEA_G_HOLANI",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
-        },
-        {
-          "team": "SEA",
           "player": "Leonard Williams",
           "short_name": "Leonard Williams",
           "pos": "DT",
@@ -9417,7 +9348,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873062",
           "canonical_key": "SEA_L_WILLIAMS",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         },
         {
           "team": "SEA",
@@ -9429,7 +9360,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873062",
           "canonical_key": "SEA_Q_NELSON",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         },
         {
           "team": "SEA",
@@ -9441,7 +9372,19 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873062",
           "canonical_key": "SEA_C_CROSS",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
+        },
+        {
+          "team": "SEA",
+          "player": "George Holani",
+          "short_name": "George Holani",
+          "pos": "RB",
+          "pos_group": "RB",
+          "raw_status": "Questionable",
+          "status_code": "QUESTIONABLE_GTD",
+          "comment": "event_summary:401873062",
+          "canonical_key": "SEA_G_HOLANI",
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         },
         {
           "team": "SEA",
@@ -9453,12 +9396,12 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873062",
           "canonical_key": "SEA_S_DARNOLD",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         }
       ],
       "summary": {
         "team": "SEA",
-        "timestamp_cst": "2026-11-16 22:40:05 CST",
+        "timestamp_cst": "2026-11-17 14:32:29 CST",
         "qb1_name": "Sam Darnold",
         "qb1_base": "D. Lock",
         "qb1_status": "OUT_INACTIVO",
@@ -9468,10 +9411,7 @@
         "wr1_te1_out_players": [],
         "ol_out_count": 2,
         "def_key_out_count": 1,
-        "recien_activados": [
-          "Emanuel Wilson (RB)",
-          "Avery Smith (CB)"
-        ],
+        "recien_activados": [],
         "bajas_out_doubtful": [
           "Sam Darnold (QB1 - Out)",
           "Charles Cross (LT - Out)",
@@ -9562,11 +9502,11 @@
           "RG": {
             "slot": "RG",
             "pos": "RG",
-            "player": "Grey Zabel",
-            "backup": "Anthony Bradford",
+            "player": "Anthony Bradford",
+            "backup": "",
             "status": "ACTIVO_CONFIRMADO",
             "raw_status": "Active",
-            "canonical_key": "SEA_G_ZABEL"
+            "canonical_key": "SEA_A_BRADFORD"
           },
           "RT": {
             "slot": "RT",
@@ -9681,7 +9621,7 @@
           {
             "slot": "RG",
             "position": "RG",
-            "player_name": "Grey Zabel",
+            "player_name": "Anthony Bradford",
             "status": "ACTIVO_CONFIRMADO",
             "raw_espn_status": "Active",
             "detail": "Active",
@@ -9738,7 +9678,7 @@
           "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873063",
           "canonical_key": "SF_R_GREEN",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         },
         {
           "team": "SF",
@@ -9746,11 +9686,11 @@
           "short_name": "Mike Evans",
           "pos": "WR",
           "pos_group": "WR",
-          "raw_status": "Out",
-          "status_code": "OUT_INACTIVO",
+          "raw_status": "Questionable",
+          "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873063",
           "canonical_key": "SF_M_EVANS",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         },
         {
           "team": "SF",
@@ -9762,7 +9702,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873063",
           "canonical_key": "SF_C_WEST",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         },
         {
           "team": "SF",
@@ -9774,7 +9714,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873063",
           "canonical_key": "SF_N_HOBBS",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         },
         {
           "team": "SF",
@@ -9786,36 +9726,29 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873063",
           "canonical_key": "SF_G_HALTON",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         }
       ],
       "summary": {
         "team": "SF",
-        "timestamp_cst": "2026-11-16 22:40:05 CST",
+        "timestamp_cst": "2026-11-17 14:32:29 CST",
         "qb1_name": "Brock Purdy",
         "qb1_base": "B. Purdy",
         "qb1_status": "ACTIVO_CONFIRMADO",
         "qb1_tag": "OK",
         "qb1_out_or_replaced": false,
         "rb1_out": false,
-        "wr1_te1_out_players": [
-          "Mike Evans"
-        ],
+        "wr1_te1_out_players": [],
         "ol_out_count": 0,
         "def_key_out_count": 3,
-        "recien_activados": [
-          "Brandin Cooks (WR)",
-          "Kurtis Rourke (QB)",
-          "Tatum Bethune (LB)",
-          "Enrique Cruz Jr. (OT)"
-        ],
+        "recien_activados": [],
         "bajas_out_doubtful": [
-          "Mike Evans (WR1 - Out)",
           "C.J. West (DT - Injured Reserve)",
           "Nate Hobbs (CB - Injured Reserve)",
           "Gracen Halton (DT - Injured Reserve)"
         ],
         "questionable_gtd": [
+          "Mike Evans (WR1 - GTD)",
           "Renardo Green (CB1 - GTD)"
         ],
         "traspasos_altas": [],
@@ -9845,8 +9778,8 @@
             "pos": "WR",
             "player": "Mike Evans",
             "backup": "Jordan Watkins",
-            "status": "OUT_INACTIVO",
-            "raw_status": "Out",
+            "status": "QUESTIONABLE_GTD",
+            "raw_status": "Questionable",
             "canonical_key": "SF_M_EVANS"
           },
           "WR2": {
@@ -9963,9 +9896,9 @@
             "slot": "WR1",
             "position": "WR",
             "player_name": "Mike Evans",
-            "status": "OUT_INACTIVO",
-            "raw_espn_status": "Out",
-            "detail": "Out",
+            "status": "QUESTIONABLE_GTD",
+            "raw_espn_status": "Questionable",
+            "detail": "Questionable",
             "recien_activado": false
           },
           {
@@ -10065,7 +9998,7 @@
       "injuries": [],
       "summary": {
         "team": "TB",
-        "timestamp_cst": "2026-11-16 22:40:05 CST",
+        "timestamp_cst": "2026-11-17 14:32:29 CST",
         "qb1_name": "B. Mayfield",
         "qb1_base": "B. Mayfield",
         "qb1_status": "ACTIVO_CONFIRMADO",
@@ -10331,11 +10264,11 @@
           "short_name": "Anthony Hill Jr.",
           "pos": "LB",
           "pos_group": "LB",
-          "raw_status": "Out",
-          "status_code": "OUT_INACTIVO",
+          "raw_status": "Questionable",
+          "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873057",
           "canonical_key": "TEN_A_HILL",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         },
         {
           "team": "TEN",
@@ -10343,11 +10276,11 @@
           "short_name": "Cody Barton",
           "pos": "LB",
           "pos_group": "LB",
-          "raw_status": "Out",
-          "status_code": "OUT_INACTIVO",
+          "raw_status": "Questionable",
+          "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873057",
           "canonical_key": "TEN_C_BARTON",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         },
         {
           "team": "TEN",
@@ -10355,11 +10288,11 @@
           "short_name": "Carnell Tate",
           "pos": "WR",
           "pos_group": "WR",
-          "raw_status": "Out",
-          "status_code": "OUT_INACTIVO",
+          "raw_status": "Questionable",
+          "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873057",
           "canonical_key": "TEN_C_TATE",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         },
         {
           "team": "TEN",
@@ -10371,7 +10304,7 @@
           "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873057",
           "canonical_key": "TEN_W_ROBINSON",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         },
         {
           "team": "TEN",
@@ -10383,34 +10316,28 @@
           "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873057",
           "canonical_key": "TEN_T_ADAMS",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         }
       ],
       "summary": {
         "team": "TEN",
-        "timestamp_cst": "2026-11-16 22:40:05 CST",
+        "timestamp_cst": "2026-11-17 14:32:29 CST",
         "qb1_name": "Cam Ward",
         "qb1_base": "C. Ward",
         "qb1_status": "ACTIVO_CONFIRMADO",
         "qb1_tag": "OK",
         "qb1_out_or_replaced": false,
         "rb1_out": false,
-        "wr1_te1_out_players": [
-          "Carnell Tate"
-        ],
+        "wr1_te1_out_players": [],
         "ol_out_count": 0,
-        "def_key_out_count": 2,
-        "recien_activados": [
-          "Nicholas Singleton (RB)",
-          "Jaylon Jones (CB)"
-        ],
-        "bajas_out_doubtful": [
-          "Carnell Tate (WR1 - Out)",
-          "Anthony Hill Jr. (LB - Out)",
-          "Cody Barton (LB - Out)"
-        ],
+        "def_key_out_count": 0,
+        "recien_activados": [],
+        "bajas_out_doubtful": [],
         "questionable_gtd": [
+          "Carnell Tate (WR1 - GTD)",
           "Wan'Dale Robinson (WR2 - GTD)",
+          "Anthony Hill Jr. (LB - GTD)",
+          "Cody Barton (LB - GTD)",
           "Tony Adams (S - GTD)"
         ],
         "traspasos_altas": [],
@@ -10443,8 +10370,8 @@
             "pos": "WR",
             "player": "Carnell Tate",
             "backup": "Chimere Dike",
-            "status": "OUT_INACTIVO",
-            "raw_status": "Out",
+            "status": "QUESTIONABLE_GTD",
+            "raw_status": "Questionable",
             "canonical_key": "TEN_C_TATE"
           },
           "WR2": {
@@ -10561,9 +10488,9 @@
             "slot": "WR1",
             "position": "WR",
             "player_name": "Carnell Tate",
-            "status": "OUT_INACTIVO",
-            "raw_espn_status": "Out",
-            "detail": "Out",
+            "status": "QUESTIONABLE_GTD",
+            "raw_espn_status": "Questionable",
+            "detail": "Questionable",
             "recien_activado": false
           },
           {
@@ -10663,18 +10590,6 @@
       "injuries": [
         {
           "team": "WAS",
-          "player": "Laremy Tunsil",
-          "short_name": "Laremy Tunsil",
-          "pos": "OT",
-          "pos_group": "OL",
-          "raw_status": "Injured Reserve",
-          "status_code": "OUT_INACTIVO",
-          "comment": "event_summary:401873052",
-          "canonical_key": "WAS_L_TUNSIL",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
-        },
-        {
-          "team": "WAS",
           "player": "Jacory Croskey-Merritt",
           "short_name": "Jacory Croskey-Merritt",
           "pos": "RB",
@@ -10683,7 +10598,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873052",
           "canonical_key": "WAS_J_MERRITT",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         },
         {
           "team": "WAS",
@@ -10691,11 +10606,11 @@
           "short_name": "Colson Yankoff",
           "pos": "TE",
           "pos_group": "TE",
-          "raw_status": "Out",
-          "status_code": "OUT_INACTIVO",
+          "raw_status": "Questionable",
+          "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873052",
           "canonical_key": "WAS_C_YANKOFF",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         },
         {
           "team": "WAS",
@@ -10703,11 +10618,23 @@
           "short_name": "Lucas Patrick",
           "pos": "G",
           "pos_group": "OL",
-          "raw_status": "Out",
-          "status_code": "OUT_INACTIVO",
+          "raw_status": "Questionable",
+          "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873052",
           "canonical_key": "WAS_L_PATRICK",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
+        },
+        {
+          "team": "WAS",
+          "player": "Laremy Tunsil",
+          "short_name": "Laremy Tunsil",
+          "pos": "OT",
+          "pos_group": "OL",
+          "raw_status": "Injured Reserve",
+          "status_code": "OUT_INACTIVO",
+          "comment": "event_summary:401873052",
+          "canonical_key": "WAS_L_TUNSIL",
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         },
         {
           "team": "WAS",
@@ -10719,12 +10646,12 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873052",
           "canonical_key": "WAS_D_BROWN",
-          "timestamp_cst": "2026-11-16 22:40:05 CST"
+          "timestamp_cst": "2026-11-17 14:32:29 CST"
         }
       ],
       "summary": {
         "team": "WAS",
-        "timestamp_cst": "2026-11-16 22:40:05 CST",
+        "timestamp_cst": "2026-11-17 14:32:29 CST",
         "qb1_name": "Jayden Daniels",
         "qb1_base": "J. Daniels",
         "qb1_status": "ACTIVO_CONFIRMADO",
@@ -10732,22 +10659,18 @@
         "qb1_out_or_replaced": false,
         "rb1_out": false,
         "wr1_te1_out_players": [],
-        "ol_out_count": 2,
+        "ol_out_count": 1,
         "def_key_out_count": 0,
-        "recien_activados": [
-          "Athan Kaliakmanis (QB)",
-          "Isaac Yiadom (CB)",
-          "Tanoa Togiai (G)",
-          "Ricky Barber (DT)"
-        ],
+        "recien_activados": [],
         "bajas_out_doubtful": [
-          "Lucas Patrick (C - Out)",
-          "Laremy Tunsil (OT - Injured Reserve)",
           "Jacory Croskey-Merritt (RB - Injured Reserve)",
-          "Colson Yankoff (TE - Out)",
+          "Laremy Tunsil (OT - Injured Reserve)",
           "Dyami Brown (WR - Injured Reserve)"
         ],
-        "questionable_gtd": [],
+        "questionable_gtd": [
+          "Lucas Patrick (C - GTD)",
+          "Colson Yankoff (TE - GTD)"
+        ],
         "traspasos_altas": [],
         "traspasos_bajas": [],
         "traspasos_resumen": [],
@@ -10820,8 +10743,8 @@
             "pos": "C",
             "player": "Lucas Patrick",
             "backup": "Nick Allegretti",
-            "status": "OUT_INACTIVO",
-            "raw_status": "Out",
+            "status": "QUESTIONABLE_GTD",
+            "raw_status": "Questionable",
             "canonical_key": "WAS_L_PATRICK"
           },
           "RG": {
@@ -10938,9 +10861,9 @@
             "slot": "C",
             "position": "C",
             "player_name": "Lucas Patrick",
-            "status": "OUT_INACTIVO",
-            "raw_espn_status": "Out",
-            "detail": "Out",
+            "status": "QUESTIONABLE_GTD",
+            "raw_espn_status": "Questionable",
+            "detail": "Questionable",
             "recien_activado": false
           },
           {
