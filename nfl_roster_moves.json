@@ -1,10 +1,10 @@
 {
-  "timestamp_cst": "2026-11-15 15:18:01 CST",
+  "timestamp_cst": "2026-11-16 22:40:05 CST",
   "new_team_adaptation_factor": 0.85,
   "total_moves": 2,
   "moves": [
     {
-      "Timestamp_CST": "2026-11-15 15:18:01 CST",
+      "Timestamp_CST": "2026-11-16 22:40:05 CST",
       "Player": "J. Downs",
       "Pos": "WR",
       "Equipo_Prev": "IND",
@@ -20,7 +20,7 @@
       "player_key": "J_DOWNS"
     },
     {
-      "Timestamp_CST": "2026-11-15 15:18:01 CST",
+      "Timestamp_CST": "2026-11-16 22:40:05 CST",
       "Player": "K. Cousins",
       "Pos": "QB",
       "Equipo_Prev": "LV",
@@ -39,7 +39,7 @@
   "by_prev_team": {
     "IND": [
       {
-        "Timestamp_CST": "2026-11-15 15:18:01 CST",
+        "Timestamp_CST": "2026-11-16 22:40:05 CST",
         "Player": "J. Downs",
         "Pos": "WR",
         "Equipo_Prev": "IND",
@@ -57,7 +57,7 @@
     ],
     "LV": [
       {
-        "Timestamp_CST": "2026-11-15 15:18:01 CST",
+        "Timestamp_CST": "2026-11-16 22:40:05 CST",
         "Player": "K. Cousins",
         "Pos": "QB",
         "Equipo_Prev": "LV",
@@ -77,7 +77,7 @@
   "by_current_team": {
     "KC": [
       {
-        "Timestamp_CST": "2026-11-15 15:18:01 CST",
+        "Timestamp_CST": "2026-11-16 22:40:05 CST",
         "Player": "J. Downs",
         "Pos": "WR",
         "Equipo_Prev": "IND",
@@ -95,7 +95,7 @@
     ],
     "MIN": [
       {
-        "Timestamp_CST": "2026-11-15 15:18:01 CST",
+        "Timestamp_CST": "2026-11-16 22:40:05 CST",
         "Player": "K. Cousins",
         "Pos": "QB",
         "Equipo_Prev": "LV",
@@ -114,8 +114,7 @@
   },
   "summary_by_team": {
     "ATL": [
-      "FIRMA_ALTA: Elevated LB J.J. Quinn and DB Jammie Robinson from the practice squad.",
-      "FIRMA_ALTA: Signed DE Cameron Thomas to a three-year contract extension. Signed CB C.J...."
+      "FIRMA_ALTA: Elevated LB J.J. Quinn and DB Jammie Robinson from the practice squad."
     ],
     "BUF": [
       "CORTE_FA: Activated DB Jordan Hancock from injured reserve. Released DB Te'Cory Couch..."
@@ -130,16 +129,20 @@
     ],
     "DEN": [],
     "DET": [
+      "CORTE_FA: Claimed LB Tyrus Wheat off waivers from Dallas. Waived DB Nick Whiteside.",
       "FIRMA_ALTA: Elevated LB Owen Pappoe from the practice squad."
     ],
     "GB": [
+      "CORTE_FA: Released DT David Blay Jr. from the practice squad.",
       "CORTE_FA: Activated RB Chris Brooks and WR Skyy Moore from injured reserve. Placed TE..."
     ],
     "TEN": [
+      "FIRMA_ALTA: Signed WR Jason Brownlee and DB Bishop Fitzgerald to the practice squad.",
       "CORTE_FA: Placed G Peter Skoronski and P Tommy Townsend on injured reserve. Signed G ..."
     ],
     "IND": [
       "Baja: J. Downs (WR -> KC)",
+      "FIRMA_ALTA: Signed CB Johnathan Edwards from the practice squad to the active roster. S...",
       "FIRMA_ALTA: Placed LB Akeem Davis-Gaither and TE Mo Alie-Coxon on injured reserve. Acti..."
     ],
     "KC": [
@@ -148,54 +151,140 @@
     ],
     "LV": [
       "Baja: K. Cousins (QB -> MIN)",
+      "CORTE_FA: Signed QB Brett Rypien to the practice squad. Released DE Bralen Trice from...",
       "FIRMA_ALTA: Elevated TE Carter Runyon from the practice squad."
     ],
     "LA": [
-      "FIRMA_ALTA: Elevated CB Damarion Williams and S Jake McQuaide from the practice squad.",
-      "FIRMA_ALTA: Signed WR Brennan Presley to the active roster. Signed WR Tyler Scott to th..."
+      "CORTE_FA: Placed C Dylan McMahon on injured reserve. Waived WR Brennan Presley. Relea..."
     ],
     "MIA": [
-      "FIRMA_ALTA: Signed K Zane Gonzalez to the active roster. Elevated QB Brady Cook and WR ..."
+      "CORTE_FA: Waived K Zane Gonzalez and LB Jamree Kromah."
     ],
     "MIN": [
-      "Alta: K. Cousins (QB, ex-LV · 85%)",
-      "FIRMA_ALTA: Elevated TE Devin Culp and WR Jeshaun Jones from the practice squad."
+      "Alta: K. Cousins (QB, ex-LV · 85%)"
     ],
-    "NE": [
-      "FIRMA_ALTA: Activated FB Reggie Gilliam and OL Greg Van Roten from injured reserve. Pla..."
+    "NE": [],
+    "NO": [],
+    "NYG": [
+      "CORTE_FA: Signed WR Xavier Gipson from Philadelphia's practice squad and DB Tavierre ..."
     ],
-    "NO": [
-      "FIRMA_ALTA: Activated RB Travis Etienne. Signed T Easton Kilty to the active roster. El..."
-    ],
-    "NYG": [],
     "NYJ": [],
     "PHI": [
-      "CORTE_FA: Released OL Fred Johnson."
+      "CORTE_FA: Signed TE Zach Ertz and OT John Ojukwu from the practice squad to the activ..."
     ],
-    "ARI": [
-      "FIRMA_ALTA: Elevated WR Zay Flowers from the practice squad. Activated TE Hunter Long f...",
-      "FIRMA_ALTA: Signed TE Elijah Hughes to a three-year contract extension."
+    "ARI": [],
+    "PIT": [],
+    "LAC": [
+      "FIRMA_ALTA: Reinstated TE David Njoku and LB Denzel Perryman from injured reserve. Elev..."
     ],
-    "PIT": [
-      "CORTE_FA: Waived CB Terell Smith. Activated DT Derrick Harmon from injured reserve."
-    ],
-    "LAC": [],
     "SF": [],
     "SEA": [
-      "FIRMA_ALTA: Elevated CB Trevon Diggs and T Bobby Hart from the practice squad."
+      "CORTE_FA: Waived NT Deven Eastern."
     ],
-    "TB": [],
+    "TB": [
+      "CORTE_FA: Signed QB Easton Stick from the practice squad to the active roster. Signed..."
+    ],
     "WAS": [],
     "CAR": [
-      "FIRMA_ALTA: Activated WR Xavier Legette from injured reserve. Elevated CBs Marco Wilson..."
+      "CORTE_FA: Signed DB Marco Wilson from the practice squad to the active roster. Waived..."
     ],
     "JAX": [],
-    "BAL": [],
-    "HOU": [
-      "CORTE_FA: Signed LB Jake Hummel to the active roster. Elevated LB Chad Muma and RB Da..."
-    ]
+    "BAL": [
+      "FIRMA_ALTA: Signed OT Chuma Edoga from the practice squad to the active roster. Elevate..."
+    ],
+    "HOU": []
   },
   "recent_espn_transactions": [
+    {
+      "team": "DET",
+      "date": "2026-11-16T08:00Z",
+      "type": "CORTE_FA",
+      "description": "Claimed LB Tyrus Wheat off waivers from Dallas. Waived DB Nick Whiteside."
+    },
+    {
+      "team": "GB",
+      "date": "2026-11-16T08:00Z",
+      "type": "CORTE_FA",
+      "description": "Released DT David Blay Jr. from the practice squad."
+    },
+    {
+      "team": "TEN",
+      "date": "2026-11-16T08:00Z",
+      "type": "FIRMA_ALTA",
+      "description": "Signed WR Jason Brownlee and DB Bishop Fitzgerald to the practice squad."
+    },
+    {
+      "team": "IND",
+      "date": "2026-11-16T08:00Z",
+      "type": "FIRMA_ALTA",
+      "description": "Signed CB Johnathan Edwards from the practice squad to the active roster. Signed TE Harrison Bryant and WR Samori Toure to the practice squad."
+    },
+    {
+      "team": "LV",
+      "date": "2026-11-16T08:00Z",
+      "type": "CORTE_FA",
+      "description": "Signed QB Brett Rypien to the practice squad. Released DE Bralen Trice from the practice squad."
+    },
+    {
+      "team": "LA",
+      "date": "2026-11-16T08:00Z",
+      "type": "CORTE_FA",
+      "description": "Placed C Dylan McMahon on injured reserve. Waived WR Brennan Presley. Released DT Jalen Hunt from the practice squad."
+    },
+    {
+      "team": "MIA",
+      "date": "2026-11-16T08:00Z",
+      "type": "CORTE_FA",
+      "description": "Waived K Zane Gonzalez and LB Jamree Kromah."
+    },
+    {
+      "team": "MIN",
+      "date": "2026-11-16T08:00Z",
+      "type": "MOVIMIENTO",
+      "description": "Placed WR Jordan Addison on injured reserve."
+    },
+    {
+      "team": "NYG",
+      "date": "2026-11-16T08:00Z",
+      "type": "CORTE_FA",
+      "description": "Signed WR Xavier Gipson from Philadelphia's practice squad and DB Tavierre Thomas from Minnesota's practice squad to the active roster. Waived WR Charlie Jones and DB Nikko Reed."
+    },
+    {
+      "team": "PHI",
+      "date": "2026-11-16T08:00Z",
+      "type": "CORTE_FA",
+      "description": "Signed TE Zach Ertz and OT John Ojukwu from the practice squad to the active roster. Designated RB Will Shipley to return from injured reserve. Signed RB Jaydon Blue, LB Chance Campbell and TE Hayden Rucci to the practice squad. Released DB Shaun Wade from the practice squad."
+    },
+    {
+      "team": "LAC",
+      "date": "2026-11-16T08:00Z",
+      "type": "FIRMA_ALTA",
+      "description": "Reinstated TE David Njoku and LB Denzel Perryman from injured reserve. Elevated DE Myles Adams from the practice squad. Placed G Branson Taylor on injured reserve."
+    },
+    {
+      "team": "SEA",
+      "date": "2026-11-16T08:00Z",
+      "type": "CORTE_FA",
+      "description": "Waived NT Deven Eastern."
+    },
+    {
+      "team": "TB",
+      "date": "2026-11-16T08:00Z",
+      "type": "CORTE_FA",
+      "description": "Signed QB Easton Stick from the practice squad to the active roster. Signed QB Cooper Rush and WR David Sills V to the practice squad. Released WR David Sills V. Released CB Brandon Johnson from the practice squad."
+    },
+    {
+      "team": "CAR",
+      "date": "2026-11-16T08:00Z",
+      "type": "CORTE_FA",
+      "description": "Signed DB Marco Wilson from the practice squad to the active roster. Waived LB Nick Hampton."
+    },
+    {
+      "team": "BAL",
+      "date": "2026-11-16T08:00Z",
+      "type": "FIRMA_ALTA",
+      "description": "Signed OT Chuma Edoga from the practice squad to the active roster. Elevated WR Chris Moore and TE Nick Vannett from the practice squad."
+    },
     {
       "team": "ATL",
       "date": "2026-11-14T08:00Z",
@@ -255,96 +344,6 @@
       "date": "2026-11-14T08:00Z",
       "type": "FIRMA_ALTA",
       "description": "Elevated TE Carter Runyon from the practice squad."
-    },
-    {
-      "team": "LA",
-      "date": "2026-11-14T08:00Z",
-      "type": "FIRMA_ALTA",
-      "description": "Elevated CB Damarion Williams and S Jake McQuaide from the practice squad."
-    },
-    {
-      "team": "MIA",
-      "date": "2026-11-14T08:00Z",
-      "type": "FIRMA_ALTA",
-      "description": "Signed K Zane Gonzalez to the active roster. Elevated QB Brady Cook and WR Jalen Reagor from the practice squad."
-    },
-    {
-      "team": "MIN",
-      "date": "2026-11-14T08:00Z",
-      "type": "FIRMA_ALTA",
-      "description": "Elevated TE Devin Culp and WR Jeshaun Jones from the practice squad."
-    },
-    {
-      "team": "NE",
-      "date": "2026-11-14T08:00Z",
-      "type": "FIRMA_ALTA",
-      "description": "Activated FB Reggie Gilliam and OL Greg Van Roten from injured reserve. Placed RB TreVeyon Henderson on injured reserve. Elevated G Andrew Rupcich from the practice squad."
-    },
-    {
-      "team": "NO",
-      "date": "2026-11-14T08:00Z",
-      "type": "FIRMA_ALTA",
-      "description": "Activated RB Travis Etienne. Signed T Easton Kilty to the active roster. Elevated K Charlie Smyth from the practice squad. Placed DT Christen Miller on injured reserve."
-    },
-    {
-      "team": "ARI",
-      "date": "2026-11-14T08:00Z",
-      "type": "FIRMA_ALTA",
-      "description": "Elevated WR Zay Flowers from the practice squad. Activated TE Hunter Long from injured reserve."
-    },
-    {
-      "team": "PIT",
-      "date": "2026-11-14T08:00Z",
-      "type": "CORTE_FA",
-      "description": "Waived CB Terell Smith. Activated DT Derrick Harmon from injured reserve."
-    },
-    {
-      "team": "SEA",
-      "date": "2026-11-14T08:00Z",
-      "type": "FIRMA_ALTA",
-      "description": "Elevated CB Trevon Diggs and T Bobby Hart from the practice squad."
-    },
-    {
-      "team": "CAR",
-      "date": "2026-11-14T08:00Z",
-      "type": "FIRMA_ALTA",
-      "description": "Activated WR Xavier Legette from injured reserve. Elevated CBs Marco Wilson and Corey Thornton."
-    },
-    {
-      "team": "HOU",
-      "date": "2026-11-14T08:00Z",
-      "type": "CORTE_FA",
-      "description": "Signed LB Jake Hummel to the active roster. Elevated LB Chad Muma and RB Dare Ogunbowale from the practice squad. Waived DE Sabastian Harsh and WR Daniel Sobkowicz."
-    },
-    {
-      "team": "ATL",
-      "date": "2026-11-13T08:00Z",
-      "type": "FIRMA_ALTA",
-      "description": "Signed DE Cameron Thomas to a three-year contract extension. Signed CB C.J. Henderson to a two-year contract. extension."
-    },
-    {
-      "team": "LA",
-      "date": "2026-11-13T08:00Z",
-      "type": "FIRMA_ALTA",
-      "description": "Signed WR Brennan Presley to the active roster. Signed WR Tyler Scott to the practice squad."
-    },
-    {
-      "team": "PHI",
-      "date": "2026-11-13T08:00Z",
-      "type": "CORTE_FA",
-      "description": "Released OL Fred Johnson."
-    },
-    {
-      "team": "ARI",
-      "date": "2026-11-13T08:00Z",
-      "type": "FIRMA_ALTA",
-      "description": "Signed TE Elijah Hughes to a three-year contract extension."
-    },
-    {
-      "team": "LAC",
-      "date": "2026-11-13T08:00Z",
-      "type": "MOVIMIENTO",
-      "description": "Designated OL Trey Pipkins to return from injured reserve."
     }
   ]
 }
