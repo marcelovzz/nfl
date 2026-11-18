@@ -1,5 +1,5 @@
 {
-  "timestamp_cst": "2026-11-17 19:05:21 CST",
+  "timestamp_cst": "2026-11-17 19:29:31 CST",
   "semana": 11,
   "weather_by_matchup": {
     "IND @ HOU": {
@@ -396,12 +396,12 @@
     }
   },
   "roster_moves": {
-    "timestamp_cst": "2026-11-17 19:05:21 CST",
+    "timestamp_cst": "2026-11-17 19:29:31 CST",
     "new_team_adaptation_factor": 0.85,
     "total_moves": 2,
     "moves": [
       {
-        "Timestamp_CST": "2026-11-17 19:05:21 CST",
+        "Timestamp_CST": "2026-11-17 19:29:31 CST",
         "Player": "J. Downs",
         "Pos": "WR",
         "Equipo_Prev": "IND",
@@ -417,7 +417,7 @@
         "player_key": "J_DOWNS"
       },
       {
-        "Timestamp_CST": "2026-11-17 19:05:21 CST",
+        "Timestamp_CST": "2026-11-17 19:29:31 CST",
         "Player": "K. Cousins",
         "Pos": "QB",
         "Equipo_Prev": "LV",
@@ -436,7 +436,7 @@
     "by_prev_team": {
       "IND": [
         {
-          "Timestamp_CST": "2026-11-17 19:05:21 CST",
+          "Timestamp_CST": "2026-11-17 19:29:31 CST",
           "Player": "J. Downs",
           "Pos": "WR",
           "Equipo_Prev": "IND",
@@ -454,7 +454,7 @@
       ],
       "LV": [
         {
-          "Timestamp_CST": "2026-11-17 19:05:21 CST",
+          "Timestamp_CST": "2026-11-17 19:29:31 CST",
           "Player": "K. Cousins",
           "Pos": "QB",
           "Equipo_Prev": "LV",
@@ -474,7 +474,7 @@
     "by_current_team": {
       "KC": [
         {
-          "Timestamp_CST": "2026-11-17 19:05:21 CST",
+          "Timestamp_CST": "2026-11-17 19:29:31 CST",
           "Player": "J. Downs",
           "Pos": "WR",
           "Equipo_Prev": "IND",
@@ -492,7 +492,7 @@
       ],
       "MIN": [
         {
-          "Timestamp_CST": "2026-11-17 19:05:21 CST",
+          "Timestamp_CST": "2026-11-17 19:29:31 CST",
           "Player": "K. Cousins",
           "Pos": "QB",
           "Equipo_Prev": "LV",
@@ -577,7 +577,7 @@
   "teams": {
     "ARI": {
       "team": "ARI",
-      "timestamp_cst": "2026-11-17 19:05:21 CST",
+      "timestamp_cst": "2026-11-17 19:29:31 CST",
       "qb1_name": "Carson Beck",
       "qb1_base": "G. Minshew",
       "qb1_status": "ACTIVO_CONFIRMADO",
@@ -1031,7 +1031,7 @@
     },
     "ATL": {
       "team": "ATL",
-      "timestamp_cst": "2026-11-17 19:05:21 CST",
+      "timestamp_cst": "2026-11-17 19:29:31 CST",
       "qb1_name": "M. Penix Jr.",
       "qb1_base": "M. Penix Jr.",
       "qb1_status": "ACTIVO_CONFIRMADO",
@@ -1465,7 +1465,7 @@
     },
     "BAL": {
       "team": "BAL",
-      "timestamp_cst": "2026-11-17 19:05:21 CST",
+      "timestamp_cst": "2026-11-17 19:29:31 CST",
       "qb1_name": "Jacoby Brissett",
       "qb1_base": "J. Fagnano",
       "qb1_status": "ACTIVO_CONFIRMADO",
@@ -1919,7 +1919,7 @@
     },
     "BUF": {
       "team": "BUF",
-      "timestamp_cst": "2026-11-17 19:05:21 CST",
+      "timestamp_cst": "2026-11-17 19:29:31 CST",
       "qb1_name": "Josh Allen",
       "qb1_base": "J. Allen",
       "qb1_status": "ACTIVO_CONFIRMADO",
@@ -2364,7 +2364,7 @@
     },
     "CAR": {
       "team": "CAR",
-      "timestamp_cst": "2026-11-17 19:05:21 CST",
+      "timestamp_cst": "2026-11-17 19:29:31 CST",
       "qb1_name": "Bryce Young",
       "qb1_base": "B. Young",
       "qb1_status": "ACTIVO_CONFIRMADO",
@@ -2798,7 +2798,7 @@
     },
     "CHI": {
       "team": "CHI",
-      "timestamp_cst": "2026-11-17 19:05:21 CST",
+      "timestamp_cst": "2026-11-17 19:29:31 CST",
       "qb1_name": "Caleb Williams",
       "qb1_base": "C. Williams",
       "qb1_status": "ACTIVO_CONFIRMADO",
@@ -3243,7 +3243,7 @@
     },
     "CIN": {
       "team": "CIN",
-      "timestamp_cst": "2026-11-17 19:05:21 CST",
+      "timestamp_cst": "2026-11-17 19:29:31 CST",
       "qb1_name": "Joe Burrow",
       "qb1_base": "J. Burrow",
       "qb1_status": "ACTIVO_CONFIRMADO",
@@ -3688,7 +3688,7 @@
     },
     "CLE": {
       "team": "CLE",
-      "timestamp_cst": "2026-11-17 19:05:21 CST",
+      "timestamp_cst": "2026-11-17 19:29:31 CST",
       "qb1_name": "S. Sanders",
       "qb1_base": "S. Sanders",
       "qb1_status": "ACTIVO_CONFIRMADO",
@@ -4122,7 +4122,7 @@
     },
     "DAL": {
       "team": "DAL",
-      "timestamp_cst": "2026-11-17 19:05:21 CST",
+      "timestamp_cst": "2026-11-17 19:29:31 CST",
       "qb1_name": "Dak Prescott",
       "qb1_base": "D. Prescott",
       "qb1_status": "ACTIVO_CONFIRMADO",
@@ -4556,7 +4556,7 @@
     },
     "DEN": {
       "team": "DEN",
-      "timestamp_cst": "2026-11-17 19:05:21 CST",
+      "timestamp_cst": "2026-11-17 19:29:31 CST",
       "qb1_name": "Bo Nix",
       "qb1_base": "B. Nix",
       "qb1_status": "ACTIVO_CONFIRMADO",
@@ -5001,7 +5001,7 @@
     },
     "DET": {
       "team": "DET",
-      "timestamp_cst": "2026-11-17 19:05:21 CST",
+      "timestamp_cst": "2026-11-17 19:29:31 CST",
       "qb1_name": "Jared Goff",
       "qb1_base": "J. Goff",
       "qb1_status": "ACTIVO_CONFIRMADO",
@@ -5458,7 +5458,7 @@
     },
     "GB": {
       "team": "GB",
-      "timestamp_cst": "2026-11-17 19:05:21 CST",
+      "timestamp_cst": "2026-11-17 19:29:31 CST",
       "qb1_name": "J. Love",
       "qb1_base": "J. Love",
       "qb1_status": "ACTIVO_CONFIRMADO",
@@ -5892,7 +5892,7 @@
     },
     "HOU": {
       "team": "HOU",
-      "timestamp_cst": "2026-11-17 19:05:21 CST",
+      "timestamp_cst": "2026-11-17 19:29:31 CST",
       "qb1_name": "C.J. Stroud",
       "qb1_base": "C.J. Stroud",
       "qb1_status": "ACTIVO_CONFIRMADO",
@@ -6337,7 +6337,7 @@
     },
     "IND": {
       "team": "IND",
-      "timestamp_cst": "2026-11-17 19:05:21 CST",
+      "timestamp_cst": "2026-11-17 19:29:31 CST",
       "qb1_name": "Daniel Jones",
       "qb1_base": "D. Jones",
       "qb1_status": "ACTIVO_CONFIRMADO",
@@ -6345,24 +6345,15 @@
       "qb1_out_or_replaced": false,
       "rb1_out": false,
       "wr1_te1_out_players": [],
-      "ol_out_count": 1,
+      "ol_out_count": 0,
       "def_key_out_count": 0,
       "recien_activados": [],
-      "bajas_out_doubtful": [
-        "Jalen Travis (RT - OUT)"
-      ],
+      "bajas_out_doubtful": [],
       "questionable_gtd": [
-        "Anthony Gould (WR3 - GTD)"
+        "Anthony Gould (WR3 - GTD)",
+        "Will Mallory (TE2 - GTD)"
       ],
       "bajas_top3_pills": [
-        {
-          "priority": 10,
-          "player": "Jalen Travis",
-          "slot": "RT",
-          "badge": "OUT",
-          "raw_status": "Doubtful",
-          "text": "Jalen Travis (RT - OUT)"
-        },
         {
           "priority": 17,
           "player": "Anthony Gould",
@@ -6370,12 +6361,20 @@
           "badge": "GTD",
           "raw_status": "Questionable",
           "text": "Anthony Gould (WR3 - GTD)"
+        },
+        {
+          "priority": 18,
+          "player": "Will Mallory",
+          "slot": "TE2",
+          "badge": "GTD",
+          "raw_status": "Questionable",
+          "text": "Will Mallory (TE2 - GTD)"
         }
       ],
       "traspasos_altas": [],
       "traspasos_bajas": [
         {
-          "Timestamp_CST": "2026-11-17 19:05:21 CST",
+          "Timestamp_CST": "2026-11-17 19:29:31 CST",
           "Player": "J. Downs",
           "Pos": "WR",
           "Equipo_Prev": "IND",
@@ -6477,8 +6476,8 @@
           "pos": "TE",
           "player": "Will Mallory",
           "backup": "Drew Ogletree",
-          "status": "ACTIVO_CONFIRMADO",
-          "raw_status": "Active",
+          "status": "QUESTIONABLE_GTD",
+          "raw_status": "Questionable",
           "canonical_key": "IND_W_MALLORY",
           "player_key": "W_MALLORY",
           "full_clean": "WILL MALLORY"
@@ -6567,8 +6566,8 @@
           "pos": "TE",
           "player": "Will Mallory",
           "backup": "Drew Ogletree",
-          "status": "ACTIVO_CONFIRMADO",
-          "raw_status": "Active",
+          "status": "QUESTIONABLE_GTD",
+          "raw_status": "Questionable",
           "canonical_key": "IND_W_MALLORY",
           "player_key": "W_MALLORY",
           "full_clean": "WILL MALLORY"
@@ -6622,8 +6621,8 @@
           "pos": "RT",
           "player": "Jalen Travis",
           "backup": "Matt Goncalves",
-          "status": "DOUBTFUL",
-          "raw_status": "Doubtful",
+          "status": "RECIEN_ACTIVADO",
+          "raw_status": "Activated (Prev: DOUBTFUL)",
           "canonical_key": "IND_J_TRAVIS",
           "player_key": "J_TRAVIS",
           "full_clean": "JALEN TRAVIS"
@@ -6730,9 +6729,9 @@
           "slot": "TE2",
           "position": "TE",
           "player_name": "Will Mallory",
-          "status": "ACTIVO_CONFIRMADO",
-          "raw_espn_status": "Active",
-          "detail": "Active",
+          "status": "QUESTIONABLE_GTD",
+          "raw_espn_status": "Questionable",
+          "detail": "Questionable",
           "recien_activado": false
         },
         {
@@ -6775,10 +6774,10 @@
           "slot": "RT",
           "position": "RT",
           "player_name": "Jalen Travis",
-          "status": "DOUBTFUL",
-          "raw_espn_status": "Doubtful",
-          "detail": "Doubtful",
-          "recien_activado": false
+          "status": "RECIEN_ACTIVADO",
+          "raw_espn_status": "Activated (Prev: DOUBTFUL)",
+          "detail": "Activated (Prev: DOUBTFUL)",
+          "recien_activado": true
         },
         {
           "slot": "CB1",
@@ -6811,7 +6810,7 @@
     },
     "JAX": {
       "team": "JAX",
-      "timestamp_cst": "2026-11-17 19:05:21 CST",
+      "timestamp_cst": "2026-11-17 19:29:31 CST",
       "qb1_name": "Trevor Lawrence",
       "qb1_base": "T. Lawrence",
       "qb1_status": "ACTIVO_CONFIRMADO",
@@ -7256,7 +7255,7 @@
     },
     "KC": {
       "team": "KC",
-      "timestamp_cst": "2026-11-17 19:05:21 CST",
+      "timestamp_cst": "2026-11-17 19:29:31 CST",
       "qb1_name": "Patrick Mahomes",
       "qb1_base": "P. Mahomes",
       "qb1_status": "ACTIVO_CONFIRMADO",
@@ -7292,7 +7291,7 @@
       ],
       "traspasos_altas": [
         {
-          "Timestamp_CST": "2026-11-17 19:05:21 CST",
+          "Timestamp_CST": "2026-11-17 19:29:31 CST",
           "Player": "J. Downs",
           "Pos": "WR",
           "Equipo_Prev": "IND",
@@ -7729,7 +7728,7 @@
     },
     "LA": {
       "team": "LA",
-      "timestamp_cst": "2026-11-17 19:05:21 CST",
+      "timestamp_cst": "2026-11-17 19:29:31 CST",
       "qb1_name": "M. Stafford",
       "qb1_base": "M. Stafford",
       "qb1_status": "ACTIVO_CONFIRMADO",
@@ -8163,7 +8162,7 @@
     },
     "LAC": {
       "team": "LAC",
-      "timestamp_cst": "2026-11-17 19:05:21 CST",
+      "timestamp_cst": "2026-11-17 19:29:31 CST",
       "qb1_name": "Justin Herbert",
       "qb1_base": "J. Herbert",
       "qb1_status": "ACTIVO_CONFIRMADO",
@@ -8608,7 +8607,7 @@
     },
     "LV": {
       "team": "LV",
-      "timestamp_cst": "2026-11-17 19:05:21 CST",
+      "timestamp_cst": "2026-11-17 19:29:31 CST",
       "qb1_name": "Fernando Mendoza",
       "qb1_base": "K. Cousins",
       "qb1_status": "ACTIVO_CONFIRMADO",
@@ -8636,7 +8635,7 @@
       "traspasos_altas": [],
       "traspasos_bajas": [
         {
-          "Timestamp_CST": "2026-11-17 19:05:21 CST",
+          "Timestamp_CST": "2026-11-17 19:29:31 CST",
           "Player": "K. Cousins",
           "Pos": "QB",
           "Equipo_Prev": "LV",
@@ -9072,7 +9071,7 @@
     },
     "MIA": {
       "team": "MIA",
-      "timestamp_cst": "2026-11-17 19:05:21 CST",
+      "timestamp_cst": "2026-11-17 19:29:31 CST",
       "qb1_name": "Kyle McCord",
       "qb1_base": "M. Willis",
       "qb1_status": "ACTIVO_CONFIRMADO",
@@ -9526,7 +9525,7 @@
     },
     "MIN": {
       "team": "MIN",
-      "timestamp_cst": "2026-11-17 19:05:21 CST",
+      "timestamp_cst": "2026-11-17 19:29:31 CST",
       "qb1_name": "Kirk Cousins",
       "qb1_base": "C. Wentz",
       "qb1_status": "TRASPASO_NUEVO",
@@ -9574,7 +9573,7 @@
       ],
       "traspasos_altas": [
         {
-          "Timestamp_CST": "2026-11-17 19:05:21 CST",
+          "Timestamp_CST": "2026-11-17 19:29:31 CST",
           "Player": "K. Cousins",
           "Pos": "QB",
           "Equipo_Prev": "LV",
@@ -10011,7 +10010,7 @@
     },
     "NE": {
       "team": "NE",
-      "timestamp_cst": "2026-11-17 19:05:21 CST",
+      "timestamp_cst": "2026-11-17 19:29:31 CST",
       "qb1_name": "D. Maye",
       "qb1_base": "D. Maye",
       "qb1_status": "ACTIVO_CONFIRMADO",
@@ -10445,7 +10444,7 @@
     },
     "NO": {
       "team": "NO",
-      "timestamp_cst": "2026-11-17 19:05:21 CST",
+      "timestamp_cst": "2026-11-17 19:29:31 CST",
       "qb1_name": "Tyler Shough",
       "qb1_base": "T. Shough",
       "qb1_status": "ACTIVO_CONFIRMADO",
@@ -10899,7 +10898,7 @@
     },
     "NYG": {
       "team": "NYG",
-      "timestamp_cst": "2026-11-17 19:05:21 CST",
+      "timestamp_cst": "2026-11-17 19:29:31 CST",
       "qb1_name": "J.J. McCarthy",
       "qb1_base": "J.J. McCarthy",
       "qb1_status": "ACTIVO_CONFIRMADO",
@@ -11333,7 +11332,7 @@
     },
     "NYJ": {
       "team": "NYJ",
-      "timestamp_cst": "2026-11-17 19:05:21 CST",
+      "timestamp_cst": "2026-11-17 19:29:31 CST",
       "qb1_name": "Geno Smith",
       "qb1_base": "G. Smith",
       "qb1_status": "QUESTIONABLE_GTD",
@@ -11796,7 +11795,7 @@
     },
     "PHI": {
       "team": "PHI",
-      "timestamp_cst": "2026-11-17 19:05:21 CST",
+      "timestamp_cst": "2026-11-17 19:29:31 CST",
       "qb1_name": "Joe Milton",
       "qb1_base": "J. Milton III",
       "qb1_status": "ACTIVO_CONFIRMADO",
@@ -12250,7 +12249,7 @@
     },
     "PIT": {
       "team": "PIT",
-      "timestamp_cst": "2026-11-17 19:05:21 CST",
+      "timestamp_cst": "2026-11-17 19:29:31 CST",
       "qb1_name": "Aaron Rodgers",
       "qb1_base": "A. Rodgers",
       "qb1_status": "ACTIVO_CONFIRMADO",
@@ -12695,7 +12694,7 @@
     },
     "SEA": {
       "team": "SEA",
-      "timestamp_cst": "2026-11-17 19:05:21 CST",
+      "timestamp_cst": "2026-11-17 19:29:31 CST",
       "qb1_name": "D. Lock",
       "qb1_base": "D. Lock",
       "qb1_status": "ACTIVO_CONFIRMADO",
@@ -13129,7 +13128,7 @@
     },
     "SF": {
       "team": "SF",
-      "timestamp_cst": "2026-11-17 19:05:21 CST",
+      "timestamp_cst": "2026-11-17 19:29:31 CST",
       "qb1_name": "Brock Purdy",
       "qb1_base": "B. Purdy",
       "qb1_status": "ACTIVO_CONFIRMADO",
@@ -13583,7 +13582,7 @@
     },
     "TB": {
       "team": "TB",
-      "timestamp_cst": "2026-11-17 19:05:21 CST",
+      "timestamp_cst": "2026-11-17 19:29:31 CST",
       "qb1_name": "Baker Mayfield",
       "qb1_base": "B. Mayfield",
       "qb1_status": "QUESTIONABLE_GTD",
@@ -14028,7 +14027,7 @@
     },
     "TEN": {
       "team": "TEN",
-      "timestamp_cst": "2026-11-17 19:05:21 CST",
+      "timestamp_cst": "2026-11-17 19:29:31 CST",
       "qb1_name": "Cam Ward",
       "qb1_base": "C. Ward",
       "qb1_status": "ACTIVO_CONFIRMADO",
@@ -14473,7 +14472,7 @@
     },
     "WAS": {
       "team": "WAS",
-      "timestamp_cst": "2026-11-17 19:05:21 CST",
+      "timestamp_cst": "2026-11-17 19:29:31 CST",
       "qb1_name": "Jayden Daniels",
       "qb1_base": "J. Daniels",
       "qb1_status": "ACTIVO_CONFIRMADO",
@@ -14920,7 +14919,7 @@
   "equipos": {
     "ARI": {
       "team": "ARI",
-      "timestamp_cst": "2026-11-17 19:05:21 CST",
+      "timestamp_cst": "2026-11-17 19:29:31 CST",
       "qb1_name": "Carson Beck",
       "qb1_base": "G. Minshew",
       "qb1_status": "ACTIVO_CONFIRMADO",
@@ -15374,7 +15373,7 @@
     },
     "ATL": {
       "team": "ATL",
-      "timestamp_cst": "2026-11-17 19:05:21 CST",
+      "timestamp_cst": "2026-11-17 19:29:31 CST",
       "qb1_name": "M. Penix Jr.",
       "qb1_base": "M. Penix Jr.",
       "qb1_status": "ACTIVO_CONFIRMADO",
@@ -15808,7 +15807,7 @@
     },
     "BAL": {
       "team": "BAL",
-      "timestamp_cst": "2026-11-17 19:05:21 CST",
+      "timestamp_cst": "2026-11-17 19:29:31 CST",
       "qb1_name": "Jacoby Brissett",
       "qb1_base": "J. Fagnano",
       "qb1_status": "ACTIVO_CONFIRMADO",
@@ -16262,7 +16261,7 @@
     },
     "BUF": {
       "team": "BUF",
-      "timestamp_cst": "2026-11-17 19:05:21 CST",
+      "timestamp_cst": "2026-11-17 19:29:31 CST",
       "qb1_name": "Josh Allen",
       "qb1_base": "J. Allen",
       "qb1_status": "ACTIVO_CONFIRMADO",
@@ -16707,7 +16706,7 @@
     },
     "CAR": {
       "team": "CAR",
-      "timestamp_cst": "2026-11-17 19:05:21 CST",
+      "timestamp_cst": "2026-11-17 19:29:31 CST",
       "qb1_name": "Bryce Young",
       "qb1_base": "B. Young",
       "qb1_status": "ACTIVO_CONFIRMADO",
@@ -17141,7 +17140,7 @@
     },
     "CHI": {
       "team": "CHI",
-      "timestamp_cst": "2026-11-17 19:05:21 CST",
+      "timestamp_cst": "2026-11-17 19:29:31 CST",
       "qb1_name": "Caleb Williams",
       "qb1_base": "C. Williams",
       "qb1_status": "ACTIVO_CONFIRMADO",
@@ -17586,7 +17585,7 @@
     },
     "CIN": {
       "team": "CIN",
-      "timestamp_cst": "2026-11-17 19:05:21 CST",
+      "timestamp_cst": "2026-11-17 19:29:31 CST",
       "qb1_name": "Joe Burrow",
       "qb1_base": "J. Burrow",
       "qb1_status": "ACTIVO_CONFIRMADO",
@@ -18031,7 +18030,7 @@
     },
     "CLE": {
       "team": "CLE",
-      "timestamp_cst": "2026-11-17 19:05:21 CST",
+      "timestamp_cst": "2026-11-17 19:29:31 CST",
       "qb1_name": "S. Sanders",
       "qb1_base": "S. Sanders",
       "qb1_status": "ACTIVO_CONFIRMADO",
@@ -18465,7 +18464,7 @@
     },
     "DAL": {
       "team": "DAL",
-      "timestamp_cst": "2026-11-17 19:05:21 CST",
+      "timestamp_cst": "2026-11-17 19:29:31 CST",
       "qb1_name": "Dak Prescott",
       "qb1_base": "D. Prescott",
       "qb1_status": "ACTIVO_CONFIRMADO",
@@ -18899,7 +18898,7 @@
     },
     "DEN": {
       "team": "DEN",
-      "timestamp_cst": "2026-11-17 19:05:21 CST",
+      "timestamp_cst": "2026-11-17 19:29:31 CST",
       "qb1_name": "Bo Nix",
       "qb1_base": "B. Nix",
       "qb1_status": "ACTIVO_CONFIRMADO",
@@ -19344,7 +19343,7 @@
     },
     "DET": {
       "team": "DET",
-      "timestamp_cst": "2026-11-17 19:05:21 CST",
+      "timestamp_cst": "2026-11-17 19:29:31 CST",
       "qb1_name": "Jared Goff",
       "qb1_base": "J. Goff",
       "qb1_status": "ACTIVO_CONFIRMADO",
@@ -19801,7 +19800,7 @@
     },
     "GB": {
       "team": "GB",
-      "timestamp_cst": "2026-11-17 19:05:21 CST",
+      "timestamp_cst": "2026-11-17 19:29:31 CST",
       "qb1_name": "J. Love",
       "qb1_base": "J. Love",
       "qb1_status": "ACTIVO_CONFIRMADO",
@@ -20235,7 +20234,7 @@
     },
     "HOU": {
       "team": "HOU",
-      "timestamp_cst": "2026-11-17 19:05:21 CST",
+      "timestamp_cst": "2026-11-17 19:29:31 CST",
       "qb1_name": "C.J. Stroud",
       "qb1_base": "C.J. Stroud",
       "qb1_status": "ACTIVO_CONFIRMADO",
@@ -20680,7 +20679,7 @@
     },
     "IND": {
       "team": "IND",
-      "timestamp_cst": "2026-11-17 19:05:21 CST",
+      "timestamp_cst": "2026-11-17 19:29:31 CST",
       "qb1_name": "Daniel Jones",
       "qb1_base": "D. Jones",
       "qb1_status": "ACTIVO_CONFIRMADO",
@@ -20688,24 +20687,15 @@
       "qb1_out_or_replaced": false,
       "rb1_out": false,
       "wr1_te1_out_players": [],
-      "ol_out_count": 1,
+      "ol_out_count": 0,
       "def_key_out_count": 0,
       "recien_activados": [],
-      "bajas_out_doubtful": [
-        "Jalen Travis (RT - OUT)"
-      ],
+      "bajas_out_doubtful": [],
       "questionable_gtd": [
-        "Anthony Gould (WR3 - GTD)"
+        "Anthony Gould (WR3 - GTD)",
+        "Will Mallory (TE2 - GTD)"
       ],
       "bajas_top3_pills": [
-        {
-          "priority": 10,
-          "player": "Jalen Travis",
-          "slot": "RT",
-          "badge": "OUT",
-          "raw_status": "Doubtful",
-          "text": "Jalen Travis (RT - OUT)"
-        },
         {
           "priority": 17,
           "player": "Anthony Gould",
@@ -20713,12 +20703,20 @@
           "badge": "GTD",
           "raw_status": "Questionable",
           "text": "Anthony Gould (WR3 - GTD)"
+        },
+        {
+          "priority": 18,
+          "player": "Will Mallory",
+          "slot": "TE2",
+          "badge": "GTD",
+          "raw_status": "Questionable",
+          "text": "Will Mallory (TE2 - GTD)"
         }
       ],
       "traspasos_altas": [],
       "traspasos_bajas": [
         {
-          "Timestamp_CST": "2026-11-17 19:05:21 CST",
+          "Timestamp_CST": "2026-11-17 19:29:31 CST",
           "Player": "J. Downs",
           "Pos": "WR",
           "Equipo_Prev": "IND",
@@ -20820,8 +20818,8 @@
           "pos": "TE",
           "player": "Will Mallory",
           "backup": "Drew Ogletree",
-          "status": "ACTIVO_CONFIRMADO",
-          "raw_status": "Active",
+          "status": "QUESTIONABLE_GTD",
+          "raw_status": "Questionable",
           "canonical_key": "IND_W_MALLORY",
           "player_key": "W_MALLORY",
           "full_clean": "WILL MALLORY"
@@ -20910,8 +20908,8 @@
           "pos": "TE",
           "player": "Will Mallory",
           "backup": "Drew Ogletree",
-          "status": "ACTIVO_CONFIRMADO",
-          "raw_status": "Active",
+          "status": "QUESTIONABLE_GTD",
+          "raw_status": "Questionable",
           "canonical_key": "IND_W_MALLORY",
           "player_key": "W_MALLORY",
           "full_clean": "WILL MALLORY"
@@ -20965,8 +20963,8 @@
           "pos": "RT",
           "player": "Jalen Travis",
           "backup": "Matt Goncalves",
-          "status": "DOUBTFUL",
-          "raw_status": "Doubtful",
+          "status": "RECIEN_ACTIVADO",
+          "raw_status": "Activated (Prev: DOUBTFUL)",
           "canonical_key": "IND_J_TRAVIS",
           "player_key": "J_TRAVIS",
           "full_clean": "JALEN TRAVIS"
@@ -21073,9 +21071,9 @@
           "slot": "TE2",
           "position": "TE",
           "player_name": "Will Mallory",
-          "status": "ACTIVO_CONFIRMADO",
-          "raw_espn_status": "Active",
-          "detail": "Active",
+          "status": "QUESTIONABLE_GTD",
+          "raw_espn_status": "Questionable",
+          "detail": "Questionable",
           "recien_activado": false
         },
         {
@@ -21118,10 +21116,10 @@
           "slot": "RT",
           "position": "RT",
           "player_name": "Jalen Travis",
-          "status": "DOUBTFUL",
-          "raw_espn_status": "Doubtful",
-          "detail": "Doubtful",
-          "recien_activado": false
+          "status": "RECIEN_ACTIVADO",
+          "raw_espn_status": "Activated (Prev: DOUBTFUL)",
+          "detail": "Activated (Prev: DOUBTFUL)",
+          "recien_activado": true
         },
         {
           "slot": "CB1",
@@ -21154,7 +21152,7 @@
     },
     "JAX": {
       "team": "JAX",
-      "timestamp_cst": "2026-11-17 19:05:21 CST",
+      "timestamp_cst": "2026-11-17 19:29:31 CST",
       "qb1_name": "Trevor Lawrence",
       "qb1_base": "T. Lawrence",
       "qb1_status": "ACTIVO_CONFIRMADO",
@@ -21599,7 +21597,7 @@
     },
     "KC": {
       "team": "KC",
-      "timestamp_cst": "2026-11-17 19:05:21 CST",
+      "timestamp_cst": "2026-11-17 19:29:31 CST",
       "qb1_name": "Patrick Mahomes",
       "qb1_base": "P. Mahomes",
       "qb1_status": "ACTIVO_CONFIRMADO",
@@ -21635,7 +21633,7 @@
       ],
       "traspasos_altas": [
         {
-          "Timestamp_CST": "2026-11-17 19:05:21 CST",
+          "Timestamp_CST": "2026-11-17 19:29:31 CST",
           "Player": "J. Downs",
           "Pos": "WR",
           "Equipo_Prev": "IND",
@@ -22072,7 +22070,7 @@
     },
     "LA": {
       "team": "LA",
-      "timestamp_cst": "2026-11-17 19:05:21 CST",
+      "timestamp_cst": "2026-11-17 19:29:31 CST",
       "qb1_name": "M. Stafford",
       "qb1_base": "M. Stafford",
       "qb1_status": "ACTIVO_CONFIRMADO",
@@ -22506,7 +22504,7 @@
     },
     "LAC": {
       "team": "LAC",
-      "timestamp_cst": "2026-11-17 19:05:21 CST",
+      "timestamp_cst": "2026-11-17 19:29:31 CST",
       "qb1_name": "Justin Herbert",
       "qb1_base": "J. Herbert",
       "qb1_status": "ACTIVO_CONFIRMADO",
@@ -22951,7 +22949,7 @@
     },
     "LV": {
       "team": "LV",
-      "timestamp_cst": "2026-11-17 19:05:21 CST",
+      "timestamp_cst": "2026-11-17 19:29:31 CST",
       "qb1_name": "Fernando Mendoza",
       "qb1_base": "K. Cousins",
       "qb1_status": "ACTIVO_CONFIRMADO",
@@ -22979,7 +22977,7 @@
       "traspasos_altas": [],
       "traspasos_bajas": [
         {
-          "Timestamp_CST": "2026-11-17 19:05:21 CST",
+          "Timestamp_CST": "2026-11-17 19:29:31 CST",
           "Player": "K. Cousins",
           "Pos": "QB",
           "Equipo_Prev": "LV",
@@ -23415,7 +23413,7 @@
     },
     "MIA": {
       "team": "MIA",
-      "timestamp_cst": "2026-11-17 19:05:21 CST",
+      "timestamp_cst": "2026-11-17 19:29:31 CST",
       "qb1_name": "Kyle McCord",
       "qb1_base": "M. Willis",
       "qb1_status": "ACTIVO_CONFIRMADO",
@@ -23869,7 +23867,7 @@
     },
     "MIN": {
       "team": "MIN",
-      "timestamp_cst": "2026-11-17 19:05:21 CST",
+      "timestamp_cst": "2026-11-17 19:29:31 CST",
       "qb1_name": "Kirk Cousins",
       "qb1_base": "C. Wentz",
       "qb1_status": "TRASPASO_NUEVO",
@@ -23917,7 +23915,7 @@
       ],
       "traspasos_altas": [
         {
-          "Timestamp_CST": "2026-11-17 19:05:21 CST",
+          "Timestamp_CST": "2026-11-17 19:29:31 CST",
           "Player": "K. Cousins",
           "Pos": "QB",
           "Equipo_Prev": "LV",
@@ -24354,7 +24352,7 @@
     },
     "NE": {
       "team": "NE",
-      "timestamp_cst": "2026-11-17 19:05:21 CST",
+      "timestamp_cst": "2026-11-17 19:29:31 CST",
       "qb1_name": "D. Maye",
       "qb1_base": "D. Maye",
       "qb1_status": "ACTIVO_CONFIRMADO",
@@ -24788,7 +24786,7 @@
     },
     "NO": {
       "team": "NO",
-      "timestamp_cst": "2026-11-17 19:05:21 CST",
+      "timestamp_cst": "2026-11-17 19:29:31 CST",
       "qb1_name": "Tyler Shough",
       "qb1_base": "T. Shough",
       "qb1_status": "ACTIVO_CONFIRMADO",
@@ -25242,7 +25240,7 @@
     },
     "NYG": {
       "team": "NYG",
-      "timestamp_cst": "2026-11-17 19:05:21 CST",
+      "timestamp_cst": "2026-11-17 19:29:31 CST",
       "qb1_name": "J.J. McCarthy",
       "qb1_base": "J.J. McCarthy",
       "qb1_status": "ACTIVO_CONFIRMADO",
@@ -25676,7 +25674,7 @@
     },
     "NYJ": {
       "team": "NYJ",
-      "timestamp_cst": "2026-11-17 19:05:21 CST",
+      "timestamp_cst": "2026-11-17 19:29:31 CST",
       "qb1_name": "Geno Smith",
       "qb1_base": "G. Smith",
       "qb1_status": "QUESTIONABLE_GTD",
@@ -26139,7 +26137,7 @@
     },
     "PHI": {
       "team": "PHI",
-      "timestamp_cst": "2026-11-17 19:05:21 CST",
+      "timestamp_cst": "2026-11-17 19:29:31 CST",
       "qb1_name": "Joe Milton",
       "qb1_base": "J. Milton III",
       "qb1_status": "ACTIVO_CONFIRMADO",
@@ -26593,7 +26591,7 @@
     },
     "PIT": {
       "team": "PIT",
-      "timestamp_cst": "2026-11-17 19:05:21 CST",
+      "timestamp_cst": "2026-11-17 19:29:31 CST",
       "qb1_name": "Aaron Rodgers",
       "qb1_base": "A. Rodgers",
       "qb1_status": "ACTIVO_CONFIRMADO",
@@ -27038,7 +27036,7 @@
     },
     "SEA": {
       "team": "SEA",
-      "timestamp_cst": "2026-11-17 19:05:21 CST",
+      "timestamp_cst": "2026-11-17 19:29:31 CST",
       "qb1_name": "D. Lock",
       "qb1_base": "D. Lock",
       "qb1_status": "ACTIVO_CONFIRMADO",
@@ -27472,7 +27470,7 @@
     },
     "SF": {
       "team": "SF",
-      "timestamp_cst": "2026-11-17 19:05:21 CST",
+      "timestamp_cst": "2026-11-17 19:29:31 CST",
       "qb1_name": "Brock Purdy",
       "qb1_base": "B. Purdy",
       "qb1_status": "ACTIVO_CONFIRMADO",
@@ -27926,7 +27924,7 @@
     },
     "TB": {
       "team": "TB",
-      "timestamp_cst": "2026-11-17 19:05:21 CST",
+      "timestamp_cst": "2026-11-17 19:29:31 CST",
       "qb1_name": "Baker Mayfield",
       "qb1_base": "B. Mayfield",
       "qb1_status": "QUESTIONABLE_GTD",
@@ -28371,7 +28369,7 @@
     },
     "TEN": {
       "team": "TEN",
-      "timestamp_cst": "2026-11-17 19:05:21 CST",
+      "timestamp_cst": "2026-11-17 19:29:31 CST",
       "qb1_name": "Cam Ward",
       "qb1_base": "C. Ward",
       "qb1_status": "ACTIVO_CONFIRMADO",
@@ -28816,7 +28814,7 @@
     },
     "WAS": {
       "team": "WAS",
-      "timestamp_cst": "2026-11-17 19:05:21 CST",
+      "timestamp_cst": "2026-11-17 19:29:31 CST",
       "qb1_name": "Jayden Daniels",
       "qb1_base": "J. Daniels",
       "qb1_status": "ACTIVO_CONFIRMADO",
