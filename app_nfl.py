@@ -1162,18 +1162,22 @@ def render_vista_cartelera() -> None:
                                 f'</div>'
                             )
 
-                        # Cintillo 2: Auditoría de HÁNDICAP / SPREAD (con % de cobertura en 5,000 simulaciones)
+                        # Cintillo 2: Auditoría de HÁNDICAP / SPREAD (con % de cobertura en 5,000 simulaciones + Edge Badges)
+                        sp_edge_badges_card = str(
+                            ev_spr.get("edge_badges_str", sim.get("edge_badges_str", ""))
+                        ).strip()
+                        sp_edge_suffix_card = f" · {sp_edge_badges_card}" if sp_edge_badges_card else ""
                         if ev_spr["hay_valor"]:
                             spr_badge_html = (
                                 f'<div class="ev-badge-positive">'
-                                f'<span>🔥 {ev_spr["recomendacion"]} ({ev_spr["cuota_mercado_decimal"]:.2f}) | Cubre: {spr_cov_card:.1f}%</span>'
+                                f'<span>🔥 {ev_spr["recomendacion"]} ({ev_spr["cuota_mercado_decimal"]:.2f}) | Cubre: {spr_cov_card:.1f}%{sp_edge_suffix_card}</span>'
                                 f'<span class="ev-pct-pill">EV: {ev_spr["ev_pct"]:+.1f}%</span>'
                                 f'</div>'
                             )
                         else:
                             spr_badge_html = (
                                 f'<div class="ev-badge-neutral">'
-                                f'<span>⚪ {ev_spr["recomendacion"]} | Cubre: {spr_cov_card:.1f}%</span>'
+                                f'<span>⚪ {ev_spr["recomendacion"]} | Cubre: {spr_cov_card:.1f}%{sp_edge_suffix_card}</span>'
                                 f'<span class="ev-pct-pill-gray">⚪ LÍNEA SIN EDGE</span>'
                                 f'</div>'
                             )
@@ -1218,7 +1222,7 @@ def render_vista_cartelera() -> None:
                             f'<div class="mc-breakdown-box">'
                             f'<div class="mc-breakdown-header">📊 DESGLOSE 5,000 SIMULACIONES & ESTADO DE TITULARES</div>'
                             f'<div class="mc-breakdown-line">🏈 Moneyline {ml_eq_nombre}: <b>{ml_mod_val:.1f}%</b> | Casas: {ml_casas_val:.1f}% | ESPN FPI: {ml_fpi_val:.1f}%</div>'
-                            f'<div class="mc-breakdown-line">🛡️ Spread {sp_eq_nombre} ({sp_linea_val:+.1f}): <b>{sp_cubre_val:.1f}% cubre</b></div>'
+                            f'<div class="mc-breakdown-line">🛡️ Spread {sp_eq_nombre} ({sp_linea_val:+.1f}): <b>{sp_cubre_val:.1f}% cubre</b>{sp_edge_suffix_card}</div>'
                             f'<div class="mc-breakdown-line">🎯 Total ({ou_linea_val:.1f}): <b>Más de {ou_linea_val:.1f} en {ou_over_val:.1f}%</b> (Menos: {ou_under_val:.1f}%)</div>'
                             f'<div class="mc-breakdown-line" style="border-top:1px dashed rgba(148,163,184,0.25); padding-top:4px; margin-top:4px; color:#F8FAFC;">📋 {ln1_card}</div>'
                             f'<div class="mc-breakdown-line" style="color:#FBBF24;">{ln2_card}</div>'
@@ -1295,10 +1299,12 @@ def render_vista_cartelera() -> None:
                     sp_cov_r = float(s_row.get("spread_cover_pct", ev_sp_r.get("spread_cover_pct", ev_sp_r.get("prob_mejor_pct", 50.0))))
                     to_cov_r = float(s_row.get("total_cover_pct", ev_to_r.get("total_cover_pct", ev_to_r.get("prob_mejor_pct", 50.0))))
 
+                    sp_badges_r = str(ev_sp_r.get("edge_badges_str", s_row.get("edge_badges_str", ""))).strip()
+                    suf_sp_r = f" | {sp_badges_r}" if sp_badges_r else ""
                     if ev_sp_r["hay_valor"]:
-                        senal_sp_r = f"🔥 {ev_sp_r['recomendacion']} ({ev_sp_r['cuota_mercado_decimal']:.2f}) | Cubre: {sp_cov_r:.1f}% | EV: {ev_sp_r['ev_pct']:+.1f}%"
+                        senal_sp_r = f"🔥 {ev_sp_r['recomendacion']} ({ev_sp_r['cuota_mercado_decimal']:.2f}) | Cubre: {sp_cov_r:.1f}% | EV: {ev_sp_r['ev_pct']:+.1f}%{suf_sp_r}"
                     else:
-                        senal_sp_r = f"⚪ {ev_sp_r['recomendacion']} | Cubre: {sp_cov_r:.1f}%"
+                        senal_sp_r = f"⚪ {ev_sp_r['recomendacion']} | Cubre: {sp_cov_r:.1f}%{suf_sp_r}"
 
                     if ev_to_r["hay_valor"]:
                         senal_to_r = f"🔥 {ev_to_r['lado']} {ev_to_r['total_mercado']:.1f} ({ev_to_r['cuota_mercado_decimal']:.2f}) | Cubre: {to_cov_r:.1f}% | EV: {ev_to_r['ev_pct']:+.1f}%"
@@ -2137,9 +2143,12 @@ def render_vista_detalle(partido: Dict[str, Any]) -> None:
                     "Cuota Casa (Decimal)": f"{ev_spr['cuota_spread_home_decimal']:.2f}",
                     "EV Matemático (%)": f"{ev_spr['ev_home_pct']:+.1f}%",
                     "Señal Totales / Spread (+EV)": (
-                        f"🔥 {home} {ev_spr['spread_mercado_home']:+.1f} ({ev_spr['cuota_spread_home_decimal']:.2f}) | Cubre: {ev_spr['prob_cover_home_pct']:.1f}% | EV: {ev_spr['ev_home_pct']:+.1f}%"
-                        if (ev_spr["hay_valor"] and ev_spr["lado"] == "HOME")
-                        else f"⚪ {home} {ev_spr['spread_mercado_home']:+.1f} | Cubre: {ev_spr['prob_cover_home_pct']:.1f}%"
+                        (
+                            f"🔥 {home} {ev_spr['spread_mercado_home']:+.1f} ({ev_spr['cuota_spread_home_decimal']:.2f}) | Cubre: {ev_spr['prob_cover_home_pct']:.1f}% | EV: {ev_spr['ev_home_pct']:+.1f}%"
+                            if (ev_spr["hay_valor"] and ev_spr["lado"] == "HOME")
+                            else f"⚪ {home} {ev_spr['spread_mercado_home']:+.1f} | Cubre: {ev_spr['prob_cover_home_pct']:.1f}%"
+                        )
+                        + (f" | {ev_spr.get('edge_badges_home_str')}" if ev_spr.get("edge_badges_home_str") else "")
                     ),
                 },
                 {
@@ -2150,9 +2159,12 @@ def render_vista_detalle(partido: Dict[str, Any]) -> None:
                     "Cuota Casa (Decimal)": f"{ev_spr['cuota_spread_away_decimal']:.2f}",
                     "EV Matemático (%)": f"{ev_spr['ev_away_pct']:+.1f}%",
                     "Señal Totales / Spread (+EV)": (
-                        f"🔥 {away} {ev_spr['spread_mercado_away']:+.1f} ({ev_spr['cuota_spread_away_decimal']:.2f}) | Cubre: {ev_spr['prob_cover_away_pct']:.1f}% | EV: {ev_spr['ev_away_pct']:+.1f}%"
-                        if (ev_spr["hay_valor"] and ev_spr["lado"] == "AWAY")
-                        else f"⚪ {away} {ev_spr['spread_mercado_away']:+.1f} | Cubre: {ev_spr['prob_cover_away_pct']:.1f}%"
+                        (
+                            f"🔥 {away} {ev_spr['spread_mercado_away']:+.1f} ({ev_spr['cuota_spread_away_decimal']:.2f}) | Cubre: {ev_spr['prob_cover_away_pct']:.1f}% | EV: {ev_spr['ev_away_pct']:+.1f}%"
+                            if (ev_spr["hay_valor"] and ev_spr["lado"] == "AWAY")
+                            else f"⚪ {away} {ev_spr['spread_mercado_away']:+.1f} | Cubre: {ev_spr['prob_cover_away_pct']:.1f}%"
+                        )
+                        + (f" | {ev_spr.get('edge_badges_away_str')}" if ev_spr.get("edge_badges_away_str") else "")
                     ),
                 },
             ]

@@ -347,6 +347,50 @@ def evaluar_valor_totales(
     }
 
 
+def detectar_badges_estructurales_spread(
+    linea_spread: float,
+    total_mercado: float = 44.5,
+    es_ev_positivo: bool = False,
+) -> Dict[str, Any]:
+    """
+    Detecta etiquetas de ventaja estructural (Edge Badges) en líneas de Spread:
+      1. DETECTOR DE KEY NUMBERS & HOOKS (3 y 7):
+         - Underdogs tomando +3.5, +4.0 o +4.5 -> '🎯 HOOK KEY #3'
+         - Underdogs tomando +7.5 o +8.0       -> '🎯 HOOK KEY #7'
+         - Favoritos dando -2.5                -> '🎯 HOOK BAJO #3'
+         - Favoritos dando -6.5                -> '🎯 HOOK BAJO #7'
+      2. DETECTOR DE LOW-TOTAL UNDERDOG:
+         - Si una señal +EV favorece al Underdog (+Spread > 0) y el Total del mercado
+           es <= 41.5 puntos -> '🛡️ LOW-TOTAL DOG'
+    """
+    lin = round(float(linea_spread), 1)
+    tot = float(total_mercado)
+
+    hook_badge = ""
+    if lin in (3.5, 4.0, 4.5):
+        hook_badge = "🎯 HOOK KEY #3"
+    elif lin in (7.5, 8.0):
+        hook_badge = "🎯 HOOK KEY #7"
+    elif lin == -2.5:
+        hook_badge = "🎯 HOOK BAJO #3"
+    elif lin == -6.5:
+        hook_badge = "🎯 HOOK BAJO #7"
+
+    low_total_dog_badge = ""
+    if es_ev_positivo and lin > 0.0 and tot <= 41.5:
+        low_total_dog_badge = "🛡️ LOW-TOTAL DOG"
+
+    badges_list = [b for b in (hook_badge, low_total_dog_badge) if b]
+    badges_str = " · ".join(badges_list)
+
+    return {
+        "hook_badge": hook_badge,
+        "low_total_dog_badge": low_total_dog_badge,
+        "badges_list": badges_list,
+        "badges_str": badges_str,
+    }
+
+
 def evaluar_valor_spread(
     spread_modelo_home: float,
     spread_mercado_home: float,
@@ -356,10 +400,12 @@ def evaluar_valor_spread(
     away_abbr: str = "VISITA",
     margen_sim: Optional[np.ndarray] = None,
     sigma_margin: float = 13.2,
+    total_mercado: float = 44.5,
 ) -> Dict[str, Any]:
     """
     Evalúa el mercado de HÁNDICAP (Spread) de forma dinámica y continua según la
-    distancia entre 'spread_modelo_home' y 'spread_mercado_home', sin topes planos.
+    distancia entre 'spread_modelo_home' y 'spread_mercado_home', sin topes planos,
+    incorporando los detectores de Key Numbers & Hooks (3 y 7) y Low-Total Underdog.
     """
     sp_mod_h = float(spread_modelo_home)
     sp_mkt_h = float(spread_mercado_home)
@@ -426,13 +472,30 @@ def evaluar_valor_spread(
     hay_valor = ev_mejor_pct >= EV_THRESHOLD_PCT
     pick_corto = f"{equipo_pick} {linea_pick:+.1f}"
 
+    badges_pick = detectar_badges_estructurales_spread(
+        linea_spread=linea_pick,
+        total_mercado=total_mercado,
+        es_ev_positivo=(hay_valor or ev_mejor_pct > 0.0),
+    )
+    badges_home = detectar_badges_estructurales_spread(
+        linea_spread=sp_mkt_h,
+        total_mercado=total_mercado,
+        es_ev_positivo=(ev_home_pct >= EV_THRESHOLD_PCT or ev_home_pct > 0.0),
+    )
+    badges_away = detectar_badges_estructurales_spread(
+        linea_spread=sp_mkt_a,
+        total_mercado=total_mercado,
+        es_ev_positivo=(ev_away_pct >= EV_THRESHOLD_PCT or ev_away_pct > 0.0),
+    )
+
+    sufijo_badges = f" | {badges_pick['badges_str']}" if badges_pick["badges_str"] else ""
     if hay_valor:
         etiqueta_ev = (
             f"🔥 {pick_corto} ({cuota_mkt_mejor:.2f}) | "
-            f"Cubre: {spread_cover_pct:.1f}% | EV: {ev_mejor_pct:+.1f}%"
+            f"Cubre: {spread_cover_pct:.1f}% | EV: {ev_mejor_pct:+.1f}%{sufijo_badges}"
         )
     else:
-        etiqueta_ev = f"⚪ {pick_corto} | Cubre: {spread_cover_pct:.1f}%"
+        etiqueta_ev = f"⚪ {pick_corto} | Cubre: {spread_cover_pct:.1f}%{sufijo_badges}"
 
     return {
         "hay_valor": hay_valor,
@@ -441,6 +504,12 @@ def evaluar_valor_spread(
         "linea_pick": round(linea_pick, 1),
         "recomendacion": pick_corto,
         "etiqueta_ev": etiqueta_ev,
+        "hook_badge": badges_pick["hook_badge"],
+        "low_total_dog_badge": badges_pick["low_total_dog_badge"],
+        "edge_badges_list": badges_pick["badges_list"],
+        "edge_badges_str": badges_pick["badges_str"],
+        "edge_badges_home_str": badges_home["badges_str"],
+        "edge_badges_away_str": badges_away["badges_str"],
         "spread_modelo_home": round(sp_mod_h, 1),
         "spread_mercado_home": round(sp_mkt_h, 1),
         "spread_mercado_away": round(sp_mkt_a, 1),
@@ -1390,6 +1459,7 @@ def run_simulacion_nfl(
         home_abbr=home_key,
         away_abbr=away_key,
         margen_sim=margen_sim,
+        total_mercado=total_mercado,
     )
 
     nfl_scores_grid = [10, 13, 14, 16, 17, 20, 21, 23, 24, 27, 28, 30, 31, 34, 35, 38]
@@ -1519,6 +1589,10 @@ def run_simulacion_nfl(
         "prob_push_spread_pct": ev_spread["prob_push_pct"],
         "key_number_tag": ev_spread["key_number_tag"],
         "es_key_number": ev_spread["es_key_number"],
+        "hook_badge": ev_spread.get("hook_badge", ""),
+        "low_total_dog_badge": ev_spread.get("low_total_dog_badge", ""),
+        "edge_badges_list": ev_spread.get("edge_badges_list", []),
+        "edge_badges_str": ev_spread.get("edge_badges_str", ""),
         "fair_spread_home_decimal": ev_spread["fair_home_decimal"],
         "fair_spread_away_decimal": ev_spread["fair_away_decimal"],
         "total_ou": total_ou,
@@ -1847,10 +1921,12 @@ def build_nfl_predictions_export_df(
         else:
             senal_tot = f"⚪ {tot_lado} {tot_linea:.1f} | Cubre: {tot_cov_pct:.1f}%"
 
+        sp_badges_str = str(ev_spr.get("edge_badges_str", sim.get("edge_badges_str", ""))).strip()
+        suf_sp_badges = f" | {sp_badges_str}" if sp_badges_str else ""
         if ev_spr.get("hay_valor"):
-            senal_spr = f"🔥 {sp_pick} ({sp_odds:.2f}) | Cubre: {sp_cov_pct:.1f}% | EV: {sp_ev:+.1f}%"
+            senal_spr = f"🔥 {sp_pick} ({sp_odds:.2f}) | Cubre: {sp_cov_pct:.1f}% | EV: {sp_ev:+.1f}%{suf_sp_badges}"
         else:
-            senal_spr = f"⚪ {sp_pick} | Cubre: {sp_cov_pct:.1f}%"
+            senal_spr = f"⚪ {sp_pick} | Cubre: {sp_cov_pct:.1f}%{suf_sp_badges}"
 
         pace_comb = float(
             sim.get(

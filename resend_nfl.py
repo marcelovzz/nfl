@@ -374,10 +374,12 @@ def ejecutar_pipeline_simulaciones_nfl(
         sp_cov_pct = round(float(sim.get("spread_cover_pct", ev_spr.get("spread_cover_pct", ev_spr["prob_mejor_pct"]))), 1)
         tot_cov_pct = round(float(sim.get("total_cover_pct", ev_tot.get("total_cover_pct", ev_tot["prob_mejor_pct"]))), 1)
 
+        sp_badges_str = str(ev_spr.get("edge_badges_str", sim.get("edge_badges_str", ""))).strip()
+        suf_sp_badges = f" | {sp_badges_str}" if sp_badges_str else ""
         if ev_spr["hay_valor"]:
-            senal_sp_str = f"🔥 {ev_spr['recomendacion']} ({ev_spr['cuota_mercado_decimal']:.2f}) | Cubre: {sp_cov_pct:.1f}% | EV: {ev_spr['ev_pct']:+.1f}%"
+            senal_sp_str = f"🔥 {ev_spr['recomendacion']} ({ev_spr['cuota_mercado_decimal']:.2f}) | Cubre: {sp_cov_pct:.1f}% | EV: {ev_spr['ev_pct']:+.1f}%{suf_sp_badges}"
         else:
-            senal_sp_str = f"⚪ {ev_spr['recomendacion']} | Cubre: {sp_cov_pct:.1f}%"
+            senal_sp_str = f"⚪ {ev_spr['recomendacion']} | Cubre: {sp_cov_pct:.1f}%{suf_sp_badges}"
 
         if ev_tot["hay_valor"]:
             senal_tot_str = f"🔥 {ev_tot['lado']} {ev_tot['total_mercado']:.1f} ({ev_tot['cuota_mercado_decimal']:.2f}) | Cubre: {tot_cov_pct:.1f}% | EV: {ev_tot['ev_pct']:+.1f}%"
@@ -546,6 +548,10 @@ def obtener_top_5_anchors_jornada(
         sp_odds = _safe_float(ev_sp.get("cuota_mercado_decimal", 1.91), 1.91)
         lado_sp = str(ev_sp.get("lado", "HOME"))
         team_sp = home if lado_sp == "HOME" else away
+        sp_badges_anc = str(ev_sp.get("edge_badges_str", s.get("edge_badges_str", ""))).strip()
+        sel_sp_anc = f"{ev_sp.get('recomendacion', team_sp)} ({sp_odds:.2f})"
+        if sp_badges_anc:
+            sel_sp_anc = f"{sel_sp_anc} · {sp_badges_anc}"
 
         candidatos.append(
             {
@@ -554,12 +560,13 @@ def obtener_top_5_anchors_jornada(
                 "logo_url": get_team_logo_url(team_sp),
                 "partido": partido_str,
                 "horario": hora_cst,
-                "seleccion": f"{ev_sp.get('recomendacion', team_sp)} ({sp_odds:.2f})",
+                "seleccion": sel_sp_anc,
                 "detalle": f"Proy: {away} {_safe_float(s.get('away_pts'), 0.0):.1f} - {_safe_float(s.get('home_pts'), 0.0):.1f} {home}",
                 "pct_cubre": round(sp_cov, 1),
                 "ev_pct": round(sp_ev, 1),
                 "cuota": sp_odds,
                 "es_ev_pos": sp_ev > 0.0,
+                "edge_badges_str": sp_badges_anc,
             }
         )
 
@@ -837,11 +844,19 @@ def construir_html_reporte_nfl(
             to_badge_style = "background:#0d1117; border:1px solid #30363d; color:#8b949e;"
             to_icon = "⚪"
 
+        sp_edge_badges = str(ev_sp.get("edge_badges_str", s.get("edge_badges_str", ""))).strip()
+        sp_edge_html_pill = (
+            f' | <span style="background:rgba(56,189,248,0.16); border:1px solid #38bdf8; color:#7dd3fc; '
+            f'padding:1px 6px; border-radius:4px; font-size:11px; font-weight:800;">{sp_edge_badges}</span>'
+            if sp_edge_badges
+            else ""
+        )
+
         badge_spread_html = (
             f'<div style="{sp_badge_style} border-radius:6px; padding:7px 10px; margin-bottom:6px; '
             f'font-family:monospace; font-size:12px; font-weight:700;">'
             f'🛡️ SPREAD: {sp_icon} {ev_sp["recomendacion"]} | Cuota: {sp_odds:.2f} | '
-            f'{sp_cov:.1f}% Cubre (5,000 sims) | {sp_ev:+.1f}% EV'
+            f'{sp_cov:.1f}% Cubre (5,000 sims) | {sp_ev:+.1f}% EV{sp_edge_html_pill}'
             f'</div>'
         )
         badge_total_html = (
@@ -1143,9 +1158,11 @@ def generar_pdf_briefing_nfl(
         lineas_doc.append(f"  [BAJAS]  {ln2_pdf}")
         lineas_doc.append(f"  [ACTIVO] {ln3_pdf}")
         lineas_doc.append(f"  [TRASP]  {ln4_pdf}")
+        sp_badges_pdf = str(ev_sp.get("edge_badges_str", s.get("edge_badges_str", ""))).strip()
+        suf_sp_pdf = f" | {sp_badges_pdf}" if sp_badges_pdf else ""
         lineas_doc.append(
             f"  [SPREAD] {ev_sp.get('recomendacion', home)} | Cuota: {_safe_float(ev_sp.get('cuota_mercado_decimal'), 1.91):.2f} | "
-            f"Cubre: {sp_cov:.1f}% (5,000 sims) | EV: {_safe_float(ev_sp.get('ev_pct'), 0.0):+.1f}%"
+            f"Cubre: {sp_cov:.1f}% (5,000 sims) | EV: {_safe_float(ev_sp.get('ev_pct'), 0.0):+.1f}%{suf_sp_pdf}"
         )
         lineas_doc.append(
             f"  [TOTAL]  {ev_to.get('lado', 'OVER')} {_safe_float(ev_to.get('total_mercado'), tot_mkt):.1f} | Cuota: {_safe_float(ev_to.get('cuota_mercado_decimal'), 1.91):.2f} | "
