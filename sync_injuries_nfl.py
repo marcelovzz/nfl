@@ -140,12 +140,26 @@ NFL_STADIUMS_COORDS: Dict[str, Dict[str, Any]] = {
     "WSH": {"name": "Northwest Stadium", "lat": 38.9076, "lon": -76.8645, "roof": "OUTDOOR"},
 }
 
+OFFENSIVE_ROTATION_SLOTS: List[str] = [
+    "QB1",
+    "WR1",
+    "WR2",
+    "WR3",
+    "RB1",
+    "RB2",
+    "TE1",
+    "TE2",
+]
+
 CRITICAL_POSITIONS_ORDER: List[str] = [
     "QB1",
     "RB1",
+    "RB2",
     "WR1",
     "WR2",
+    "WR3",
     "TE1",
+    "TE2",
     "LT",
     "LG",
     "C",
@@ -155,6 +169,25 @@ CRITICAL_POSITIONS_ORDER: List[str] = [
     "EDGE1",
     "MLB1",
 ]
+
+SLOT_IMPACT_PRIORITY: Dict[str, int] = {
+    "QB1": 1,
+    "WR1": 2,
+    "RB1": 3,
+    "TE1": 4,
+    "WR2": 5,
+    "RB2": 6,
+    "WR3": 7,
+    "TE2": 8,
+    "LT": 9,
+    "RT": 10,
+    "CB1": 11,
+    "EDGE1": 12,
+    "LG": 13,
+    "C": 14,
+    "RG": 15,
+    "MLB1": 16,
+}
 
 AUDIT_LOG_COLUMNS: List[str] = [
     "Fecha",
@@ -336,8 +369,9 @@ def consultar_depth_chart_equipo_espn(team_abbr: str, timeout: int = 5) -> Dict[
     """
     Consulta el Depth Chart oficial de ESPN para una franquicia:
     'https://site.api.espn.com/apis/site/v2/sports/football/nfl/teams/{team_id}/depthcharts'
-    y extrae los titulares #1 en posiciones críticas:
-    QB1, RB1, WR1, WR2, TE1, LT, LG, C, RG, RT, CB1, EDGE1 (DE1/OLB1), MLB1.
+    y extrae la rotación ofensiva completa ('QB1', 'WR1', 'WR2', 'WR3', 'RB1', 'RB2',
+    'TE1', 'TE2') más los titulares en posiciones críticas de trinchera y defensa
+    ('LT', 'LG', 'C', 'RG', 'RT', 'CB1', 'EDGE1', 'MLB1').
     """
     std_abbr = normalizar_abbr_nfl(team_abbr)
     team_id = ESPN_TEAM_IDS.get(std_abbr)
@@ -357,7 +391,14 @@ def consultar_depth_chart_equipo_espn(team_abbr: str, timeout: int = 5) -> Dict[
         data = resp.json()
         items = data.get("depthchart", []) or data.get("items", []) or []
 
-        wr_asignados = 0
+        def _extraer_nombre_ath(ath_raw: Any) -> str:
+            if isinstance(ath_raw, dict) and "athlete" in ath_raw:
+                ath_raw = ath_raw["athlete"]
+            if not isinstance(ath_raw, dict):
+                return ""
+            return str(ath_raw.get("displayName") or ath_raw.get("shortName") or "").strip()
+
+        wrs_candidatos_2nd: List[str] = []
         for block in items:
             positions = block.get("positions", {}) or {}
             for pos_key, pos_obj in positions.items():
@@ -370,52 +411,56 @@ def consultar_depth_chart_equipo_espn(team_abbr: str, timeout: int = 5) -> Dict[
                 if not athletes:
                     continue
 
-                starter_ath = athletes[0]
-                if isinstance(starter_ath, dict) and "athlete" in starter_ath:
-                    starter_ath = starter_ath["athlete"]
-                p_name = str(starter_ath.get("displayName") or starter_ath.get("shortName") or "").strip()
+                p_name = _extraer_nombre_ath(athletes[0])
                 if not p_name:
                     continue
+                backup_name = _extraer_nombre_ath(athletes[1]) if len(athletes) > 1 else ""
+                third_name = _extraer_nombre_ath(athletes[2]) if len(athletes) > 2 else ""
 
-                backup_name = ""
-                if len(athletes) > 1:
-                    bk_ath = athletes[1]
-                    if isinstance(bk_ath, dict) and "athlete" in bk_ath:
-                        bk_ath = bk_ath["athlete"]
-                    backup_name = str(bk_ath.get("displayName") or bk_ath.get("shortName") or "").strip()
-
-                slot_target = None
                 if pos_abbr == "QB" and "QB1" not in titulares:
-                    slot_target = "QB1"
-                elif pos_abbr in {"RB", "HB"} and "RB1" not in titulares:
-                    slot_target = "RB1"
-                elif pos_abbr in {"WR", "WR1", "FL", "SE"}:
-                    if "WR1" not in titulares:
-                        slot_target = "WR1"
-                        wr_asignados += 1
-                    elif "WR2" not in titulares and p_name != titulares["WR1"]["player"]:
-                        slot_target = "WR2"
-                        wr_asignados += 1
-                elif pos_abbr == "WR2" and "WR2" not in titulares:
-                    slot_target = "WR2"
-                elif pos_abbr == "TE" and "TE1" not in titulares:
-                    slot_target = "TE1"
-                elif pos_abbr in {"LT", "LG", "C", "RG", "RT"} and pos_abbr not in titulares:
-                    slot_target = pos_abbr
-                elif pos_abbr in {"CB", "LCB", "RCB"} and "CB1" not in titulares:
-                    slot_target = "CB1"
-                elif pos_abbr in {"DE", "LDE", "RDE", "EDGE", "OLB", "LOLB", "ROLB"} and "EDGE1" not in titulares:
-                    slot_target = "EDGE1"
-                elif pos_abbr in {"MLB", "ILB", "LB", "MIKE", "WLB"} and "MLB1" not in titulares:
-                    slot_target = "MLB1"
-
-                if slot_target:
-                    titulares[slot_target] = {
-                        "slot": slot_target,
-                        "pos": pos_abbr,
-                        "player": p_name,
-                        "backup": backup_name,
+                    titulares["QB1"] = {"slot": "QB1", "pos": "QB", "player": p_name, "backup": backup_name}
+                elif pos_abbr in {"RB", "HB"}:
+                    if "RB1" not in titulares:
+                        titulares["RB1"] = {"slot": "RB1", "pos": "RB", "player": p_name, "backup": backup_name}
+                    if "RB2" not in titulares and backup_name and backup_name != p_name:
+                        titulares["RB2"] = {"slot": "RB2", "pos": "RB", "player": backup_name, "backup": third_name}
+                elif pos_abbr in {"WR", "WR1", "WR2", "WR3", "FL", "SE", "SWR"}:
+                    wrs_actuales = {
+                        titulares[k]["player"]
+                        for k in ("WR1", "WR2", "WR3")
+                        if k in titulares
                     }
+                    if "WR1" not in titulares and p_name not in wrs_actuales:
+                        titulares["WR1"] = {"slot": "WR1", "pos": "WR", "player": p_name, "backup": backup_name}
+                    elif "WR2" not in titulares and p_name not in wrs_actuales:
+                        titulares["WR2"] = {"slot": "WR2", "pos": "WR", "player": p_name, "backup": backup_name}
+                    elif "WR3" not in titulares and p_name not in wrs_actuales:
+                        titulares["WR3"] = {"slot": "WR3", "pos": "WR", "player": p_name, "backup": backup_name}
+                    if backup_name and backup_name not in wrs_candidatos_2nd:
+                        wrs_candidatos_2nd.append(backup_name)
+                elif pos_abbr == "TE":
+                    if "TE1" not in titulares:
+                        titulares["TE1"] = {"slot": "TE1", "pos": "TE", "player": p_name, "backup": backup_name}
+                    if "TE2" not in titulares and backup_name and backup_name != p_name:
+                        titulares["TE2"] = {"slot": "TE2", "pos": "TE", "player": backup_name, "backup": third_name}
+                elif pos_abbr in {"LT", "LG", "C", "RG", "RT"} and pos_abbr not in titulares:
+                    titulares[pos_abbr] = {"slot": pos_abbr, "pos": pos_abbr, "player": p_name, "backup": backup_name}
+                elif pos_abbr in {"CB", "LCB", "RCB"} and "CB1" not in titulares:
+                    titulares["CB1"] = {"slot": "CB1", "pos": "CB", "player": p_name, "backup": backup_name}
+                elif pos_abbr in {"DE", "LDE", "RDE", "EDGE", "OLB", "LOLB", "ROLB"} and "EDGE1" not in titulares:
+                    titulares["EDGE1"] = {"slot": "EDGE1", "pos": pos_abbr, "player": p_name, "backup": backup_name}
+                elif pos_abbr in {"MLB", "ILB", "LB", "MIKE", "WLB"} and "MLB1" not in titulares:
+                    titulares["MLB1"] = {"slot": "MLB1", "pos": pos_abbr, "player": p_name, "backup": backup_name}
+
+        # Si el Depth Chart de ESPN listó solo 1 o 2 columnas de WR, completar WR2/WR3 con los backups inmediatos
+        for cand_wr in wrs_candidatos_2nd:
+            wrs_ya = {titulares[k]["player"] for k in ("WR1", "WR2", "WR3") if k in titulares}
+            if cand_wr in wrs_ya:
+                continue
+            if "WR2" not in titulares:
+                titulares["WR2"] = {"slot": "WR2", "pos": "WR", "player": cand_wr, "backup": ""}
+            elif "WR3" not in titulares:
+                titulares["WR3"] = {"slot": "WR3", "pos": "WR", "player": cand_wr, "backup": ""}
     except Exception:
         pass
     return titulares
@@ -617,9 +662,21 @@ def consultar_transacciones_espn_nfl(timeout: int = 6) -> List[Dict[str, Any]]:
     """
     Consulta el feed oficial de transacciones de ESPN NFL:
     'https://site.api.espn.com/apis/site/v2/sports/football/nfl/transactions'
-    Extrae trades, firmas ('signed', 'acquired', 'claimed') y cortes ('released', 'waived', 'cut').
+    Filtra e IGNORA movimientos de 'practice squad', 'futures' o relleno, conservando
+    únicamente trades o firmas/cortes relevantes de primer equipo.
     """
     transacciones: List[Dict[str, Any]] = []
+    patrones_relleno = (
+        "practice squad",
+        "reserve/future",
+        "futures contract",
+        "standard elevation",
+        "reverted to practice",
+        "signed to practice",
+        "waived/injured",
+        "workout",
+        "try out",
+    )
     try:
         resp = requests.get(
             ESPN_TRANSACTIONS_URL,
@@ -642,14 +699,18 @@ def consultar_transacciones_espn_nfl(timeout: int = 6) -> List[Dict[str, Any]]:
                 continue
 
             desc_low = desc.lower()
+            # Ignorar estrictamente movimientos de practice squad o contratos de reserva
+            if any(p_ign in desc_low for p_ign in patrones_relleno):
+                continue
+
             if "trade" in desc_low or "acquired" in desc_low:
                 tipo_tx = "TRADE"
             elif any(w in desc_low for w in ("released", "waived", "cut", "terminated")):
                 tipo_tx = "CORTE_FA"
-            elif any(w in desc_low for w in ("signed", "claimed", "elevated", "activated")):
+            elif any(w in desc_low for w in ("signed", "claimed", "activated")):
                 tipo_tx = "FIRMA_ALTA"
             else:
-                tipo_tx = "MOVIMIENTO"
+                continue
 
             transacciones.append(
                 {
@@ -837,14 +898,25 @@ def sincronizar_traspasos_y_movimientos_roster_nfl(
                     f"Baja: {p_name} ({p_pos} -> FA)"
                 )
 
-    # Incorporar transacciones recientes de impacto del feed de ESPN que no estén ya listadas
-    for tx in transacciones_espn[:40]:
+    # En 'TRASPASOS', mostrar únicamente trades o firmas relevantes que afecten a
+    # QB1, WR1-WR3, RB1-RB2, TE1-TE2 o titulares defensivos clave (sin relleno de practice squad)
+    apellidos_impacto = {
+        _limpiar_nombre_jugador(jb["Player"]).split()[-1]
+        for jb in jugadores_base
+        if _limpiar_nombre_jugador(jb["Player"]).split()
+    }
+    for tx in transacciones_espn[:30]:
         t_tx = tx.get("team", "")
-        if t_tx and tx.get("type") in {"TRADE", "FIRMA_ALTA", "CORTE_FA"}:
+        desc_up = tx.get("description", "").upper()
+        es_relevante_impacto = (
+            tx.get("type") == "TRADE"
+            or any(ap in desc_up for ap in apellidos_impacto if len(ap) >= 4)
+        )
+        if t_tx and es_relevante_impacto:
             desc_corta = tx["description"]
-            if len(desc_corta) > 78:
-                desc_corta = desc_corta[:75] + "..."
-            if len(resumen_por_equipo.get(t_tx, [])) < 3:
+            if len(desc_corta) > 74:
+                desc_corta = desc_corta[:71] + "..."
+            if len(resumen_por_equipo.get(t_tx, [])) < 2:
                 etiqueta_tx = f"{tx['type']}: {desc_corta}"
                 if etiqueta_tx not in resumen_por_equipo.setdefault(t_tx, []):
                     resumen_por_equipo[t_tx].append(etiqueta_tx)
@@ -1067,23 +1139,35 @@ def sincronizar_lesiones_titulares_y_clima_nfl(
             df_t_base = df_props_base[
                 df_props_base["Team"].astype(str).str.upper().isin({std_abbr, "LAR" if std_abbr == "LA" else std_abbr, "WSH" if std_abbr == "WAS" else std_abbr})
             ]
-            rbs_b = df_t_base[df_t_base["Pos"].astype(str).str.upper() == "RB"]
+            rbs_b = df_t_base[df_t_base["Pos"].astype(str).str.upper().str.startswith("RB")]
             wrs_b = df_t_base[df_t_base["Pos"].astype(str).str.upper().str.startswith("WR")]
-            tes_b = df_t_base[df_t_base["Pos"].astype(str).str.upper() == "TE"]
+            tes_b = df_t_base[df_t_base["Pos"].astype(str).str.upper().str.startswith("TE")]
 
             if "RB1" not in dc_map and not rbs_b.empty:
                 dc_map["RB1"] = {"slot": "RB1", "pos": "RB", "player": str(rbs_b.iloc[0]["Player"]), "backup": ""}
+            if "RB2" not in dc_map and len(rbs_b) > 1:
+                dc_map["RB2"] = {"slot": "RB2", "pos": "RB", "player": str(rbs_b.iloc[1]["Player"]), "backup": ""}
             if "WR1" not in dc_map and not wrs_b.empty:
                 dc_map["WR1"] = {"slot": "WR1", "pos": "WR", "player": str(wrs_b.iloc[0]["Player"]), "backup": ""}
             if "WR2" not in dc_map and len(wrs_b) > 1:
                 dc_map["WR2"] = {"slot": "WR2", "pos": "WR", "player": str(wrs_b.iloc[1]["Player"]), "backup": ""}
+            if "WR3" not in dc_map and len(wrs_b) > 2:
+                dc_map["WR3"] = {"slot": "WR3", "pos": "WR", "player": str(wrs_b.iloc[2]["Player"]), "backup": ""}
             if "TE1" not in dc_map and not tes_b.empty:
                 dc_map["TE1"] = {"slot": "TE1", "pos": "TE", "player": str(tes_b.iloc[0]["Player"]), "backup": ""}
+            if "TE2" not in dc_map and len(tes_b) > 1:
+                dc_map["TE2"] = {"slot": "TE2", "pos": "TE", "player": str(tes_b.iloc[1]["Player"]), "backup": ""}
+
+        # Mapa de jugadores recién llegados por traspaso/firma a este equipo
+        altas_trasp_keys = {
+            _clave_jugador_sin_equipo(str(m.get("Player", "")))
+            for m in (moves_by_curr.get(std_abbr, []) or [])
+        }
 
         titulares_clasificados: Dict[str, Dict[str, Any]] = {}
+        rotacion_ofensiva_8: Dict[str, Dict[str, Any]] = {}
         recien_activados_equipo: List[str] = []
-        bajas_clave_equipo: List[str] = []
-        gtd_equipo: List[str] = []
+        candidatos_bajas_impacto: List[Dict[str, Any]] = []
 
         ol_out_count = 0
         def_out_count = 0
@@ -1092,18 +1176,21 @@ def sincronizar_lesiones_titulares_y_clima_nfl(
         rb1_out = False
 
         for slot in CRITICAL_POSITIONS_ORDER:
-            slot_info = dc_map.get(slot, {"slot": slot, "pos": slot.rstrip("12"), "player": f"{std_abbr} {slot}", "backup": ""})
+            slot_info = dc_map.get(slot, {"slot": slot, "pos": slot.rstrip("123"), "player": f"{std_abbr} {slot}", "backup": ""})
             p_name = str(slot_info.get("player", "")).strip()
-            pos_str = str(slot_info.get("pos", slot.rstrip("12"))).strip().upper()
+            pos_str = str(slot_info.get("pos", slot.rstrip("123"))).strip().upper()
             k_can = _clave_canonica_jugador(std_abbr, p_name)
+            p_key_notm = _clave_jugador_sin_equipo(p_name)
 
             inj_match = claves_lesionados_actuales.get(k_can)
             if inj_match is not None:
                 st_exacto = str(inj_match["status_code"])
                 raw_st = str(inj_match["raw_status"])
             else:
-                # Verificar si estaba en Out/Doubtful/IR en el snapshot previo
-                if k_can in bajas_previas_map:
+                if p_key_notm in altas_trasp_keys:
+                    st_exacto = "TRASPASO_NUEVO"
+                    raw_st = "New Trade/Signing Active"
+                elif k_can in bajas_previas_map:
                     st_exacto = "RECIEN_ACTIVADO"
                     raw_st = f"Activated (Prev: {bajas_previas_map[k_can]['prev_status']})"
                 else:
@@ -1117,25 +1204,65 @@ def sincronizar_lesiones_titulares_y_clima_nfl(
                     qb1_out_or_replaced = True
                     if k_can == k_qb_base and slot_info.get("backup"):
                         p_name = str(slot_info["backup"])
+                        k_can = _clave_canonica_jugador(std_abbr, p_name)
+                        p_key_notm = _clave_jugador_sin_equipo(p_name)
+                        st_exacto = "ACTIVO_CONFIRMADO"
+                        raw_st = "Active (Backup promoted to QB1)"
                 elif st_exacto in {"OUT_INACTIVO", "DOUBTFUL"}:
                     qb1_out_or_replaced = True
+                    if slot_info.get("backup"):
+                        bajas_qb1_orig = p_name
+                        candidatos_bajas_impacto.append(
+                            {
+                                "priority": SLOT_IMPACT_PRIORITY.get("QB1", 1),
+                                "player": bajas_qb1_orig,
+                                "slot": "QB1",
+                                "badge": "OUT",
+                                "raw_status": raw_st,
+                                "text": f"{bajas_qb1_orig} (QB1 - OUT)",
+                            }
+                        )
+                        p_name = str(slot_info["backup"])
+                        k_can = _clave_canonica_jugador(std_abbr, p_name)
+                        p_key_notm = _clave_jugador_sin_equipo(p_name)
+                        st_exacto = "ACTIVO_CONFIRMADO"
+                        raw_st = "Active (Promoted QB1)"
 
-            if st_exacto == "RECIEN_ACTIVADO":
+            if st_exacto == "RECIEN_ACTIVADO" and slot in OFFENSIVE_ROTATION_SLOTS:
                 recien_activados_equipo.append(f"{p_name} ({slot})")
             elif st_exacto in {"OUT_INACTIVO", "DOUBTFUL"}:
-                bajas_clave_equipo.append(f"{p_name} ({slot} - {raw_st})")
-                if slot in {"WR1", "WR2", "TE1"}:
+                candidatos_bajas_impacto.append(
+                    {
+                        "priority": SLOT_IMPACT_PRIORITY.get(slot, 20),
+                        "player": p_name,
+                        "slot": slot,
+                        "badge": "OUT",
+                        "raw_status": raw_st,
+                        "text": f"{p_name} ({slot} - OUT)",
+                    }
+                )
+                if slot in {"WR1", "WR2", "WR3", "TE1", "TE2"}:
                     wr1_te1_out_shares.append(p_name)
-                elif slot == "RB1":
-                    rb1_out = True
+                elif slot in {"RB1", "RB2"}:
+                    if slot == "RB1":
+                        rb1_out = True
                 elif slot in {"LT", "LG", "C", "RG", "RT"}:
                     ol_out_count += 1
                 elif slot in {"CB1", "EDGE1", "MLB1"}:
                     def_out_count += 1
             elif st_exacto == "QUESTIONABLE_GTD":
-                gtd_equipo.append(f"{p_name} ({slot} - GTD)")
+                candidatos_bajas_impacto.append(
+                    {
+                        "priority": SLOT_IMPACT_PRIORITY.get(slot, 20) + 10,
+                        "player": p_name,
+                        "slot": slot,
+                        "badge": "GTD",
+                        "raw_status": raw_st,
+                        "text": f"{p_name} ({slot} - GTD)",
+                    }
+                )
 
-            titulares_clasificados[slot] = {
+            slot_entry = {
                 "slot": slot,
                 "pos": pos_str,
                 "player": p_name,
@@ -1143,7 +1270,12 @@ def sincronizar_lesiones_titulares_y_clima_nfl(
                 "status": st_exacto,
                 "raw_status": raw_st,
                 "canonical_key": k_can,
+                "player_key": p_key_notm,
+                "full_clean": _limpiar_nombre_jugador(p_name),
             }
+            titulares_clasificados[slot] = slot_entry
+            if slot in OFFENSIVE_ROTATION_SLOTS:
+                rotacion_ofensiva_8[slot] = slot_entry
 
             filas_excel_injuries.append(
                 {
@@ -1159,62 +1291,15 @@ def sincronizar_lesiones_titulares_y_clima_nfl(
                 }
             )
 
-        # También revisar jugadores de impacto adicionales en la lista de lesiones del equipo
-        for inj_item in lesiones_por_equipo.get(std_abbr, []):
-            k_i = inj_item["canonical_key"]
-            ya_en_slots = any(v["canonical_key"] == k_i for v in titulares_clasificados.values())
-            if not ya_en_slots:
-                st_c = inj_item["status_code"]
-                p_nm = inj_item["player"]
-                p_ps = inj_item["pos"]
-                p_grp = inj_item["pos_group"]
-                if st_c in {"OUT_INACTIVO", "DOUBTFUL"}:
-                    if len(bajas_clave_equipo) < 8:
-                        bajas_clave_equipo.append(f"{p_nm} ({p_ps} - {inj_item['raw_status']})")
-                    if p_grp == "OL":
-                        ol_out_count += 1
-                    elif p_grp in {"CB", "EDGE", "LB"}:
-                        def_out_count += 1
-                elif st_c == "QUESTIONABLE_GTD" and len(gtd_equipo) < 6:
-                    gtd_equipo.append(f"{p_nm} ({p_ps} - GTD)")
-
-                filas_excel_injuries.append(
-                    {
-                        "Timestamp_CST": ts_cst,
-                        "Team": std_abbr,
-                        "Slot": p_ps,
-                        "Pos": p_ps,
-                        "Player": p_nm,
-                        "Backup": "",
-                        "Status_Clasificado": st_c,
-                        "ESPN_Raw_Status": inj_item["raw_status"],
-                        "Source": "ESPN Injuries Report",
-                    }
-                )
-
-        # Detectar recién activados que estaban en bajas_previas_map pero no en slots #1 fijos
-        for k_prev, prev_info in bajas_previas_map.items():
-            if prev_info["team"] == std_abbr and k_prev not in claves_lesionados_actuales:
-                etiqueta_ra = f"{prev_info['player']} ({prev_info['pos']})"
-                if not any(prev_info["player"] in x for x in recien_activados_equipo):
-                    recien_activados_equipo.append(etiqueta_ra)
-                    filas_excel_injuries.append(
-                        {
-                            "Timestamp_CST": ts_cst,
-                            "Team": std_abbr,
-                            "Slot": prev_info["pos"],
-                            "Pos": prev_info["pos"],
-                            "Player": prev_info["player"],
-                            "Backup": "",
-                            "Status_Clasificado": "RECIEN_ACTIVADO",
-                            "ESPN_Raw_Status": f"Activated from {prev_info['prev_status']}",
-                            "Source": "Snapshot Diff (RECIEN_ACTIVADO)",
-                        }
-                    )
+        # Ordenar bajas estrictamente por impacto (QB1 > WR1/RB1/TE1 > WR2/RB2/WR3/TE2/OL/CB1) y limitar a MÁXIMO 3 por equipo
+        candidatos_bajas_impacto.sort(key=lambda x: x["priority"])
+        top3_bajas_items = candidatos_bajas_impacto[:3]
+        bajas_clave_equipo = [x["text"] for x in top3_bajas_items if x["badge"] == "OUT"]
+        gtd_equipo = [x["text"] for x in top3_bajas_items if x["badge"] == "GTD"]
 
         qb1_slot = titulares_clasificados.get("QB1", {})
         qb1_nombre_real = str(qb1_slot.get("player", qb_base))
-        qb1_tag = "NUEVO" if (qb1_out_or_replaced or qb1_slot.get("status") == "RECIEN_ACTIVADO") else "OK"
+        qb1_tag = "NUEVO" if (qb1_out_or_replaced or qb1_slot.get("status") in {"RECIEN_ACTIVADO", "TRASPASO_NUEVO"}) else "TITULAR OK"
 
         starters_por_equipo[std_abbr] = {
             "team": std_abbr,
@@ -1228,12 +1313,14 @@ def sincronizar_lesiones_titulares_y_clima_nfl(
             "wr1_te1_out_players": wr1_te1_out_shares,
             "ol_out_count": int(ol_out_count),
             "def_key_out_count": int(def_out_count),
-            "recien_activados": recien_activados_equipo,
+            "recien_activados": recien_activados_equipo[:3],
             "bajas_out_doubtful": bajas_clave_equipo,
             "questionable_gtd": gtd_equipo,
+            "bajas_top3_pills": top3_bajas_items,
             "traspasos_altas": moves_by_curr.get(std_abbr, []),
             "traspasos_bajas": moves_by_prev.get(std_abbr, []),
-            "traspasos_resumen": moves_summary_map.get(std_abbr, []),
+            "traspasos_resumen": (moves_summary_map.get(std_abbr, []) or [])[:2],
+            "offensive_rotation": rotacion_ofensiva_8,
             "starters": titulares_clasificados,
             "titulares": [
                 {
@@ -1385,49 +1472,87 @@ def obtener_bloque_estado_partido(
     hm_info = teams_map.get(hm, {}) or {}
 
     qb_aw = str(aw_info.get("qb1_name") or f"{aw} QB1")
-    tag_aw = str(aw_info.get("qb1_tag") or "OK")
+    tag_aw = str(aw_info.get("qb1_tag") or "TITULAR OK")
+    if tag_aw == "OK":
+        tag_aw = "TITULAR OK"
     qb_hm = str(hm_info.get("qb1_name") or f"{hm} QB1")
-    tag_hm = str(hm_info.get("qb1_tag") or "OK")
+    tag_hm = str(hm_info.get("qb1_tag") or "TITULAR OK")
+    if tag_hm == "OK":
+        tag_hm = "TITULAR OK"
 
     clima_info = weather_map.get(partido_key)
     if not clima_info:
         clima_info = consultar_clima_estadio_open_meteo(hm)
     clima_str = str(clima_info.get("resumen_clima", "Domo"))
+    roof_type = str(clima_info.get("roof", "OUTDOOR")).upper()
+    if roof_type == "DOME" or "DOMO" in clima_str.upper():
+        clima_pill = "🏟️ Domo · 70°F"
+    else:
+        t_f = float(clima_info.get("temp_f", 65.0))
+        w_mph = float(clima_info.get("wind_mph", 8.0))
+        alerta_w = " ⚠️" if clima_info.get("clima_adverso") else ""
+        clima_pill = f"🌤️ {t_f:.0f}°F · 💨 {w_mph:.0f} mph{alerta_w}"
 
     linea_1 = f"QB1: {qb_aw} [{tag_aw}] vs {qb_hm} [{tag_hm}] | Clima: {clima_str}"
 
-    bajas_aw = (aw_info.get("bajas_out_doubtful", []) or [])[:3] + (aw_info.get("questionable_gtd", []) or [])[:2]
-    bajas_hm = (hm_info.get("bajas_out_doubtful", []) or [])[:3] + (hm_info.get("questionable_gtd", []) or [])[:2]
+    # Máximo 3 bajas clave por equipo ordenadas por impacto (QB1 > WR1/RB1/TE1 > WR2/RB2/TE2/OL/CB1)
+    pills_aw = (aw_info.get("bajas_top3_pills") or [])[:3]
+    pills_hm = (hm_info.get("bajas_top3_pills") or [])[:3]
+    bajas_aw = [f"{x['player']} ({x['slot']} - {x['badge']})" for x in pills_aw] if pills_aw else (
+        (aw_info.get("bajas_out_doubtful", []) or []) + (aw_info.get("questionable_gtd", []) or [])
+    )[:3]
+    bajas_hm = [f"{x['player']} ({x['slot']} - {x['badge']})" for x in pills_hm] if pills_hm else (
+        (hm_info.get("bajas_out_doubtful", []) or []) + (hm_info.get("questionable_gtd", []) or [])
+    )[:3]
+
     partes_bajas = []
     if bajas_aw:
-        partes_bajas.append(f"{aw}: {', '.join(bajas_aw)}")
+        partes_bajas.append(f"{aw}: {', '.join(bajas_aw[:3])}")
     if bajas_hm:
-        partes_bajas.append(f"{hm}: {', '.join(bajas_hm)}")
-    bajas_str = " | ".join(partes_bajas) if partes_bajas else "Sin bajas titulares críticas reportadas"
+        partes_bajas.append(f"{hm}: {', '.join(bajas_hm[:3])}")
+    bajas_str = " | ".join(partes_bajas) if partes_bajas else "Sin bajas titulares críticas"
     linea_2 = f"🔴 OUT / GTD: {bajas_str}"
 
-    act_aw = aw_info.get("recien_activados", []) or []
-    act_hm = hm_info.get("recien_activados", []) or []
+    act_aw = (aw_info.get("recien_activados", []) or [])[:3]
+    act_hm = (hm_info.get("recien_activados", []) or [])[:3]
     partes_act = []
     if act_aw:
-        partes_act.append(f"{aw}: {', '.join(act_aw[:3])}")
+        partes_act.append(f"{aw}: {', '.join(act_aw)}")
     if act_hm:
-        partes_act.append(f"{hm}: {', '.join(act_hm[:3])}")
+        partes_act.append(f"{hm}: {', '.join(act_hm)}")
     act_str = " | ".join(partes_act) if partes_act else "Sin novedades"
     linea_3 = f"🟢 ACTIVADOS: {act_str}"
 
-    tr_aw = (aw_info.get("traspasos_resumen") or rm_summary_map.get(aw) or [])[:2]
-    tr_hm = (hm_info.get("traspasos_resumen") or rm_summary_map.get(hm) or [])[:2]
+    tr_aw = [
+        x for x in ((aw_info.get("traspasos_resumen") or rm_summary_map.get(aw) or [])[:2])
+        if "practice squad" not in str(x).lower()
+    ]
+    tr_hm = [
+        x for x in ((hm_info.get("traspasos_resumen") or rm_summary_map.get(hm) or [])[:2])
+        if "practice squad" not in str(x).lower()
+    ]
     partes_tr = []
     if tr_aw:
         partes_tr.append(f"{aw}: {', '.join(tr_aw)}")
     if tr_hm:
         partes_tr.append(f"{hm}: {', '.join(tr_hm)}")
-    traspasos_str = " | ".join(partes_tr) if partes_tr else "Sin cambios"
+    traspasos_str = " | ".join(partes_tr) if partes_tr else "Sin movimientos relevantes"
     linea_4 = f"🔄 TRASPASOS: {traspasos_str}"
 
     return {
         "partido": partido_key,
+        "clima_pill": clima_pill,
+        "qb_away_name": qb_aw,
+        "qb_away_tag": tag_aw,
+        "qb_home_name": qb_hm,
+        "qb_home_tag": tag_hm,
+        "bajas_away_pills": pills_aw,
+        "bajas_home_pills": pills_hm,
+        "bajas_away_list": bajas_aw[:3],
+        "bajas_home_list": bajas_hm[:3],
+        "activados_reales": partes_act,
+        "traspasos_reales": partes_tr,
+        "hay_movimientos_reales": bool(partes_act or partes_tr),
         "linea_1_qb_clima": linea_1,
         "linea_2_out_gtd": linea_2,
         "linea_3_activados": linea_3,

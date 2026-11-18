@@ -559,6 +559,8 @@ def simular_prop_jugador_lognormal(
     cuota_under_dec: float = DEFAULT_MARKET_ODDS_DEC,
     n_sims: int = 5000,
     wr_rank: int = 1,
+    rol_slot: Optional[str] = None,
+    metrica_override: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Ejecuta 5,000 simulaciones de Monte Carlo con distribución Log-Normal incorporando:
@@ -574,7 +576,8 @@ def simular_prop_jugador_lognormal(
       5. Evaluación de valor esperado positivo (+EV > 0.0% y % Cubre >= 54.5%).
     """
     pos_clean = pos.strip().upper()
-    metrica = METRICA_POR_POSICION.get(pos_clean, "Rec Yds")
+    rol_efectivo = (rol_slot or pos_clean).strip().upper()
+    metrica = metrica_override or METRICA_POR_POSICION.get(pos_clean, "Rec Yds")
     nombre_up = player_name.strip().upper()
     status_up = str(status_jugador or "ACTIVO_CONFIRMADO").strip().upper()
 
@@ -678,7 +681,7 @@ def simular_prop_jugador_lognormal(
     elif status_up == "QUESTIONABLE_GTD":
         mediana_raw *= 0.92
         notas_ajuste.append("Questionable_GTD(-8%)")
-    elif status_up == "TRASPASO_NUEVO_EQUIPO":
+    elif status_up in {"TRASPASO_NUEVO_EQUIPO", "TRASPASO_NUEVO"}:
         mediana_raw *= 0.85
         notas_ajuste.append("TraspasoNuevoEquipo(Adaptacion_85%)")
 
@@ -778,8 +781,10 @@ def simular_prop_jugador_lognormal(
         "Equipo": team_abbr,
         "Rival": opp_abbr,
         "Jugador": player_name,
-        "Posición": pos_clean,
+        "Posición": rol_efectivo,
+        "Rol": rol_efectivo,
         "Métrica": metrica,
+        "Mercado_Corto": metrica,
         "Baseline_Yds": round(base_yds, 1),
         "Pass_Rate_Equipo": round(float(pass_rate_equipo), 3),
         "Pressure_Pct_Rival": round(float(pressure_pct_rival), 3),
@@ -810,6 +815,232 @@ def simular_prop_jugador_lognormal(
         "Catch_Rate": round(float(catch_rate), 3),
         "Yds_Per_Unit": round(float(yds_per_unit), 2),
         "TD_Rate": round(float(td_rate), 3),
+        "_sim_vector": sim_yardas,
+    }
+
+
+def simular_prop_combo_correlacionado(
+    partido_label: str,
+    team_abbr: str,
+    opp_abbr: str,
+    player_name: str,
+    rol_slot: str,
+    metrica_nombre: str,
+    mercado_corto: str,
+    sim_vec_a: np.ndarray,
+    sim_vec_b: np.ndarray,
+    linea_base_a: float,
+    linea_base_b: float,
+    factor_dvp: float,
+    es_qb_suplente: bool = False,
+    kickoff_str: str = "DOM 13:00 ET",
+    kickoff_sort_key: Tuple[int, int, int, int] = (0, 4, 13, 0),
+    cuota_over_dec: float = DEFAULT_MARKET_ODDS_DEC,
+    cuota_under_dec: float = DEFAULT_MARKET_ODDS_DEC,
+) -> Dict[str, Any]:
+    """
+    Calcula iteración por iteración (correlacionado dentro de las mismas 5,000 simulaciones
+    de Monte Carlo) los mercados combinados:
+      - 'Rush + Rec Yds' ('Rush+Rec' para RB1, RB2 y WR1/WR2 híbridos)
+      - 'Pass + Rush Yds' ('Pass+Rush' para QB1)
+    """
+    sim_combo = np.asarray(sim_vec_a, dtype=float) + np.asarray(sim_vec_b, dtype=float)
+    mediana_proyectada = round(float(np.median(sim_combo)), 1)
+    media_mc = round(float(np.mean(sim_combo)), 1)
+    std_mc = round(float(np.std(sim_combo)), 1)
+
+    linea_mercado = _redondear_a_medio_punto((float(linea_base_a) + float(linea_base_b)) * 0.97)
+    diff_yardas = round(mediana_proyectada - linea_mercado, 1)
+
+    no_push = sim_combo[sim_combo != linea_mercado]
+    over_emp = float(np.mean(no_push > linea_mercado)) if len(no_push) > 0 else 0.50
+    over_prob = float(np.clip(0.50 + 0.88 * (over_emp - 0.50), 0.10, 0.90))
+    under_prob = float(np.clip(1.0 - over_prob, 0.10, 0.90))
+
+    over_cover_pct = round(over_prob * 100.0, 1)
+    under_cover_pct = round(under_prob * 100.0, 1)
+    ev_over_pct = round(((over_prob * float(cuota_over_dec)) - 1.0) * 100.0, 1)
+    ev_under_pct = round(((under_prob * float(cuota_under_dec)) - 1.0) * 100.0, 1)
+
+    if over_cover_pct >= under_cover_pct:
+        lado_mejor = "OVER"
+        pct_cubre_mejor = over_cover_pct
+        ev_mejor_pct = ev_over_pct
+        cuota_mejor = float(cuota_over_dec)
+    else:
+        lado_mejor = "UNDER"
+        pct_cubre_mejor = under_cover_pct
+        ev_mejor_pct = ev_under_pct
+        cuota_mejor = float(cuota_under_dec)
+
+    veto_backup_over = (rol_slot == "QB1" and es_qb_suplente and lado_mejor == "OVER")
+    tiene_valor_positivo = (
+        (not veto_backup_over)
+        and (pct_cubre_mejor >= POSITIVE_EV_MIN_COVER_PCT)
+        and (ev_mejor_pct > POSITIVE_EV_MIN_EV_PCT)
+    )
+    if tiene_valor_positivo:
+        senal_ev = f"🔥 {lado_mejor} {linea_mercado:.1f} | Cubre: {pct_cubre_mejor:.1f}% | EV: {ev_mejor_pct:+.1f}%"
+    else:
+        senal_ev = f"⚪ {lado_mejor} {linea_mercado:.1f} | Cubre: {pct_cubre_mejor:.1f}% | EV: {ev_mejor_pct:+.1f}%"
+
+    return {
+        "Kickoff": kickoff_str,
+        "_Kickoff_Sort": kickoff_sort_key,
+        "Partido": partido_label,
+        "Equipo": team_abbr,
+        "Rival": opp_abbr,
+        "Jugador": player_name,
+        "Posición": rol_slot,
+        "Rol": rol_slot,
+        "Métrica": metrica_nombre,
+        "Mercado_Corto": mercado_corto,
+        "Baseline_Yds": round(float(linea_base_a) + float(linea_base_b), 1),
+        "Pass_Rate_Equipo": 0.0,
+        "Pressure_Pct_Rival": 0.0,
+        "Volumen_Pase_Scheme": 0.0,
+        "Es_QB_Suplente": bool(es_qb_suplente),
+        "Es_Alpha_Receiver": False,
+        "Veto_Alpha_Under": False,
+        "Factor DvP Rival": round(float(factor_dvp), 3),
+        "Proyección Mediana": mediana_proyectada,
+        "Media_MC": media_mc,
+        "Desviación Estándar": std_mc,
+        "Línea Mercado": round(linea_mercado, 1),
+        "Diferencia_Yds": diff_yardas,
+        "Abs_Diferencia_Yds": round(abs(diff_yardas), 1),
+        "Cuota_Decimal": round(cuota_mejor, 2),
+        "% Cubre Over": over_cover_pct,
+        "% Cubre Under": under_cover_pct,
+        "% Cubre": pct_cubre_mejor,
+        "Lado_Recomendado": lado_mejor,
+        "EV_%": ev_mejor_pct,
+        "Edge_Implicito_%": round(pct_cubre_mejor - BREAKEVEN_IMPLIED_PROB_PCT, 1),
+        "Tiene_Valor_Positivo": bool(tiene_valor_positivo),
+        "Cumple_Calidad_Institucional": bool(tiene_valor_positivo),
+        "Es_Destacado": bool(tiene_valor_positivo),
+        "Señal EV": senal_ev,
+        "Notas_Modelo": f"Combo_Correlacionado_5000_Sims({mercado_corto})",
+        "Role_Share": 0.0,
+        "Catch_Rate": 0.0,
+        "Yds_Per_Unit": 0.0,
+        "TD_Rate": 0.0,
+    }
+
+
+def simular_prop_qb_discreto(
+    partido_label: str,
+    team_abbr: str,
+    opp_abbr: str,
+    player_name: str,
+    rol_slot: str,
+    metrica_nombre: str,
+    mercado_corto: str,
+    lambda_esperado: float,
+    linea_mercado: float,
+    factor_dvp: float,
+    def_rz_stop_pct: float = 0.45,
+    es_qb_suplente: bool = False,
+    clima_adverso: bool = False,
+    kickoff_str: str = "DOM 13:00 ET",
+    kickoff_sort_key: Tuple[int, int, int, int] = (0, 4, 13, 0),
+    cuota_over_dec: float = DEFAULT_MARKET_ODDS_DEC,
+    cuota_under_dec: float = DEFAULT_MARKET_ODDS_DEC,
+    n_sims: int = 5000,
+) -> Dict[str, Any]:
+    """
+    Simulación discreta (distribución Poisson / Binomial Negativa ajustada por eficiencia
+    en Zona Roja y DvP rival) para 'Pass Completions' y 'Pass TDs' (línea típica 1.5) del QB1.
+    """
+    rz_eff_mult = 1.0 + (0.45 - float(np.clip(def_rz_stop_pct, 0.30, 0.65))) * 0.45
+    clima_mult = 0.92 if clima_adverso else 1.0
+    backup_mult = 0.84 if es_qb_suplente else 1.0
+
+    lam_adj = max(0.35, float(lambda_esperado) * rz_eff_mult * clima_mult * backup_mult)
+    seed = _generar_semilla_jugador(team_abbr, opp_abbr, player_name, metrica_nombre)
+    rng = np.random.default_rng(seed)
+
+    # Mezcla Binomial Negativa (sobredispersión real de juego aéreo) / Poisson en 5,000 sims
+    r_disp = 18.0 if metrica_nombre == "Pass Completions" else 6.5
+    p_nb = r_disp / (r_disp + lam_adj)
+    sim_vals = rng.negative_binomial(n=r_disp, p=p_nb, size=int(n_sims))
+
+    mediana_proyectada = round(float(np.mean(sim_vals)), 1)
+    std_mc = round(float(np.std(sim_vals)), 1)
+    lin_mkt = float(linea_mercado)
+
+    over_emp = float(np.mean(sim_vals > lin_mkt))
+    over_prob = float(np.clip(0.50 + 0.88 * (over_emp - 0.50), 0.12, 0.88))
+    under_prob = float(np.clip(1.0 - over_prob, 0.12, 0.88))
+
+    over_cover_pct = round(over_prob * 100.0, 1)
+    under_cover_pct = round(under_prob * 100.0, 1)
+    ev_over_pct = round(((over_prob * float(cuota_over_dec)) - 1.0) * 100.0, 1)
+    ev_under_pct = round(((under_prob * float(cuota_under_dec)) - 1.0) * 100.0, 1)
+
+    if over_cover_pct >= under_cover_pct:
+        lado_mejor = "OVER"
+        pct_cubre_mejor = over_cover_pct
+        ev_mejor_pct = ev_over_pct
+        cuota_mejor = float(cuota_over_dec)
+    else:
+        lado_mejor = "UNDER"
+        pct_cubre_mejor = under_cover_pct
+        ev_mejor_pct = ev_under_pct
+        cuota_mejor = float(cuota_under_dec)
+
+    veto_backup_over = (es_qb_suplente and lado_mejor == "OVER")
+    tiene_valor_positivo = (
+        (not veto_backup_over)
+        and (pct_cubre_mejor >= POSITIVE_EV_MIN_COVER_PCT)
+        and (ev_mejor_pct > POSITIVE_EV_MIN_EV_PCT)
+    )
+    if tiene_valor_positivo:
+        senal_ev = f"🔥 {lado_mejor} {lin_mkt:.1f} | Cubre: {pct_cubre_mejor:.1f}% | EV: {ev_mejor_pct:+.1f}%"
+    else:
+        senal_ev = f"⚪ {lado_mejor} {lin_mkt:.1f} | Cubre: {pct_cubre_mejor:.1f}% | EV: {ev_mejor_pct:+.1f}%"
+
+    return {
+        "Kickoff": kickoff_str,
+        "_Kickoff_Sort": kickoff_sort_key,
+        "Partido": partido_label,
+        "Equipo": team_abbr,
+        "Rival": opp_abbr,
+        "Jugador": player_name,
+        "Posición": rol_slot,
+        "Rol": rol_slot,
+        "Métrica": metrica_nombre,
+        "Mercado_Corto": mercado_corto,
+        "Baseline_Yds": round(float(lambda_esperado), 1),
+        "Pass_Rate_Equipo": 0.0,
+        "Pressure_Pct_Rival": 0.0,
+        "Volumen_Pase_Scheme": 0.0,
+        "Es_QB_Suplente": bool(es_qb_suplente),
+        "Es_Alpha_Receiver": False,
+        "Veto_Alpha_Under": False,
+        "Factor DvP Rival": round(float(factor_dvp), 3),
+        "Proyección Mediana": mediana_proyectada,
+        "Media_MC": mediana_proyectada,
+        "Desviación Estándar": std_mc,
+        "Línea Mercado": round(lin_mkt, 1),
+        "Diferencia_Yds": round(mediana_proyectada - lin_mkt, 1),
+        "Abs_Diferencia_Yds": round(abs(mediana_proyectada - lin_mkt), 1),
+        "Cuota_Decimal": round(cuota_mejor, 2),
+        "% Cubre Over": over_cover_pct,
+        "% Cubre Under": under_cover_pct,
+        "% Cubre": pct_cubre_mejor,
+        "Lado_Recomendado": lado_mejor,
+        "EV_%": ev_mejor_pct,
+        "Edge_Implicito_%": round(pct_cubre_mejor - BREAKEVEN_IMPLIED_PROB_PCT, 1),
+        "Tiene_Valor_Positivo": bool(tiene_valor_positivo),
+        "Cumple_Calidad_Institucional": bool(tiene_valor_positivo),
+        "Es_Destacado": bool(tiene_valor_positivo),
+        "Señal EV": senal_ev,
+        "Notas_Modelo": f"Discreto_NegBin_RZ({mercado_corto})",
+        "Role_Share": 0.0,
+        "Catch_Rate": 0.0,
+        "Yds_Per_Unit": 0.0,
+        "TD_Rate": 0.0,
     }
 
 
@@ -821,20 +1052,27 @@ def simular_prop_anytime_td(
     pos: str,
     td_rate: float,
     factor_dvp: float,
+    def_rz_stop_pct: float = 0.45,
     es_qb_suplente: bool = False,
+    rol_slot: Optional[str] = None,
     kickoff_str: str = "DOM 13:00 ET",
     kickoff_sort_key: Tuple[int, int, int, int] = (0, 4, 13, 0),
     n_sims: int = 5000,
 ) -> Dict[str, Any]:
     """
-    Simula 5,000 iteraciones Poisson/Bernoulli para el mercado 'Anytime TD' (Línea 0.5 TD).
+    Simula 5,000 iteraciones Poisson/Bernoulli para el mercado 'Anytime TD' (Línea 0.5 TD)
+    para RB1, RB2, WR1, WR2, WR3, TE1, TE2 y QB1 corredor, ajustado por eficiencia en Zona Roja
+    y DvP rival. Emite señal positiva ÚNICAMENTE cuando `Prob_Modelo_TD > Prob_Implicita_Momio`
+    con `+EV > 0%`.
     """
     pos_clean = pos.strip().upper()
+    rol_efectivo = (rol_slot or pos_clean).strip().upper()
     base_td = float(np.clip(td_rate, 0.05, 0.85))
     mult_dvp = float(np.clip(factor_dvp, 0.65, 1.55))
+    rz_mult = 1.0 + (0.45 - float(np.clip(def_rz_stop_pct, 0.30, 0.65))) * 0.50
 
-    penal_qb = 0.85 if (es_qb_suplente and pos_clean in ("WR", "WR1", "WR2", "TE")) else 1.0
-    lambda_td = max(0.04, base_td * (0.65 + 0.35 * mult_dvp) * penal_qb)
+    penal_qb = 0.85 if (es_qb_suplente and pos_clean in ("WR", "WR1", "WR2", "WR3", "TE", "TE1", "TE2")) else 1.0
+    lambda_td = max(0.04, base_td * (0.62 + 0.38 * mult_dvp) * rz_mult * penal_qb)
 
     seed = _generar_semilla_jugador(team_abbr, opp_abbr, player_name, "Anytime_TD")
     rng = np.random.default_rng(seed)
@@ -846,8 +1084,9 @@ def simular_prop_anytime_td(
     over_pct = round(prob_over_td * 100.0, 1)
     under_pct = round(prob_under_td * 100.0, 1)
 
-    prob_base_mkt = float(np.clip(1.0 - math.exp(-base_td), 0.08, 0.75))
-    cuota_over_mkt = round(max(1.30, (1.0 / prob_base_mkt) * 0.96), 2)
+    prob_base_mkt = float(np.clip(1.0 - math.exp(-base_td), 0.10, 0.72))
+    cuota_over_mkt = round(max(1.45, (1.0 / prob_base_mkt) * 0.95), 2)
+    prob_implicita_momio = 1.0 / cuota_over_mkt
 
     ev_over_pct = round(((prob_over_td * cuota_over_mkt) - 1.0) * 100.0, 1)
     lado_mejor = "OVER"
@@ -856,11 +1095,13 @@ def simular_prop_anytime_td(
     cuota_mejor = cuota_over_mkt
 
     linea_td = 0.5
-    es_destacado = (pct_cubre_mejor >= 35.0 and ev_mejor_pct > 0.0)
+    # Emitir señal únicamente cuando Prob_Modelo_TD > Prob_Implicita_Momio con +EV > 0%
+    tiene_valor_td = (prob_over_td > prob_implicita_momio) and (ev_mejor_pct > 0.0) and (pct_cubre_mejor >= 32.0)
+    es_destacado = tiene_valor_td
     if es_destacado:
-        senal_ev = f"🔥 OVER {linea_td:.1f} TD ({cuota_mejor:.2f}) | Cubre: {pct_cubre_mejor:.1f}% | EV: {ev_mejor_pct:+.1f}%"
+        senal_ev = f"🔥 SI ANOTA TD ({cuota_mejor:.2f}) | Cubre: {pct_cubre_mejor:.1f}% | EV: {ev_mejor_pct:+.1f}%"
     else:
-        senal_ev = f"⚪ OVER {linea_td:.1f} TD ({cuota_mejor:.2f}) | Cubre: {pct_cubre_mejor:.1f}% | EV: {ev_mejor_pct:+.1f}%"
+        senal_ev = f"⚪ SI ANOTA TD ({cuota_mejor:.2f}) | Cubre: {pct_cubre_mejor:.1f}% | EV: {ev_mejor_pct:+.1f}%"
 
     return {
         "Kickoff": kickoff_str,
@@ -869,8 +1110,10 @@ def simular_prop_anytime_td(
         "Equipo": team_abbr,
         "Rival": opp_abbr,
         "Jugador": player_name,
-        "Posición": pos_clean,
+        "Posición": rol_efectivo,
+        "Rol": rol_efectivo,
         "Métrica": "Anytime TD",
+        "Mercado_Corto": "Anytime TD",
         "Baseline_Yds": round(base_td, 2),
         "Pass_Rate_Equipo": 0.0,
         "Pressure_Pct_Rival": 0.0,
@@ -891,17 +1134,40 @@ def simular_prop_anytime_td(
         "% Cubre": pct_cubre_mejor,
         "Lado_Recomendado": lado_mejor,
         "EV_%": ev_mejor_pct,
-        "Edge_Implicito_%": round((prob_over_td - prob_base_mkt) * 100.0, 1),
-        "Tiene_Valor_Positivo": False,
-        "Cumple_Calidad_Institucional": False,
+        "Edge_Implicito_%": round((prob_over_td - prob_implicita_momio) * 100.0, 1),
+        "Tiene_Valor_Positivo": bool(tiene_valor_td),
+        "Cumple_Calidad_Institucional": bool(tiene_valor_td),
         "Es_Destacado": bool(es_destacado),
         "Señal EV": senal_ev,
-        "Notas_Modelo": "Anytime_TD_Poisson",
+        "Notas_Modelo": "Anytime_TD_Poisson_RZ",
         "Role_Share": 0.0,
         "Catch_Rate": 0.0,
         "Yds_Per_Unit": 0.0,
         "TD_Rate": round(base_td, 3),
     }
+
+
+ROTACION_OFENSIVA_8_SLOTS: Tuple[str, ...] = (
+    "QB1",
+    "WR1",
+    "WR2",
+    "WR3",
+    "RB1",
+    "RB2",
+    "TE1",
+    "TE2",
+)
+
+DEFAULTS_POR_SLOT_OFENSIVO: Dict[str, Dict[str, float]] = {
+    "QB1": {"Baseline_Yds": 236.5, "Role_Share": 1.00, "Catch_Rate": 0.65, "Yds_Per_Unit": 7.4, "TD_Rate": 0.22},
+    "WR1": {"Baseline_Yds": 68.5, "Role_Share": 0.265, "Catch_Rate": 0.66, "Yds_Per_Unit": 12.8, "TD_Rate": 0.36},
+    "WR2": {"Baseline_Yds": 48.5, "Role_Share": 0.195, "Catch_Rate": 0.64, "Yds_Per_Unit": 11.8, "TD_Rate": 0.26},
+    "WR3": {"Baseline_Yds": 31.5, "Role_Share": 0.135, "Catch_Rate": 0.63, "Yds_Per_Unit": 11.0, "TD_Rate": 0.18},
+    "RB1": {"Baseline_Yds": 64.5, "Role_Share": 0.620, "Catch_Rate": 0.74, "Yds_Per_Unit": 4.5, "TD_Rate": 0.44},
+    "RB2": {"Baseline_Yds": 28.5, "Role_Share": 0.280, "Catch_Rate": 0.72, "Yds_Per_Unit": 4.2, "TD_Rate": 0.22},
+    "TE1": {"Baseline_Yds": 42.5, "Role_Share": 0.185, "Catch_Rate": 0.71, "Yds_Per_Unit": 10.2, "TD_Rate": 0.28},
+    "TE2": {"Baseline_Yds": 18.5, "Role_Share": 0.085, "Catch_Rate": 0.69, "Yds_Per_Unit": 9.4, "TD_Rate": 0.14},
+}
 
 
 def simular_player_props_partido(
@@ -917,17 +1183,25 @@ def simular_player_props_partido(
     kickoff_str: str = "DOM 13:00 ET",
     kickoff_sort_key: Tuple[int, int, int, int] = (0, 4, 13, 0),
     n_sims: int = 5000,
-    incluir_anytime_td: bool = False,
+    incluir_anytime_td: bool = True,
     starters_verified: Optional[Dict[str, Any]] = None,
 ) -> List[Dict[str, Any]]:
     """
-    Simula los Player Props (5,000 iteraciones de Monte Carlo) para todos los titulares
-    activos de Visitante (Team A) vs Local (Team B), aplicando:
-      - Filtro estricto de estado ('ACTIVO_CONFIRMADO', 'RECIEN_ACTIVADO', 'QUESTIONABLE_GTD').
-        Se descarta al 100% cualquier jugador en 'OUT_INACTIVO', 'Doubtful' o fuera del roster.
-      - Redistribución del 65% de 'Role_Share' (Usage Vacuum) cuando WR1 o TE1 está fuera.
-      - Factor conservador del 92% a 'RECIEN_ACTIVADO' y descuento de -8% a 'QUESTIONABLE_GTD'.
-      - Clima adverso Open-Meteo en estadio abierto (-6% Pass_Rate y -8% yardas de pase/recepción).
+    Simula los Player Props (5,000 iteraciones de Monte Carlo) vinculando estrictamente
+    la rotación ofensiva de 8 puestos ('QB1', 'WR1', 'WR2', 'WR3', 'RB1', 'RB2', 'TE1', 'TE2')
+    desde 'nfl_starters_verified.json' como ÚNICA fuente de verdad:
+      1. Verifica que cada jugador esté confirmado dentro de los 8 slots activos con estatus
+         'ACTIVO_CONFIRMADO', 'RECIEN_ACTIVADO', 'TRASPASO_NUEVO' o 'QUESTIONABLE_GTD'.
+      2. Descarta automáticamente cualquier jugador del Excel que NO pertenezca a la rotación
+         principal confirmada de 8 puestos (ej. QBs suplentes viejos o WR4/RB3 fuera de rotación).
+      3. Si un titular de esos 8 puestos está 'OUT_INACTIVO', aplica el Usage Vacuum redistribuyendo
+         su volumen entre los activos restantes de 'WR1-WR3', 'RB1-RB2' y 'TE1-TE2'.
+      4. Simula todos los mercados clave de Caliente.mx:
+         - Continuos: 'Pass Yds' (QB1), 'Rec Yds' (WR1-3, TE1-2, RB1-2), 'Rush Yds' (RB1-2, QB1 móvil).
+         - Combos correlacionados iteración por iteración: 'Rush + Rec Yds' (RB1-2, WR1-2),
+           'Pass + Rush Yds' (QB1).
+         - Discretos (Poisson / NegBin ajustados por Zona Roja y DvP): 'Pass Completions' (QB1),
+           'Pass TDs' (QB1) y 'Anytime TD' (RB1-2, WR1-3, TE1-2 y QB1 corredor con +EV > 0%).
     """
     away = away_abbr.strip().upper()
     home = home_abbr.strip().upper()
@@ -972,36 +1246,177 @@ def simular_player_props_partido(
         if team_actual in TEAM_ABBR_ALIASES:
             codigos_equipo.add(TEAM_ABBR_ALIASES[team_actual])
 
-        df_team = df_props_baseline[df_props_baseline["Team"].isin(codigos_equipo)]
-        if df_team.empty:
-            continue
-
+        df_team = df_props_baseline[df_props_baseline["Team"].isin(codigos_equipo)].copy()
         sv_team = sv_equipos.get(team_actual, sv_equipos.get(TEAM_ABBR_ALIASES.get(team_actual, ""), {})) or {}
         sv_opp = sv_equipos.get(opp_actual, sv_equipos.get(TEAM_ABBR_ALIASES.get(opp_actual, ""), {})) or {}
 
-        # Mapa de estado verificado de jugadores del equipo
-        status_por_clave: Dict[str, str] = {}
-        for t_item in sv_team.get("titulares", []) or []:
-            nm_t = str(t_item.get("player_name", "")).strip()
-            st_t = str(t_item.get("status", "ACTIVO_CONFIRMADO")).strip().upper()
-            if nm_t:
-                status_por_clave[_clave_jugador_equipo(team_actual, nm_t)] = st_t
-                status_por_clave[nm_t.upper()] = st_t
-                status_por_clave[_limpiar_sufijos_nombre(nm_t)] = st_t
+        bajas_traspaso_list = sv_team.get("traspasos_bajas") or rm_by_prev.get(team_actual, []) or []
+        altas_traspaso_list = sv_team.get("traspasos_altas") or rm_by_curr.get(team_actual, []) or []
+        claves_bloqueadas_traspaso_o_fa: Set[str] = set()
+        for m_baja in bajas_traspaso_list:
+            nm_b = str(m_baja.get("Player", "")).strip()
+            if nm_b:
+                claves_bloqueadas_traspaso_o_fa.add(_clave_jugador_equipo(team_actual, nm_b))
+                claves_bloqueadas_traspaso_o_fa.add(nm_b.upper())
+                claves_bloqueadas_traspaso_o_fa.add(_limpiar_sufijos_nombre(nm_b))
 
-        qb_rows = df_team[df_team["Pos"] == "QB"]
-        qb_name_team = (
-            str(qb_rows.iloc[0]["Player"]).strip()
-            if not qb_rows.empty
-            else str(st_own.get("QB_Name", f"{team_actual} QB1")).strip()
-        )
-        qb_inactivo_espn = jugador_esta_inactivo(
-            team_actual,
-            qb_name_team,
-            reporte_inactivos=reporte_inactivos,
-            inactivos_extra=inactivos_extra,
-        ) or bool(sv_team.get("qb1_out_or_replaced", False))
+        # Construir el mapa de los 8 slots confirmados ('QB1', 'WR1-3', 'RB1-2', 'TE1-2') desde nfl_starters_verified.json
+        rotacion_8: Dict[str, Dict[str, Any]] = {}
+        raw_rot = sv_team.get("offensive_rotation") or sv_team.get("starters") or {}
+        for slot_k in ROTACION_OFENSIVA_8_SLOTS:
+            if slot_k in raw_rot and isinstance(raw_rot[slot_k], dict):
+                rotacion_8[slot_k] = dict(raw_rot[slot_k])
 
+        # Si algún slot de los 8 no estaba en nfl_starters_verified.json, completarlo ordenada y limpiamente desde df_team
+        if not df_team.empty:
+            qbs_df = df_team[df_team["Pos"].astype(str).str.upper() == "QB"]
+            rbs_df = df_team[df_team["Pos"].astype(str).str.upper().str.startswith("RB")]
+            wrs_df = df_team[df_team["Pos"].astype(str).str.upper().str.startswith("WR")]
+            tes_df = df_team[df_team["Pos"].astype(str).str.upper().str.startswith("TE")]
+            fallback_candidates = [
+                ("QB1", "QB", qbs_df, 0),
+                ("RB1", "RB", rbs_df, 0),
+                ("RB2", "RB", rbs_df, 1),
+                ("WR1", "WR", wrs_df, 0),
+                ("WR2", "WR", wrs_df, 1),
+                ("WR3", "WR", wrs_df, 2),
+                ("TE1", "TE", tes_df, 0),
+                ("TE2", "TE", tes_df, 1),
+            ]
+            for sl_k, sl_pos, sub_df, idx_row in fallback_candidates:
+                if sl_k not in rotacion_8 and len(sub_df) > idx_row:
+                    p_nm_fb = str(sub_df.iloc[idx_row]["Player"]).strip()
+                    rotacion_8[sl_k] = {
+                        "slot": sl_k,
+                        "pos": sl_pos,
+                        "player": p_nm_fb,
+                        "status": "ACTIVO_CONFIRMADO",
+                        "canonical_key": _clave_jugador_equipo(team_actual, p_nm_fb),
+                    }
+
+        # Indexar las filas de Player_Props_Baseline por clave canónica (Inicial + Apellido) y nombre limpio
+        baseline_por_clave: Dict[str, pd.Series] = {}
+        for _, r_base in df_team.iterrows():
+            nm_b = str(r_base.get("Player", "")).strip()
+            if not nm_b:
+                continue
+            k_c = _clave_jugador_equipo(team_actual, nm_b)
+            f_c = _limpiar_sufijos_nombre(nm_b)
+            if k_c not in baseline_por_clave:
+                baseline_por_clave[k_c] = r_base
+            if f_c not in baseline_por_clave:
+                baseline_por_clave[f_c] = r_base
+
+        # También indexar jugadores recién llegados por traspaso
+        for m_alta in altas_traspaso_list:
+            nm_a = str(m_alta.get("Player", "")).strip()
+            if nm_a and str(m_alta.get("Equipo_Actual", "")).upper() != "FA":
+                k_a = _clave_jugador_equipo(team_actual, nm_a)
+                f_a = _limpiar_sufijos_nombre(nm_a)
+                factor_adap = float(m_alta.get("Factor_Adaptacion", 0.85) or 0.85)
+                s_mig = pd.Series(
+                    {
+                        "Team": team_actual,
+                        "Player": nm_a,
+                        "Pos": str(m_alta.get("Pos", "WR")).strip().upper(),
+                        "Role_Share": round(float(m_alta.get("Role_Share_Base", 0.22) or 0.22) * factor_adap, 3),
+                        "Catch_Rate": float(m_alta.get("Catch_Rate", 0.65) or 0.65),
+                        "Yds_Per_Unit": float(m_alta.get("Yds_Per_Unit", 7.5) or 7.5),
+                        "Baseline_Yds": float(m_alta.get("Baseline_Yds", 45.0) or 45.0),
+                        "TD_Rate": round(float(m_alta.get("TD_Rate", 0.20) or 0.20) * factor_adap, 3),
+                    }
+                )
+                baseline_por_clave.setdefault(k_a, s_mig)
+                baseline_por_clave.setdefault(f_a, s_mig)
+
+        # Evaluar estrictamente los 8 slots de la rotación ofensiva ('QB1', 'WR1-3', 'RB1-2', 'TE1-2')
+        # Cualquier jugador de Player_Props_Baseline fuera de estos 8 slots queda DESCARTADO al 100%
+        slots_activos: List[Tuple[str, str, pd.Series, str]] = []
+        vacuum_rec_rs = 0.0
+        vacuum_rush_rs = 0.0
+        jugadores_incluidos_set: Set[str] = set()
+
+        for slot_k in ROTACION_OFENSIVA_8_SLOTS:
+            slot_obj = rotacion_8.get(slot_k)
+            if not slot_obj:
+                continue
+            p_name_verif = str(slot_obj.get("player") or "").strip()
+            if not p_name_verif or p_name_verif.endswith(slot_k):
+                continue
+
+            k_verif = _clave_jugador_equipo(team_actual, p_name_verif)
+            f_verif = _limpiar_sufijos_nombre(p_name_verif)
+            st_verif = str(slot_obj.get("status", "ACTIVO_CONFIRMADO")).strip().upper()
+
+            # Buscar fila en Player_Props_Baseline (por nombre exacto o Inicial+Apellido, ej. 'K. McCord' == 'Kyle McCord')
+            row_match = baseline_por_clave.get(f_verif)
+            if row_match is None:
+                row_match = baseline_por_clave.get(k_verif)
+
+            defaults_slot = DEFAULTS_POR_SLOT_OFENSIVO.get(slot_k, DEFAULTS_POR_SLOT_OFENSIVO["WR2"])
+            if row_match is not None:
+                base_rs = float(row_match.get("Role_Share", defaults_slot["Role_Share"]) or defaults_slot["Role_Share"])
+                base_yds_val = float(row_match.get("Baseline_Yds", defaults_slot["Baseline_Yds"]) or defaults_slot["Baseline_Yds"])
+                catch_r_val = float(row_match.get("Catch_Rate", defaults_slot["Catch_Rate"]) or defaults_slot["Catch_Rate"])
+                ypu_val = float(row_match.get("Yds_Per_Unit", defaults_slot["Yds_Per_Unit"]) or defaults_slot["Yds_Per_Unit"])
+                td_r_val = float(row_match.get("TD_Rate", defaults_slot["TD_Rate"]) or defaults_slot["TD_Rate"])
+            else:
+                base_rs = defaults_slot["Role_Share"]
+                base_yds_val = defaults_slot["Baseline_Yds"]
+                catch_r_val = defaults_slot["Catch_Rate"]
+                ypu_val = defaults_slot["Yds_Per_Unit"]
+                td_r_val = defaults_slot["TD_Rate"]
+
+            es_bloqueado_trasp = (
+                k_verif in claves_bloqueadas_traspaso_o_fa
+                or p_name_verif.upper() in claves_bloqueadas_traspaso_o_fa
+                or f_verif in claves_bloqueadas_traspaso_o_fa
+            )
+            es_inactivo = (
+                es_bloqueado_trasp
+                or st_verif in {"OUT_INACTIVO", "DOUBTFUL", "INACTIVE", "IR", "OUT"}
+                or jugador_esta_inactivo(
+                    team_actual,
+                    p_name_verif,
+                    reporte_inactivos=reporte_inactivos,
+                    inactivos_extra=inactivos_extra,
+                )
+            )
+            if es_inactivo:
+                if slot_k in ("WR1", "WR2", "WR3", "TE1", "TE2"):
+                    vacuum_rec_rs += base_rs
+                elif slot_k in ("RB1", "RB2"):
+                    vacuum_rush_rs += base_rs
+                continue
+
+            if st_verif not in {"ACTIVO_CONFIRMADO", "RECIEN_ACTIVADO", "TRASPASO_NUEVO", "TRASPASO_NUEVO_EQUIPO", "QUESTIONABLE_GTD"}:
+                continue
+
+            if k_verif in jugadores_incluidos_set:
+                continue
+            jugadores_incluidos_set.add(k_verif)
+
+            serie_slot = pd.Series(
+                {
+                    "Team": team_actual,
+                    "Player": p_name_verif,
+                    "Pos": slot_k,
+                    "Role_Share": base_rs,
+                    "Catch_Rate": catch_r_val,
+                    "Yds_Per_Unit": ypu_val,
+                    "Baseline_Yds": base_yds_val,
+                    "TD_Rate": td_r_val,
+                }
+            )
+            slots_activos.append((slot_k, p_name_verif, serie_slot, st_verif))
+
+        if not slots_activos:
+            continue
+
+        # Identificar QB1 confirmado de la rotación
+        qb1_slots = [x for x in slots_activos if x[0] == "QB1"]
+        qb_name_team = qb1_slots[0][1] if qb1_slots else str(sv_team.get("qb1_name") or st_own.get("QB_Name", f"{team_actual} QB1")).strip()
+        qb_inactivo_espn = bool(sv_team.get("qb1_out_or_replaced", False))
         es_qb_backup = es_qb_suplente_o_bajo_volumen(
             team_abbr=team_actual,
             qb_name=qb_name_team,
@@ -1016,199 +1431,376 @@ def simular_player_props_partido(
         if int(sv_team.get("ol_out_count", 0) or 0) >= 2:
             pressure_pct_opp = min(0.45, pressure_pct_opp + 0.035)
         epa_off_own = float(st_own.get("EPA_Pass_Off", 0.05))
+        def_rz_stop_opp = float(st_rival.get("Def_RZ_Stop_Pct", 0.45))
+        def_bajas_opp = int(sv_opp.get("def_key_out_count", 0) or 0)
 
-        # Evaluar primero qué jugadores están activos y calcular el Usage Vacuum (65% del Role_Share de WR1/TE1 ausentes)
-        # Bloquear al 100% cualquier prop bajo su equipo anterior ('Equipo_Prev') o si fue cortado ('FA')
-        bajas_traspaso_list = sv_team.get("traspasos_bajas") or rm_by_prev.get(team_actual, []) or []
-        altas_traspaso_list = sv_team.get("traspasos_altas") or rm_by_curr.get(team_actual, []) or []
-        claves_bloqueadas_traspaso_o_fa: Set[str] = set()
-        for m_baja in bajas_traspaso_list:
-            nm_b = str(m_baja.get("Player", "")).strip()
-            if nm_b:
-                claves_bloqueadas_traspaso_o_fa.add(_clave_jugador_equipo(team_actual, nm_b))
-                claves_bloqueadas_traspaso_o_fa.add(nm_b.upper())
-                claves_bloqueadas_traspaso_o_fa.add(_limpiar_sufijos_nombre(nm_b))
-
-        filas_activas: List[Tuple[pd.Series, str]] = []
-        role_share_vacante_wr_te = 0.0
-        wr1_te1_out_set = {
-            _limpiar_sufijos_nombre(str(x))
-            for x in (sv_team.get("wr1_te1_out_players", []) or [])
-        }
-
-        for _, row in df_team.iterrows():
-            p_name = str(row.get("Player", "")).strip()
-            p_pos = str(row.get("Pos", "WR")).strip().upper()
-            p_rs = float(row.get("Role_Share", 0.25) or 0.25)
-            clave_p = _clave_jugador_equipo(team_actual, p_name)
-            limpio_p = _limpiar_sufijos_nombre(p_name)
-
-            # Bloqueo 100% si el jugador fue traspasado a otro equipo o cortado como 'FA'
-            if (
-                clave_p in claves_bloqueadas_traspaso_o_fa
-                or p_name.upper() in claves_bloqueadas_traspaso_o_fa
-                or limpio_p in claves_bloqueadas_traspaso_o_fa
-            ):
-                if p_pos in ("WR", "WR1", "WR2", "TE"):
-                    role_share_vacante_wr_te += p_rs
-                continue
-
-            st_verif = (
-                status_por_clave.get(clave_p)
-                or status_por_clave.get(p_name.upper())
-                or status_por_clave.get(limpio_p)
-                or "ACTIVO_CONFIRMADO"
-            )
-
-            es_baja = (
-                st_verif in {"OUT_INACTIVO", "DOUBTFUL", "INACTIVE", "IR", "OUT"}
-                or jugador_esta_inactivo(
-                    team_actual,
-                    p_name,
-                    reporte_inactivos=reporte_inactivos,
-                    inactivos_extra=inactivos_extra,
-                )
-            )
-            if es_baja:
-                if p_pos in ("WR", "WR1", "WR2", "TE"):
-                    role_share_vacante_wr_te += p_rs
-                continue
-
-            # Solo simular props de jugadores con estado permitido
-            if st_verif not in {"ACTIVO_CONFIRMADO", "RECIEN_ACTIVADO", "QUESTIONABLE_GTD", "TRASPASO_NUEVO_EQUIPO"}:
-                continue
-
-            filas_activas.append((row, st_verif))
-
-        # Migrar jugadores recién adquiridos por traspaso/firma en su nuevo equipo ('Equipo_Actual')
-        # con factor de adaptación conservador del 85% y reequilibrar el Role_Share de su nueva unidad
-        nombres_ya_en_equipo = {_limpiar_sufijos_nombre(str(r.get("Player", ""))) for r, _ in filas_activas}
-        for m_alta in altas_traspaso_list:
-            if str(m_alta.get("Equipo_Actual", "")).strip().upper() == "FA":
-                continue
-            nm_a = str(m_alta.get("Player", "")).strip()
-            pos_a = str(m_alta.get("Pos", "WR")).strip().upper()
-            if not nm_a or _limpiar_sufijos_nombre(nm_a) in nombres_ya_en_equipo:
-                continue
-            if jugador_esta_inactivo(
-                team_actual,
-                nm_a,
-                reporte_inactivos=reporte_inactivos,
-                inactivos_extra=inactivos_extra,
-            ):
-                continue
-
-            factor_adap = float(m_alta.get("Factor_Adaptacion", 0.85) or 0.85)
-            serie_migrada = pd.Series(
-                {
-                    "Team": team_actual,
-                    "Player": nm_a,
-                    "Pos": pos_a,
-                    "Role_Share": round(float(m_alta.get("Role_Share_Base", 0.22) or 0.22) * factor_adap, 3),
-                    "Catch_Rate": float(m_alta.get("Catch_Rate", 0.65) or 0.65),
-                    "Yds_Per_Unit": float(m_alta.get("Yds_Per_Unit", 7.5) or 7.5),
-                    "Baseline_Yds": float(m_alta.get("Baseline_Yds", 45.0) or 45.0),
-                    "TD_Rate": round(float(m_alta.get("TD_Rate", 0.20) or 0.20) * factor_adap, 3),
-                }
-            )
-            filas_activas.append((serie_migrada, "TRASPASO_NUEVO_EQUIPO"))
-            nombres_ya_en_equipo.add(_limpiar_sufijos_nombre(nm_a))
-
-        # Si WR1/TE1 está reportado fuera en ESPN pero no estaba en la hoja base, sumar vacuum estándar
-        if role_share_vacante_wr_te == 0.0 and wr1_te1_out_set:
-            role_share_vacante_wr_te = 0.24 * len(wr1_te1_out_set)
-
-        # Redistribuir el 65% de Role_Share vacante (Usage Vacuum) entre los receptores activos (WR/TE)
-        receptores_activos_rs_total = sum(
-            float(r.get("Role_Share", 0.22) or 0.22)
-            for r, _ in filas_activas
-            if str(r.get("Pos", "")).strip().upper() in ("WR", "WR1", "WR2", "TE")
+        # Redistribución de Usage Vacuum entre los activos restantes de WR1-WR3, TE1-TE2 y RB1-RB2
+        rec_activos_rs_total = sum(
+            float(s_row["Role_Share"])
+            for sl_k, _, s_row, _ in slots_activos
+            if sl_k in ("WR1", "WR2", "WR3", "TE1", "TE2")
         )
-        pool_redistribuible = 0.65 * role_share_vacante_wr_te
-
-        # Si hay un receptor recién activado o recién llegado por traspaso, reequilibrar el Role_Share de la unidad
-        hay_receptor_recien_incorporado = any(
-            st_v in {"RECIEN_ACTIVADO", "TRASPASO_NUEVO_EQUIPO"}
-            and str(r.get("Pos", "")).strip().upper() in ("WR", "WR1", "WR2", "TE")
-            for r, st_v in filas_activas
+        rb_activos_rs_total = sum(
+            float(s_row["Role_Share"])
+            for sl_k, _, s_row, _ in slots_activos
+            if sl_k in ("RB1", "RB2")
         )
+        pool_rec_vacuum = 0.65 * vacuum_rec_rs
+        pool_rush_vacuum = 0.60 * vacuum_rush_rs
 
-        wr_counter = 0
-        for row, st_verif in filas_activas:
-            player_name = str(row.get("Player", "")).strip()
-            pos = str(row.get("Pos", "WR")).strip().upper()
-
+        for slot_k, player_name, row, st_verif in slots_activos:
             baseline_yds = float(row.get("Baseline_Yds", 45.0) or 45.0)
             td_rate = float(row.get("TD_Rate", 0.20) or 0.20)
-            role_share = float(row.get("Role_Share", 0.25) or 0.25)
+            role_share = float(row.get("Role_Share", 0.22) or 0.22)
             catch_rate = float(row.get("Catch_Rate", 0.65) or 0.65)
             yds_per_unit = float(row.get("Yds_Per_Unit", 7.5) or 7.5)
 
-            vacuum_boost = 0.0
-            if pos in ("WR", "WR1", "WR2", "TE"):
-                if pool_redistribuible > 0.0 and receptores_activos_rs_total > 0.0:
-                    vacuum_boost = pool_redistribuible * (role_share / receptores_activos_rs_total)
-                if (
-                    hay_receptor_recien_incorporado
-                    and st_verif not in {"RECIEN_ACTIVADO", "TRASPASO_NUEVO_EQUIPO"}
-                    and receptores_activos_rs_total > 1.02
-                ):
-                    role_share = role_share / receptores_activos_rs_total
-
-            if pos.startswith("WR"):
-                wr_counter += 1
-            wr_rank = wr_counter if pos.startswith("WR") else 1
-
-            factor_dvp = obtener_factor_dvp_posicion(pos, st_rival, wr_rank=wr_rank)
-            # Si la defensa rival tiene titulares clave ausentes (CB1/EDGE/LB), incrementar factor DvP
-            def_bajas_opp = int(sv_opp.get("def_key_out_count", 0) or 0)
+            wr_rank = 1 if slot_k == "WR1" else (2 if slot_k == "WR2" else (3 if slot_k == "WR3" else 1))
+            pos_base = "QB" if slot_k == "QB1" else ("RB" if slot_k.startswith("RB") else ("TE" if slot_k.startswith("TE") else "WR"))
+            factor_dvp = obtener_factor_dvp_posicion(pos_base, st_rival, wr_rank=wr_rank)
             if def_bajas_opp > 0:
                 factor_dvp += 0.03 * min(3, def_bajas_opp)
 
-            linea_ext = lineas_ext.get(f"{player_name}_{pos}") or lineas_ext.get(player_name)
-
-            prop_yds = simular_prop_jugador_lognormal(
-                partido_label=partido_label,
-                team_abbr=team_actual,
-                opp_abbr=opp_actual,
-                player_name=player_name,
-                pos=pos,
-                baseline_yds=baseline_yds,
-                factor_dvp=factor_dvp,
-                td_rate=td_rate,
-                role_share=role_share,
-                catch_rate=catch_rate,
-                yds_per_unit=yds_per_unit,
-                pass_rate_equipo=pass_rate_own,
-                pressure_pct_rival=pressure_pct_opp,
-                epa_off_equipo=epa_off_own,
-                es_qb_suplente=es_qb_backup,
-                status_jugador=st_verif,
-                usage_vacuum_boost_rs=vacuum_boost,
-                clima_adverso=clima_adverso_flag,
-                kickoff_str=kickoff_str,
-                kickoff_sort_key=kickoff_sort_key,
-                linea_mercado_externa=linea_ext,
-                n_sims=n_sims,
-                wr_rank=wr_rank,
-            )
-            resultados.append(prop_yds)
-
-            if incluir_anytime_td and pos in ("RB", "WR", "WR1", "WR2", "TE"):
-                prop_td = simular_prop_anytime_td(
+            # ------------------------------------------------------------------
+            # CASO A: QB1 (Pass Yds, Rush Yds si móvil, Pass+Rush, Completions, Pass TDs, Anytime TD)
+            # ------------------------------------------------------------------
+            if slot_k == "QB1":
+                linea_pass_ext = lineas_ext.get(f"{player_name}_QB") or lineas_ext.get(player_name)
+                prop_pass = simular_prop_jugador_lognormal(
                     partido_label=partido_label,
                     team_abbr=team_actual,
                     opp_abbr=opp_actual,
                     player_name=player_name,
-                    pos=pos,
+                    pos="QB",
+                    baseline_yds=baseline_yds,
+                    factor_dvp=factor_dvp,
                     td_rate=td_rate,
+                    role_share=role_share,
+                    catch_rate=catch_rate,
+                    yds_per_unit=yds_per_unit,
+                    pass_rate_equipo=pass_rate_own,
+                    pressure_pct_rival=pressure_pct_opp,
+                    epa_off_equipo=epa_off_own,
+                    es_qb_suplente=es_qb_backup,
+                    status_jugador=st_verif,
+                    usage_vacuum_boost_rs=0.0,
+                    clima_adverso=clima_adverso_flag,
+                    kickoff_str=kickoff_str,
+                    kickoff_sort_key=kickoff_sort_key,
+                    linea_mercado_externa=linea_pass_ext,
+                    n_sims=n_sims,
+                    wr_rank=1,
+                    rol_slot="QB1",
+                    metrica_override="Pass Yds",
+                )
+                vec_pass = prop_pass.pop("_sim_vector")
+                resultados.append(prop_pass)
+
+                # Rush Yds para QB1 y combo correlacionado 'Pass + Rush Yds'
+                qb_rush_base = max(14.5, round(td_rate * 95.0, 1)) if td_rate <= 0.60 else 24.5
+                dvp_rush_qb = float(st_rival.get("Def_DvP_RB", 1.0))
+                prop_qb_rush = simular_prop_jugador_lognormal(
+                    partido_label=partido_label,
+                    team_abbr=team_actual,
+                    opp_abbr=opp_actual,
+                    player_name=player_name,
+                    pos="RB",
+                    baseline_yds=qb_rush_base,
+                    factor_dvp=dvp_rush_qb,
+                    td_rate=td_rate,
+                    role_share=0.18,
+                    catch_rate=catch_rate,
+                    yds_per_unit=4.8,
+                    pass_rate_equipo=pass_rate_own,
+                    pressure_pct_rival=pressure_pct_opp,
+                    epa_off_equipo=epa_off_own,
+                    es_qb_suplente=es_qb_backup,
+                    status_jugador=st_verif,
+                    usage_vacuum_boost_rs=0.0,
+                    clima_adverso=clima_adverso_flag,
+                    kickoff_str=kickoff_str,
+                    kickoff_sort_key=kickoff_sort_key,
+                    n_sims=n_sims,
+                    rol_slot="QB1",
+                    metrica_override="Rush Yds",
+                )
+                vec_qb_rush = prop_qb_rush.pop("_sim_vector")
+                if qb_rush_base >= 18.5:
+                    resultados.append(prop_qb_rush)
+
+                # Combo correlacionado 'Pass + Rush Yds' ('Pass+Rush')
+                prop_pass_rush = simular_prop_combo_correlacionado(
+                    partido_label=partido_label,
+                    team_abbr=team_actual,
+                    opp_abbr=opp_actual,
+                    player_name=player_name,
+                    rol_slot="QB1",
+                    metrica_nombre="Pass + Rush Yds",
+                    mercado_corto="Pass+Rush",
+                    sim_vec_a=vec_pass,
+                    sim_vec_b=vec_qb_rush,
+                    linea_base_a=prop_pass["Línea Mercado"],
+                    linea_base_b=prop_qb_rush["Línea Mercado"],
                     factor_dvp=factor_dvp,
                     es_qb_suplente=es_qb_backup,
                     kickoff_str=kickoff_str,
                     kickoff_sort_key=kickoff_sort_key,
+                )
+                resultados.append(prop_pass_rush)
+
+                # Simulación discreta 'Pass Completions' ('Completions')
+                att_est = max(26.0, min(39.0, (baseline_yds / max(6.2, yds_per_unit)) * (pass_rate_own / PASS_RATE_LEAGUE_BASELINE)))
+                lam_comp = att_est * float(np.clip(catch_rate, 0.58, 0.72)) * (0.65 + 0.35 * factor_dvp)
+                linea_comp = _redondear_a_medio_punto(att_est * float(np.clip(catch_rate, 0.58, 0.72)) * 0.96)
+                prop_comp = simular_prop_qb_discreto(
+                    partido_label=partido_label,
+                    team_abbr=team_actual,
+                    opp_abbr=opp_actual,
+                    player_name=player_name,
+                    rol_slot="QB1",
+                    metrica_nombre="Pass Completions",
+                    mercado_corto="Completions",
+                    lambda_esperado=lam_comp,
+                    linea_mercado=linea_comp,
+                    factor_dvp=factor_dvp,
+                    def_rz_stop_pct=def_rz_stop_opp,
+                    es_qb_suplente=es_qb_backup,
+                    clima_adverso=clima_adverso_flag,
+                    kickoff_str=kickoff_str,
+                    kickoff_sort_key=kickoff_sort_key,
                     n_sims=n_sims,
                 )
-                resultados.append(prop_td)
+                resultados.append(prop_comp)
+
+                # Simulación discreta 'Pass TDs' (línea estándar 1.5)
+                lam_ptd = max(1.05, min(2.45, (baseline_yds / 138.0) * (0.65 + 0.35 * factor_dvp)))
+                prop_ptd = simular_prop_qb_discreto(
+                    partido_label=partido_label,
+                    team_abbr=team_actual,
+                    opp_abbr=opp_actual,
+                    player_name=player_name,
+                    rol_slot="QB1",
+                    metrica_nombre="Pass TDs",
+                    mercado_corto="Pass TDs",
+                    lambda_esperado=lam_ptd,
+                    linea_mercado=1.5,
+                    factor_dvp=factor_dvp,
+                    def_rz_stop_pct=def_rz_stop_opp,
+                    es_qb_suplente=es_qb_backup,
+                    clima_adverso=clima_adverso_flag,
+                    kickoff_str=kickoff_str,
+                    kickoff_sort_key=kickoff_sort_key,
+                    n_sims=n_sims,
+                )
+                resultados.append(prop_ptd)
+
+                # Anytime TD para QB1 corredor
+                if incluir_anytime_td and td_rate >= 0.22:
+                    prop_qb_td = simular_prop_anytime_td(
+                        partido_label=partido_label,
+                        team_abbr=team_actual,
+                        opp_abbr=opp_actual,
+                        player_name=player_name,
+                        pos="QB",
+                        td_rate=td_rate,
+                        factor_dvp=dvp_rush_qb,
+                        def_rz_stop_pct=def_rz_stop_opp,
+                        es_qb_suplente=es_qb_backup,
+                        rol_slot="QB1",
+                        kickoff_str=kickoff_str,
+                        kickoff_sort_key=kickoff_sort_key,
+                        n_sims=n_sims,
+                    )
+                    resultados.append(prop_qb_td)
+
+            # ------------------------------------------------------------------
+            # CASO B: RB1 y RB2 (Rush Yds, Rec Yds, Rush + Rec Yds, Anytime TD)
+            # ------------------------------------------------------------------
+            elif slot_k in ("RB1", "RB2"):
+                vacuum_rb_boost = (
+                    pool_rush_vacuum * (role_share / rb_activos_rs_total)
+                    if (pool_rush_vacuum > 0.0 and rb_activos_rs_total > 0.0)
+                    else 0.0
+                )
+                base_rush_eff = baseline_yds * (1.0 + min(0.25, vacuum_rb_boost))
+                prop_rush = simular_prop_jugador_lognormal(
+                    partido_label=partido_label,
+                    team_abbr=team_actual,
+                    opp_abbr=opp_actual,
+                    player_name=player_name,
+                    pos="RB",
+                    baseline_yds=base_rush_eff,
+                    factor_dvp=factor_dvp,
+                    td_rate=td_rate,
+                    role_share=role_share,
+                    catch_rate=catch_rate,
+                    yds_per_unit=yds_per_unit,
+                    pass_rate_equipo=pass_rate_own,
+                    pressure_pct_rival=pressure_pct_opp,
+                    epa_off_equipo=epa_off_own,
+                    es_qb_suplente=es_qb_backup,
+                    status_jugador=st_verif,
+                    usage_vacuum_boost_rs=vacuum_rb_boost,
+                    clima_adverso=clima_adverso_flag,
+                    kickoff_str=kickoff_str,
+                    kickoff_sort_key=kickoff_sort_key,
+                    n_sims=n_sims,
+                    rol_slot=slot_k,
+                    metrica_override="Rush Yds",
+                )
+                vec_rush = prop_rush.pop("_sim_vector")
+                resultados.append(prop_rush)
+
+                # Rec Yds para RB1 / RB2
+                rb_rec_base = max(11.5, round(baseline_yds * (0.32 if slot_k == "RB1" else 0.38), 1))
+                dvp_rec_rb = float(st_rival.get("Def_DvP_RB", 1.0)) * 0.5 + float(st_rival.get("Def_DvP_TE", 1.0)) * 0.5
+                prop_rb_rec = simular_prop_jugador_lognormal(
+                    partido_label=partido_label,
+                    team_abbr=team_actual,
+                    opp_abbr=opp_actual,
+                    player_name=player_name,
+                    pos="WR2",
+                    baseline_yds=rb_rec_base,
+                    factor_dvp=dvp_rec_rb,
+                    td_rate=td_rate * 0.4,
+                    role_share=0.11 if slot_k == "RB1" else 0.08,
+                    catch_rate=catch_rate,
+                    yds_per_unit=7.2,
+                    pass_rate_equipo=pass_rate_own,
+                    pressure_pct_rival=pressure_pct_opp,
+                    epa_off_equipo=epa_off_own,
+                    es_qb_suplente=es_qb_backup,
+                    status_jugador=st_verif,
+                    usage_vacuum_boost_rs=0.0,
+                    clima_adverso=clima_adverso_flag,
+                    kickoff_str=kickoff_str,
+                    kickoff_sort_key=kickoff_sort_key,
+                    n_sims=n_sims,
+                    rol_slot=slot_k,
+                    metrica_override="Rec Yds",
+                )
+                vec_rb_rec = prop_rb_rec.pop("_sim_vector")
+                resultados.append(prop_rb_rec)
+
+                # Combo correlacionado 'Rush + Rec Yds' ('Rush+Rec')
+                prop_rb_combo = simular_prop_combo_correlacionado(
+                    partido_label=partido_label,
+                    team_abbr=team_actual,
+                    opp_abbr=opp_actual,
+                    player_name=player_name,
+                    rol_slot=slot_k,
+                    metrica_nombre="Rush + Rec Yds",
+                    mercado_corto="Rush+Rec",
+                    sim_vec_a=vec_rush,
+                    sim_vec_b=vec_rb_rec,
+                    linea_base_a=prop_rush["Línea Mercado"],
+                    linea_base_b=prop_rb_rec["Línea Mercado"],
+                    factor_dvp=factor_dvp,
+                    es_qb_suplente=es_qb_backup,
+                    kickoff_str=kickoff_str,
+                    kickoff_sort_key=kickoff_sort_key,
+                )
+                resultados.append(prop_rb_combo)
+
+                if incluir_anytime_td:
+                    prop_rb_td = simular_prop_anytime_td(
+                        partido_label=partido_label,
+                        team_abbr=team_actual,
+                        opp_abbr=opp_actual,
+                        player_name=player_name,
+                        pos="RB",
+                        td_rate=td_rate,
+                        factor_dvp=factor_dvp,
+                        def_rz_stop_pct=def_rz_stop_opp,
+                        es_qb_suplente=es_qb_backup,
+                        rol_slot=slot_k,
+                        kickoff_str=kickoff_str,
+                        kickoff_sort_key=kickoff_sort_key,
+                        n_sims=n_sims,
+                    )
+                    resultados.append(prop_rb_td)
+
+            # ------------------------------------------------------------------
+            # CASO C: WR1, WR2, WR3, TE1, TE2 (Rec Yds, Rush + Rec Yds para WR1/WR2 híbridos, Anytime TD)
+            # ------------------------------------------------------------------
+            else:
+                vacuum_rec_boost = (
+                    pool_rec_vacuum * (role_share / rec_activos_rs_total)
+                    if (pool_rec_vacuum > 0.0 and rec_activos_rs_total > 0.0)
+                    else 0.0
+                )
+                linea_rec_ext = lineas_ext.get(f"{player_name}_{slot_k}") or lineas_ext.get(player_name)
+                prop_rec = simular_prop_jugador_lognormal(
+                    partido_label=partido_label,
+                    team_abbr=team_actual,
+                    opp_abbr=opp_actual,
+                    player_name=player_name,
+                    pos="TE" if slot_k.startswith("TE") else f"WR{min(2, wr_rank)}",
+                    baseline_yds=baseline_yds,
+                    factor_dvp=factor_dvp,
+                    td_rate=td_rate,
+                    role_share=role_share,
+                    catch_rate=catch_rate,
+                    yds_per_unit=yds_per_unit,
+                    pass_rate_equipo=pass_rate_own,
+                    pressure_pct_rival=pressure_pct_opp,
+                    epa_off_equipo=epa_off_own,
+                    es_qb_suplente=es_qb_backup,
+                    status_jugador=st_verif,
+                    usage_vacuum_boost_rs=vacuum_rec_boost,
+                    clima_adverso=clima_adverso_flag,
+                    kickoff_str=kickoff_str,
+                    kickoff_sort_key=kickoff_sort_key,
+                    linea_mercado_externa=linea_rec_ext,
+                    n_sims=n_sims,
+                    wr_rank=wr_rank,
+                    rol_slot=slot_k,
+                    metrica_override="Rec Yds",
+                )
+                vec_rec = prop_rec.pop("_sim_vector")
+                resultados.append(prop_rec)
+
+                # Para WR1 / WR2 híbridos con volumen dinámico, simular combo 'Rush + Rec Yds' ('Rush+Rec')
+                if slot_k in ("WR1", "WR2") and baseline_yds >= 48.0:
+                    seed_wr_r = _generar_semilla_jugador(team_actual, opp_actual, player_name, "WR_Hybrid_Rush")
+                    rng_wr_r = np.random.default_rng(seed_wr_r)
+                    vec_wr_rush = rng_wr_r.gamma(shape=1.5, scale=4.2, size=int(n_sims))
+                    prop_wr_combo = simular_prop_combo_correlacionado(
+                        partido_label=partido_label,
+                        team_abbr=team_actual,
+                        opp_abbr=opp_actual,
+                        player_name=player_name,
+                        rol_slot=slot_k,
+                        metrica_nombre="Rush + Rec Yds",
+                        mercado_corto="Rush+Rec",
+                        sim_vec_a=vec_wr_rush,
+                        sim_vec_b=vec_rec,
+                        linea_base_a=5.5,
+                        linea_base_b=prop_rec["Línea Mercado"],
+                        factor_dvp=factor_dvp,
+                        es_qb_suplente=es_qb_backup,
+                        kickoff_str=kickoff_str,
+                        kickoff_sort_key=kickoff_sort_key,
+                    )
+                    resultados.append(prop_wr_combo)
+
+                if incluir_anytime_td:
+                    prop_rec_td = simular_prop_anytime_td(
+                        partido_label=partido_label,
+                        team_abbr=team_actual,
+                        opp_abbr=opp_actual,
+                        player_name=player_name,
+                        pos=slot_k,
+                        td_rate=td_rate,
+                        factor_dvp=factor_dvp,
+                        def_rz_stop_pct=def_rz_stop_opp,
+                        es_qb_suplente=es_qb_backup,
+                        rol_slot=slot_k,
+                        kickoff_str=kickoff_str,
+                        kickoff_sort_key=kickoff_sort_key,
+                        n_sims=n_sims,
+                    )
+                    resultados.append(prop_rec_td)
 
     return resultados
 
@@ -1250,38 +1842,34 @@ def filtrar_cartera_institucional_props(
     min_picks: int = 1,
 ) -> pd.DataFrame:
     """
-    REGLA 1: POLÍTICA DE FILTRADO POR VALOR POSITIVO (+EV > 0.0% y % Cubre >= 54.5%)
-    SIN TOPE ARTIFICIAL POR JUEGO.
-    Retorna TODOS los props de cada encuentro que cumplan:
-      - EV_% > 0.0% y % Cubre >= 54.5% en las 5,000 simulaciones.
-      - Respetando la protección a receptores Alfa (sin UNDER < 72.5 yds) y el
-        bloqueo de OVER en QBs suplentes.
-    Ordenado bajo el criterio jerárquico multinivel:
+    REGLA 1: POLÍTICA DE FILTRADO POR VALOR POSITIVO (+EV > 0.0% y % Cubre >= 54.5%,
+    o Prob_Modelo_TD > Prob_Implicita_Momio con +EV > 0% en Anytime TD) SIN TOPE ARTIFICIAL
+    POR JUEGO.
+    Retorna TODOS los props de la rotación ofensiva de 8 puestos ('QB1', 'WR1-3', 'RB1-2', 'TE1-2')
+    que tengan ventaja matemática real, ordenados bajo el criterio jerárquico multinivel:
       1) Kickoff ASC, 2) Partido ASC, 3) % Cubre DESC.
     """
     if df_props is None or df_props.empty:
         return pd.DataFrame()
 
     df_work = df_props.copy()
-    if "Métrica" in df_work.columns:
-        df_yds = df_work[df_work["Métrica"].isin(["Pass Yds", "Rush Yds", "Rec Yds"])]
-        if not df_yds.empty:
-            df_work = df_yds.copy()
-
     if "Veto_Alpha_Under" in df_work.columns:
         df_work = df_work[~df_work["Veto_Alpha_Under"].astype(bool)]
     if "Es_QB_Suplente" in df_work.columns and "Posición" in df_work.columns and "Lado_Recomendado" in df_work.columns:
         mask_backup_over = (
-            (df_work["Posición"] == "QB")
+            (df_work["Posición"].astype(str).str.startswith("QB"))
             & (df_work["Es_QB_Suplente"].astype(bool))
             & (df_work["Lado_Recomendado"] == "OVER")
         )
         df_work = df_work[~mask_backup_over]
 
-    mask_ev_pos = (
-        (df_work["% Cubre"] >= POSITIVE_EV_MIN_COVER_PCT)
-        & (df_work["EV_%"] > POSITIVE_EV_MIN_EV_PCT)
-    )
+    if "Tiene_Valor_Positivo" in df_work.columns:
+        mask_ev_pos = df_work["Tiene_Valor_Positivo"].astype(bool)
+    else:
+        mask_ev_pos = (
+            (df_work["% Cubre"] >= POSITIVE_EV_MIN_COVER_PCT)
+            & (df_work["EV_%"] > POSITIVE_EV_MIN_EV_PCT)
+        )
     df_positivos = df_work[mask_ev_pos].copy()
 
     df_ordenado = ordenar_props_multinivel_por_juego(df_positivos)
@@ -1296,7 +1884,7 @@ def simular_player_props_jornada(
     partidos_jornada: List[Dict[str, Any]],
     excel_path: Optional[str] = None,
     n_sims: int = 5000,
-    incluir_anytime_td: bool = False,
+    incluir_anytime_td: bool = True,
     solo_cartera_institucional: bool = False,
     consultar_espn_inactivos: bool = True,
     inactivos_extra: Optional[Set[str]] = None,
@@ -1401,14 +1989,17 @@ def build_player_props_ranking_export_df(
         "Jugador",
         "Equipo",
         "Rival",
+        "Rol",
         "Posición",
         "Métrica",
+        "Mercado_Corto",
         "Baseline_Yds",
         "Proyección Mediana",
         "Línea Mercado",
         "Diferencia_Yds",
         "Desviación Estándar",
         "Factor DvP Rival",
+        "Cuota_Decimal",
         "% Cubre Over",
         "% Cubre Under",
         "% Cubre",

@@ -1162,23 +1162,35 @@ def render_vista_cartelera() -> None:
                                 f'</div>'
                             )
 
-                        # Cintillo 2: Auditoría de HÁNDICAP / SPREAD (con % de cobertura en 5,000 simulaciones + Edge Badges)
+                        # Cintillo 2: Auditoría de HÁNDICAP / SPREAD (con % de cobertura en 5,000 simulaciones + Edge Badges nowrap)
                         sp_edge_badges_card = str(
                             ev_spr.get("edge_badges_str", sim.get("edge_badges_str", ""))
                         ).strip()
+                        sp_edge_nowrap_pills = ""
+                        if sp_edge_badges_card:
+                            pills_tmp = []
+                            for b_tok in [x.strip() for x in sp_edge_badges_card.split("·") if x.strip()]:
+                                pills_tmp.append(
+                                    f'<span style="display:inline-block; white-space:nowrap; background:rgba(56,189,248,0.18); '
+                                    f'border:1px solid #38BDF8; color:#7DD3FC; padding:1px 6px; border-radius:999px; '
+                                    f'font-size:0.66rem; font-weight:800; margin-left:4px;">{b_tok}</span>'
+                                )
+                            sp_edge_nowrap_pills = " " + "".join(pills_tmp)
                         sp_edge_suffix_card = f" · {sp_edge_badges_card}" if sp_edge_badges_card else ""
                         if ev_spr["hay_valor"]:
                             spr_badge_html = (
-                                f'<div class="ev-badge-positive">'
-                                f'<span>🔥 {ev_spr["recomendacion"]} ({ev_spr["cuota_mercado_decimal"]:.2f}) | Cubre: {spr_cov_card:.1f}%{sp_edge_suffix_card}</span>'
-                                f'<span class="ev-pct-pill">EV: {ev_spr["ev_pct"]:+.1f}%</span>'
+                                f'<div class="ev-badge-positive" style="flex-wrap:wrap; gap:4px;">'
+                                f'<span>🔥 {ev_spr["recomendacion"]} ({ev_spr["cuota_mercado_decimal"]:.2f}) | '
+                                f'<span style="white-space:nowrap;">Cubre: {spr_cov_card:.1f}%</span>{sp_edge_nowrap_pills}</span>'
+                                f'<span class="ev-pct-pill" style="white-space:nowrap;">EV: {ev_spr["ev_pct"]:+.1f}%</span>'
                                 f'</div>'
                             )
                         else:
                             spr_badge_html = (
-                                f'<div class="ev-badge-neutral">'
-                                f'<span>⚪ {ev_spr["recomendacion"]} | Cubre: {spr_cov_card:.1f}%{sp_edge_suffix_card}</span>'
-                                f'<span class="ev-pct-pill-gray">⚪ LÍNEA SIN EDGE</span>'
+                                f'<div class="ev-badge-neutral" style="flex-wrap:wrap; gap:4px;">'
+                                f'<span>⚪ {ev_spr["recomendacion"]} | '
+                                f'<span style="white-space:nowrap;">Cubre: {spr_cov_card:.1f}%</span>{sp_edge_nowrap_pills}</span>'
+                                f'<span class="ev-pct-pill-gray" style="white-space:nowrap;">⚪ LÍNEA SIN EDGE</span>'
                                 f'</div>'
                             )
 
@@ -1201,33 +1213,66 @@ def render_vista_cartelera() -> None:
                         ou_over_val = float(sim.get("over_pct", 50.0))
                         ou_under_val = float(sim.get("under_pct", 50.0))
 
-                        ln1_card = str(
-                            sim.get("linea_1_qb_clima")
-                            or f"QB1: {sim['away_qb']} [OK] vs {sim['home_qb']} [OK] | Clima: {sim.get('resumen_clima', sim['tipo_estadio'])}"
+                        bloque_est_card = sim.get("bloque_estado_partido") or {}
+                        clima_pill_card = str(
+                            bloque_est_card.get("clima_pill")
+                            or ("🏟️ Domo · 70°F" if "DOM" in str(sim.get("resumen_clima", "")).upper() else f"🌤️ {sim.get('viento_mph', 8):.0f} mph")
                         )
-                        ln2_card = str(
-                            sim.get("linea_2_out_gtd")
-                            or "🔴 OUT / GTD: Sin bajas titulares reportadas"
+                        qb_aw_tag_c = str(bloque_est_card.get("qb_away_tag") or "TITULAR OK")
+                        qb_hm_tag_c = str(bloque_est_card.get("qb_home_tag") or "TITULAR OK")
+                        if qb_aw_tag_c == "OK":
+                            qb_aw_tag_c = "TITULAR OK"
+                        if qb_hm_tag_c == "OK":
+                            qb_hm_tag_c = "TITULAR OK"
+
+                        pills_aw_c = bloque_est_card.get("bajas_away_pills") or []
+                        pills_hm_c = bloque_est_card.get("bajas_home_pills") or []
+                        bajas_pills_html_c: List[str] = []
+                        for eq_c, lst_c in ((away, pills_aw_c[:3]), (home, pills_hm_c[:3])):
+                            for it_c in lst_c:
+                                b_tp = str(it_c.get("badge", "OUT")).upper()
+                                r_sl = str(it_c.get("slot", ""))
+                                j_nm = str(it_c.get("player", ""))
+                                st_p = (
+                                    "background:rgba(248,81,73,0.16); border:1px solid rgba(248,81,73,0.55); color:#ff7b72;"
+                                    if b_tp == "OUT"
+                                    else "background:rgba(210,153,34,0.18); border:1px solid rgba(210,153,34,0.55); color:#e3b341;"
+                                )
+                                bajas_pills_html_c.append(
+                                    f'<span style="display:inline-block; white-space:nowrap; {st_p} border-radius:5px; padding:1px 6px; font-size:0.66rem; font-weight:700; margin:1px 3px 1px 0;">'
+                                    f'{eq_c} {j_nm} ({r_sl} · {b_tp})</span>'
+                                )
+                        fila_bajas_card_html = (
+                            f'<div class="mc-breakdown-line" style="margin-top:3px;"><b style="color:#94A3B8;">BAJAS:</b> {"".join(bajas_pills_html_c)}</div>'
+                            if bajas_pills_html_c
+                            else '<div class="mc-breakdown-line" style="color:#94A3B8; margin-top:3px;"><b>BAJAS:</b> Sin bajas críticas en rotación</div>'
                         )
-                        ln3_card = str(
-                            sim.get("linea_3_activados")
-                            or "🟢 ACTIVADOS: Sin novedades"
-                        )
-                        ln4_card = str(
-                            sim.get("linea_4_traspasos")
-                            or "🔄 TRASPASOS: Sin cambios"
+
+                        act_c = bloque_est_card.get("activados_reales") or []
+                        tr_c = bloque_est_card.get("traspasos_reales") or []
+                        movs_c_parts: List[str] = []
+                        if act_c:
+                            movs_c_parts.append(f'<span style="color:#34D399;">🟢 ACTIVADOS: {" | ".join(act_c)}</span>')
+                        if tr_c:
+                            movs_c_parts.append(f'<span style="color:#60A5FA;">🔄 TRASPASOS: {" | ".join(tr_c)}</span>')
+                        fila_movs_card_html = (
+                            f'<div class="mc-breakdown-line" style="margin-top:2px;">{" · ".join(movs_c_parts)}</div>'
+                            if movs_c_parts
+                            else ""
                         )
 
                         mc_breakdown_html = (
-                            f'<div class="mc-breakdown-box">'
-                            f'<div class="mc-breakdown-header">📊 DESGLOSE 5,000 SIMULACIONES & ESTADO DE TITULARES</div>'
+                            f'<div class="mc-breakdown-box" style="font-family:\'Inter\',\'Segoe UI\',Arial,sans-serif;">'
+                            f'<div class="mc-breakdown-header">📊 DESGLOSE 5,000 SIMS & PLANTILLA VERIFICADA</div>'
                             f'<div class="mc-breakdown-line">🏈 Moneyline {ml_eq_nombre}: <b>{ml_mod_val:.1f}%</b> | Casas: {ml_casas_val:.1f}% | ESPN FPI: {ml_fpi_val:.1f}%</div>'
-                            f'<div class="mc-breakdown-line">🛡️ Spread {sp_eq_nombre} ({sp_linea_val:+.1f}): <b>{sp_cubre_val:.1f}% cubre</b>{sp_edge_suffix_card}</div>'
+                            f'<div class="mc-breakdown-line">🛡️ Spread {sp_eq_nombre} ({sp_linea_val:+.1f}): <b>{sp_cubre_val:.1f}% cubre</b>{sp_edge_nowrap_pills}</div>'
                             f'<div class="mc-breakdown-line">🎯 Total ({ou_linea_val:.1f}): <b>Más de {ou_linea_val:.1f} en {ou_over_val:.1f}%</b> (Menos: {ou_under_val:.1f}%)</div>'
-                            f'<div class="mc-breakdown-line" style="border-top:1px dashed rgba(148,163,184,0.25); padding-top:4px; margin-top:4px; color:#F8FAFC;">📋 {ln1_card}</div>'
-                            f'<div class="mc-breakdown-line" style="color:#FBBF24;">{ln2_card}</div>'
-                            f'<div class="mc-breakdown-line" style="color:#34D399;">{ln3_card}</div>'
-                            f'<div class="mc-breakdown-line" style="color:#60A5FA;">{ln4_card}</div>'
+                            f'<div class="mc-breakdown-line" style="border-top:1px solid rgba(148,163,184,0.22); padding-top:5px; margin-top:5px; color:#F8FAFC;">'
+                            f'<b>QB1:</b> {sim["away_qb"]} <span style="background:rgba(16,185,129,0.16); border:1px solid #10B981; color:#34D399; border-radius:4px; padding:0px 5px; font-size:0.64rem; font-weight:700; white-space:nowrap;">[{qb_aw_tag_c}]</span> vs '
+                            f'{sim["home_qb"]} <span style="background:rgba(16,185,129,0.16); border:1px solid #10B981; color:#34D399; border-radius:4px; padding:0px 5px; font-size:0.64rem; font-weight:700; white-space:nowrap;">[{qb_hm_tag_c}]</span>'
+                            f'</div>'
+                            f'{fila_bajas_card_html}'
+                            f'{fila_movs_card_html}'
                             f'</div>'
                         )
 
@@ -1235,8 +1280,8 @@ def render_vista_cartelera() -> None:
                             f'<div class="nfl-game-card">'
                             f'<div class="card-header-section">'
                             f'<div class="card-top-bar">'
-                            f'<span class="league-pill">NFL · SEMANA {semana}</span>'
-                            f'<span class="game-clock">{partido.get("hora", "TBD")} · {sim["tipo_estadio"]} ({sim["pace_combinado"]:.1f}s/play)</span>'
+                            f'<span class="league-pill">NFL · S{semana} · {partido.get("hora", "TBD")}</span>'
+                            f'<span class="game-clock" style="background:#0d1117; border:1px solid #30363d; padding:2px 8px; border-radius:999px; color:#E2E8F0; font-weight:600; white-space:nowrap;">{clima_pill_card}</span>'
                             f'</div>'
                             f'<div class="team-match-row">'
                             f'<div class="team-left">'
@@ -1353,14 +1398,19 @@ def render_vista_cartelera() -> None:
             partidos_opciones = ["Todos los partidos"] + sorted(
                 df_props_jornada["Partido"].unique().tolist()
             )
-            posiciones_opciones = ["Todas", "QB", "RB", "WR", "TE"]
+            posiciones_opciones = ["Todas", "QB1", "WR1", "WR2", "WR3", "RB1", "RB2", "TE1", "TE2"]
             metricas_opciones = [
                 "🔥 Todos los Props +EV por Juego (Cubre ≥ 54.5% · EV > 0%)",
+                "Todas las Métricas (8 Mercados Caliente.mx)",
                 "Yardas Individuales (Pass / Rush / Rec)",
-                "Todas las Métricas (Incluye Anytime TD)",
+                "Combos Correlacionados (Rush+Rec / Pass+Rush)",
                 "Pass Yds",
-                "Rush Yds",
                 "Rec Yds",
+                "Rush Yds",
+                "Rush + Rec Yds",
+                "Pass + Rush Yds",
+                "Pass Completions",
+                "Pass TDs",
                 "Anytime TD",
             ]
 
@@ -1374,14 +1424,14 @@ def render_vista_cartelera() -> None:
                 )
             with fp_col2:
                 filtro_pos_prop = st.selectbox(
-                    "🎽 Posición",
+                    "🎽 Rol Confirmado",
                     options=posiciones_opciones,
                     index=0,
                     key="sb_prop_pos_nfl",
                 )
             with fp_col3:
                 filtro_metrica_prop = st.selectbox(
-                    "📏 Métrica Prop",
+                    "📏 Mercado Prop",
                     options=metricas_opciones,
                     index=0,
                     key="sb_prop_metrica_nfl",
@@ -1407,7 +1457,7 @@ def render_vista_cartelera() -> None:
                 ]
             if filtro_pos_prop != "Todas":
                 df_filtrado_props = df_filtrado_props[
-                    df_filtrado_props["Posición"] == filtro_pos_prop
+                    df_filtrado_props["Posición"].astype(str).str.upper() == filtro_pos_prop
                 ]
             if filtro_metrica_prop == "🔥 Todos los Props +EV por Juego (Cubre ≥ 54.5% · EV > 0%)":
                 df_inst_only = filtrar_cartera_institucional_props(
@@ -1416,15 +1466,24 @@ def render_vista_cartelera() -> None:
                 )
                 if not df_inst_only.empty:
                     df_filtrado_props = df_inst_only
-                else:
-                    df_filtrado_props = df_filtrado_props[
-                        df_filtrado_props["Métrica"].isin(["Pass Yds", "Rush Yds", "Rec Yds"])
-                    ]
             elif filtro_metrica_prop == "Yardas Individuales (Pass / Rush / Rec)":
                 df_filtrado_props = df_filtrado_props[
                     df_filtrado_props["Métrica"].isin(["Pass Yds", "Rush Yds", "Rec Yds"])
                 ]
-            elif filtro_metrica_prop in ("Pass Yds", "Rush Yds", "Rec Yds", "Anytime TD"):
+            elif filtro_metrica_prop == "Combos Correlacionados (Rush+Rec / Pass+Rush)":
+                df_filtrado_props = df_filtrado_props[
+                    df_filtrado_props["Métrica"].isin(["Rush + Rec Yds", "Pass + Rush Yds"])
+                ]
+            elif filtro_metrica_prop in (
+                "Pass Yds",
+                "Rec Yds",
+                "Rush Yds",
+                "Rush + Rec Yds",
+                "Pass + Rush Yds",
+                "Pass Completions",
+                "Pass TDs",
+                "Anytime TD",
+            ):
                 df_filtrado_props = df_filtrado_props[
                     df_filtrado_props["Métrica"] == filtro_metrica_prop
                 ]
@@ -1493,20 +1552,30 @@ def render_vista_cartelera() -> None:
                 "Jugador",
                 "Posición",
                 "Métrica",
+                "Lado_Recomendado",
                 "Proyección Mediana",
                 "Factor DvP Rival",
                 "Línea Mercado",
+                "% Cubre",
+                "EV_%",
+                "Cuota_Decimal",
                 "% Cubre Over",
                 "% Cubre Under",
                 "Señal EV",
             ]
-            df_vista_props = df_filtrado_props[columnas_tabla_props].copy().reset_index(drop=True)
+            cols_disp_p = [c for c in columnas_tabla_props if c in df_filtrado_props.columns]
+            df_vista_props = df_filtrado_props[cols_disp_p].copy().reset_index(drop=True)
 
-            # Tabla HTML institucional oscura (#0d1117) con separación visual, escudos oficiales y sombreado alternado por Partido
+            # Tabla HTML institucional alineada con columnas: Jugador (Rol) · Mercado, Línea / Pick, Proy, Cubre %, +EV
             filas_props_html = ""
             total_filas_vista = len(df_vista_props)
             partido_prev_ui = None
             bloque_juego_idx = -1
+            mapa_mkt_ui = {
+                "Rush + Rec Yds": "Rush+Rec",
+                "Pass + Rush Yds": "Pass+Rush",
+                "Pass Completions": "Completions",
+            }
 
             for idx_vp, r_p in df_vista_props.iterrows():
                 partido_actual = str(r_p["Partido"])
@@ -1537,8 +1606,8 @@ def render_vista_cartelera() -> None:
                     )
                     filas_props_html += (
                         f'<tr style="background-color:#162235; border-top:2px solid #00ffcc; border-bottom:1px solid rgba(0,255,204,0.45);">'
-                        f'<td colspan="11" style="padding:7px 10px; font-family:JetBrains Mono,monospace; color:#00ffcc; font-weight:800; font-size:0.78rem;">'
-                        f'{img_aw_hdr}{partido_actual}{img_hm_hdr} · Horario: {kickoff_actual} — {cnt_props_juego} Props listados (Ordenados por Mayor % Cubre)'
+                        f'<td colspan="8" style="padding:7px 10px; font-family:Inter,Segoe UI,Arial,sans-serif; color:#00ffcc; font-weight:800; font-size:0.80rem;">'
+                        f'{img_aw_hdr}{partido_actual}{img_hm_hdr} · Horario: {kickoff_actual} — {cnt_props_juego} Props listados (Rotación Confirmada · Mayor % Cubre)'
                         f'</td></tr>'
                     )
                     partido_prev_ui = partido_actual
@@ -1546,9 +1615,19 @@ def render_vista_cartelera() -> None:
                 senal_txt = str(r_p["Señal EV"])
                 es_fuego = senal_txt.startswith("🔥")
                 color_senal = "#00ffcc" if es_fuego else "#94a3b8"
-                peso_senal = "700" if es_fuego else "400"
+                peso_senal = "700" if es_fuego else "500"
                 dvp_val = float(r_p["Factor DvP Rival"])
                 color_dvp = "#10b981" if dvp_val >= 1.05 else ("#f59e0b" if dvp_val <= 0.92 else "#e2e8f0")
+
+                rol_ui = str(r_p.get("Posición", "WR1"))
+                met_raw_ui = str(r_p.get("Métrica", "Rec Yds"))
+                met_ui = mapa_mkt_ui.get(met_raw_ui, met_raw_ui)
+                lado_ui = str(r_p.get("Lado_Recomendado", "OVER"))
+                lin_ui = float(r_p.get("Línea Mercado", 0.0))
+                cuota_ui = float(r_p.get("Cuota_Decimal", 1.91))
+                pick_ui = f"SI ANOTA ({cuota_ui:.2f})" if met_ui == "Anytime TD" else f"{lado_ui} {lin_ui:.1f}"
+                cubre_ui = float(r_p.get("% Cubre", r_p.get("% Cubre Over", 50.0)))
+                ev_ui = float(r_p.get("EV_%", 0.0))
 
                 bg_fila = "#0d1117" if (bloque_juego_idx % 2 == 0) else "#131b26"
                 borde_inferior_fila = (
@@ -1558,39 +1637,34 @@ def render_vista_cartelera() -> None:
                 )
 
                 filas_props_html += (
-                    f'<tr style="background-color:{bg_fila}; border-bottom:{borde_inferior_fila};">'
-                    f'<td style="padding:8px 10px; font-family:JetBrains Mono,monospace; color:#94a3b8; font-size:0.78rem;">{kickoff_actual}</td>'
-                    f'<td style="padding:8px 10px; font-family:JetBrains Mono,monospace; color:#f8fafc; font-weight:700;">{partido_actual}</td>'
-                    f'<td style="padding:8px 10px; color:#f8fafc; font-weight:700;">'
+                    f'<tr style="background-color:{bg_fila}; border-bottom:{borde_inferior_fila}; font-family:Inter,Segoe UI,Arial,sans-serif;">'
+                    f'<td style="padding:8px 10px; color:#94a3b8; font-size:0.78rem; white-space:nowrap;">{kickoff_actual}</td>'
+                    f'<td style="padding:8px 10px; color:#f8fafc; font-weight:700; white-space:nowrap;">{partido_actual}</td>'
+                    f'<td style="padding:8px 10px; color:#f8fafc; font-weight:600;">'
                     f'<img src="{logo_jug_url}" alt="{eq_jug}" width="18" height="18" style="width:18px; height:18px; vertical-align:middle; margin-right:6px;">'
-                    f'{r_p["Jugador"]}</td>'
-                    f'<td style="padding:8px 10px; font-family:JetBrains Mono,monospace; color:#38bdf8;">{r_p["Posición"]}</td>'
-                    f'<td style="padding:8px 10px; font-family:JetBrains Mono,monospace; color:#cbd5e1;">{r_p["Métrica"]}</td>'
-                    f'<td style="padding:8px 10px; font-family:JetBrains Mono,monospace; color:#10b981; font-weight:700;">{float(r_p["Proyección Mediana"]):.1f}</td>'
-                    f'<td style="padding:8px 10px; font-family:JetBrains Mono,monospace; color:{color_dvp}; font-weight:700;">{dvp_val:.3f}x</td>'
-                    f'<td style="padding:8px 10px; font-family:JetBrains Mono,monospace; color:#f8fafc;">{float(r_p["Línea Mercado"]):.1f}</td>'
-                    f'<td style="padding:8px 10px; font-family:JetBrains Mono,monospace; color:#e2e8f0;">{float(r_p["% Cubre Over"]):.1f}%</td>'
-                    f'<td style="padding:8px 10px; font-family:JetBrains Mono,monospace; color:#e2e8f0;">{float(r_p["% Cubre Under"]):.1f}%</td>'
-                    f'<td style="padding:8px 10px; font-family:JetBrains Mono,monospace; color:{color_senal}; font-weight:{peso_senal};">{senal_txt}</td>'
+                    f'<b>{r_p["Jugador"]}</b> <span style="color:#38bdf8; font-weight:700;">({rol_ui})</span> · '
+                    f'<span style="color:#cbd5e1;">{met_ui}</span></td>'
+                    f'<td style="padding:8px 10px; color:#00ffcc; font-weight:700; white-space:nowrap;">{pick_ui}</td>'
+                    f'<td style="padding:8px 10px; color:#10b981; font-weight:700; text-align:right; white-space:nowrap;">{float(r_p["Proyección Mediana"]):.1f}</td>'
+                    f'<td style="padding:8px 10px; color:#f8fafc; font-weight:700; text-align:right; white-space:nowrap;">{cubre_ui:.1f}%</td>'
+                    f'<td style="padding:8px 10px; color:{color_senal}; font-weight:{peso_senal}; text-align:right; white-space:nowrap;">{ev_ui:+.1f}%</td>'
+                    f'<td style="padding:8px 10px; color:{color_dvp}; font-weight:700; text-align:right; white-space:nowrap;">{dvp_val:.3f}x</td>'
                     f'</tr>'
                 )
 
             tabla_props_neon_html = (
                 f'<div style="background-color:#0d1117; border:1px solid #00ffcc; border-radius:10px; padding:12px; margin-bottom:14px; overflow-x:auto;">'
-                f'<table style="width:100%; border-collapse:collapse; font-size:0.83rem;">'
+                f'<table style="width:100%; border-collapse:collapse; font-size:0.84rem; font-family:Inter,Segoe UI,Arial,sans-serif;">'
                 f'<thead>'
-                f'<tr style="background-color:#131b29; color:#00ffcc; font-family:JetBrains Mono,monospace; text-align:left; border-bottom:1px solid #00ffcc;">'
+                f'<tr style="background-color:#131b29; color:#00ffcc; text-align:left; border-bottom:1px solid #00ffcc; font-size:0.78rem; text-transform:uppercase;">'
                 f'<th style="padding:9px 10px;">Kickoff</th>'
                 f'<th style="padding:9px 10px;">Partido</th>'
-                f'<th style="padding:9px 10px;">Jugador</th>'
-                f'<th style="padding:9px 10px;">Posición</th>'
-                f'<th style="padding:9px 10px;">Métrica</th>'
-                f'<th style="padding:9px 10px;">Proyección Mediana</th>'
-                f'<th style="padding:9px 10px;">Factor DvP Rival</th>'
-                f'<th style="padding:9px 10px;">Línea Mercado</th>'
-                f'<th style="padding:9px 10px;">% Cubre Over</th>'
-                f'<th style="padding:9px 10px;">% Cubre Under</th>'
-                f'<th style="padding:9px 10px;">Señal EV</th>'
+                f'<th style="padding:9px 10px;">Jugador (Rol) · Mercado</th>'
+                f'<th style="padding:9px 10px;">Línea / Pick</th>'
+                f'<th style="padding:9px 10px; text-align:right;">Proy</th>'
+                f'<th style="padding:9px 10px; text-align:right;">Cubre %</th>'
+                f'<th style="padding:9px 10px; text-align:right;">+EV</th>'
+                f'<th style="padding:9px 10px; text-align:right;">DvP Rival</th>'
                 f'</tr>'
                 f'</thead>'
                 f'<tbody>{filas_props_html}</tbody>'

@@ -845,30 +845,37 @@ def construir_html_reporte_nfl(
             to_icon = "⚪"
 
         sp_edge_badges = str(ev_sp.get("edge_badges_str", s.get("edge_badges_str", ""))).strip()
-        sp_edge_html_pill = (
-            f' | <span style="background:rgba(56,189,248,0.16); border:1px solid #38bdf8; color:#7dd3fc; '
-            f'padding:1px 6px; border-radius:4px; font-size:11px; font-weight:800;">{sp_edge_badges}</span>'
-            if sp_edge_badges
-            else ""
-        )
+        sp_edge_html_pill = ""
+        if sp_edge_badges:
+            pills_edge = []
+            for b_item in [x.strip() for x in sp_edge_badges.split("·") if x.strip()]:
+                pills_edge.append(
+                    f'<span style="display:inline-block; white-space:nowrap; background:rgba(56,189,248,0.16); '
+                    f'border:1px solid #38bdf8; color:#7dd3fc; padding:2px 7px; border-radius:999px; '
+                    f'font-size:10.5px; font-weight:800; margin-left:4px;">{b_item}</span>'
+                )
+            sp_edge_html_pill = " " + "".join(pills_edge)
 
+        # BLOQUE 4 — SEÑALES SPREAD & TOTAL (con white-space:nowrap en badges de ventaja estructural)
         badge_spread_html = (
-            f'<div style="{sp_badge_style} border-radius:6px; padding:7px 10px; margin-bottom:6px; '
-            f'font-family:monospace; font-size:12px; font-weight:700;">'
-            f'🛡️ SPREAD: {sp_icon} {ev_sp["recomendacion"]} | Cuota: {sp_odds:.2f} | '
-            f'{sp_cov:.1f}% Cubre (5,000 sims) | {sp_ev:+.1f}% EV{sp_edge_html_pill}'
+            f'<div style="{sp_badge_style} border-radius:7px; padding:8px 11px; margin-bottom:6px; '
+            f'font-family:\'Inter\',\'Segoe UI\',Arial,sans-serif; font-size:12px; font-weight:700; line-height:1.45;">'
+            f'🛡️ SPREAD: {sp_icon} <b>{ev_sp["recomendacion"]}</b> · Cuota {sp_odds:.2f} · '
+            f'<span style="white-space:nowrap;">{sp_cov:.1f}% Cubre</span> · '
+            f'<span style="white-space:nowrap;">{sp_ev:+.1f}% EV</span>{sp_edge_html_pill}'
             f'</div>'
         )
         badge_total_html = (
-            f'<div style="{to_badge_style} border-radius:6px; padding:7px 10px; margin-bottom:10px; '
-            f'font-family:monospace; font-size:12px; font-weight:700;">'
-            f'🎯 TOTAL: {to_icon} {ev_to["lado"]} {ev_to["total_mercado"]:.1f} | Cuota: {to_odds:.2f} | '
-            f'{to_cov:.1f}% Cubre (5,000 sims) | {to_ev:+.1f}% EV'
+            f'<div style="{to_badge_style} border-radius:7px; padding:8px 11px; margin-bottom:10px; '
+            f'font-family:\'Inter\',\'Segoe UI\',Arial,sans-serif; font-size:12px; font-weight:700; line-height:1.45;">'
+            f'🎯 TOTAL: {to_icon} <b>{ev_to["lado"]} {ev_to["total_mercado"]:.1f}</b> · Cuota {to_odds:.2f} · '
+            f'<span style="white-space:nowrap;">{to_cov:.1f}% Cubre</span> · '
+            f'<span style="white-space:nowrap;">{to_ev:+.1f}% EV</span>'
             f'</div>'
         )
 
-        # Sub-lista compacta de Player Props (+EV > 0.0%) de este partido ordenados de mayor a menor % Cubre
-        props_lineas_html = ""
+        # BLOQUE 5 — PLAYER PROPS +EV (Tabla alineada con Rol confirmado y etiqueta corta de mercado)
+        filas_props_tabla_html = ""
         if df_props_ranking is not None and not df_props_ranking.empty:
             df_juego_props = df_props_ranking[
                 (df_props_ranking["Partido"] == partido_key)
@@ -877,89 +884,191 @@ def construir_html_reporte_nfl(
 
             for _, rp in df_juego_props.iterrows():
                 jug_n = str(rp.get("Jugador", "") or "Jugador")
-                pos_n = str(rp.get("Posición", rp.get("Posicion", "")) or "")
-                met_n = str(rp.get("Métrica", rp.get("Metrica", "")) or "")
+                rol_n = str(rp.get("Rol") or rp.get("Posición") or rp.get("Posicion") or "WR1")
+                met_raw = str(rp.get("Mercado_Corto") or rp.get("Métrica") or rp.get("Metrica") or "Rec Yds")
+                mapa_etiqueta_mkt = {
+                    "Rush + Rec Yds": "Rush+Rec",
+                    "Pass + Rush Yds": "Pass+Rush",
+                    "Pass Completions": "Completions",
+                }
+                met_label = mapa_etiqueta_mkt.get(met_raw, met_raw)
                 lado_n = _extraer_lado_prop(rp)
                 lin_n = _safe_float(rp.get("Línea Mercado", rp.get("Linea Mercado", 0.0)), 0.0)
                 med_n = _safe_float(rp.get("Proyección Mediana", rp.get("Proyeccion Mediana", 0.0)), 0.0)
                 cov_n = _safe_float(rp.get("% Cubre", 50.0), 50.0)
                 ev_n = _safe_float(rp.get("EV_%", 0.0), 0.0)
-                props_lineas_html += (
-                    f'<div style="font-family:monospace; font-size:11.5px; color:#e6edf3; '
-                    f'padding:4px 0; border-bottom:1px dashed #21262d; line-height:1.45;">'
-                    f'• <b style="color:#f0f6fc;">{jug_n}</b> ({pos_n} · {met_n}) — '
-                    f'<span style="color:#00ffcc; font-weight:700;">{lado_n} {lin_n:.1f}</span> | '
-                    f'Proy: <b style="color:#10b981;">{med_n:.1f}</b> | '
-                    f'Cubre: <b style="color:#00ffcc;">{cov_n:.1f}%</b> ({ev_n:+.1f}% EV)'
-                    f'</div>'
+                pick_cell = f"SI ({rp.get('Cuota_Decimal', 1.91):.2f})" if met_label == "Anytime TD" else f"{lado_n} {lin_n:.1f}"
+
+                filas_props_tabla_html += (
+                    f'<tr style="border-bottom:1px solid #21262d;">'
+                    f'<td style="padding:5px 4px; color:#f0f6fc; font-weight:600;">'
+                    f'{jug_n} <span style="color:#58a6ff; font-weight:700;">({rol_n})</span> · '
+                    f'<span style="color:#8b949e;">{met_label}</span></td>'
+                    f'<td style="padding:5px 4px; color:#00ffcc; font-weight:700; white-space:nowrap;">{pick_cell}</td>'
+                    f'<td style="padding:5px 4px; color:#10b981; font-weight:700; text-align:right; white-space:nowrap;">{med_n:.1f}</td>'
+                    f'<td style="padding:5px 4px; color:#f0f6fc; font-weight:700; text-align:right; white-space:nowrap;">{cov_n:.1f}%</td>'
+                    f'<td style="padding:5px 4px; color:#00ffcc; font-weight:800; text-align:right; white-space:nowrap;">{ev_n:+.1f}%</td>'
+                    f'</tr>'
                 )
 
-        if not props_lineas_html:
-            props_lineas_html = (
-                '<div style="font-family:monospace; font-size:11px; color:#8b949e; padding:3px 0;">'
+        if filas_props_tabla_html:
+            props_bloque_5_html = (
+                f'<table style="width:100%; border-collapse:collapse; font-family:\'Inter\',\'Segoe UI\',Arial,sans-serif; font-size:11.5px;">'
+                f'<thead>'
+                f'<tr style="border-bottom:1px solid #30363d; color:#8b949e; font-size:10.5px; text-transform:uppercase;">'
+                f'<th style="padding:4px; text-align:left;">Jugador (Rol) · Mercado</th>'
+                f'<th style="padding:4px; text-align:left;">Línea / Pick</th>'
+                f'<th style="padding:4px; text-align:right;">Proy</th>'
+                f'<th style="padding:4px; text-align:right;">Cubre %</th>'
+                f'<th style="padding:4px; text-align:right;">+EV</th>'
+                f'</tr>'
+                f'</thead>'
+                f'<tbody>{filas_props_tabla_html}</tbody>'
+                f'</table>'
+            )
+        else:
+            props_bloque_5_html = (
+                '<div style="font-family:\'Inter\',\'Segoe UI\',Arial,sans-serif; font-size:11.5px; color:#8b949e; padding:3px 0;">'
                 '• Sin Player Props con ventaja matemática (+EV > 0.0%) en este encuentro.'
                 '</div>'
             )
 
-        linea_1_qb_clima = str(
-            s.get("linea_1_qb_clima")
-            or f"QB1: {s.get('away_qb', away)} [OK] vs {s.get('home_qb', home)} [OK] | Clima: {s.get('resumen_clima', s.get('tipo_estadio', 'Outdoor'))}"
+        # BLOQUE 1 (Header con Pill compacto de Clima a la derecha, sin duplicar clima afuera)
+        bloque_est_obj = s.get("bloque_estado_partido") or {}
+        clima_pill_txt = str(
+            bloque_est_obj.get("clima_pill")
+            or ("🏟️ Domo · 70°F" if "DOM" in str(s.get("resumen_clima", "")).upper() else f"🌤️ {s.get('viento_mph', 8):.0f} mph")
         )
-        linea_2_out_gtd = str(
-            s.get("linea_2_out_gtd")
-            or "🔴 OUT / GTD: Sin bajas titulares reportadas"
-        )
-        linea_3_activados = str(
-            s.get("linea_3_activados")
-            or "🟢 ACTIVADOS: Sin novedades"
-        )
-        linea_4_traspasos = str(
-            s.get("linea_4_traspasos")
-            or "🔄 TRASPASOS: Sin cambios"
-        )
-        bloque_estado_html = (
-            f'<div style="background:#0d1117; border:1px solid #30363d; border-left:3px solid #58a6ff; '
-            f'border-radius:6px; padding:7px 10px; margin-bottom:9px; font-family:monospace; font-size:11.2px; '
-            f'color:#e6edf3; line-height:1.5;">'
-            f'<div style="color:#f0f6fc; font-weight:700;">🏈 {linea_1_qb_clima}</div>'
-            f'<div style="color:#ffa657; margin-top:2px;">{linea_2_out_gtd}</div>'
-            f'<div style="color:#3fb950; margin-top:2px;">{linea_3_activados}</div>'
-            f'<div style="color:#79c0ff; margin-top:2px;">{linea_4_traspasos}</div>'
+
+        # BLOQUE 2 (Plantilla — Filas limpias: Fila QB1 con [TITULAR OK], Fila Bajas con pills OUT/GTD, Fila Movimientos condicional)
+        qb_aw_nm = str(bloque_est_obj.get("qb_away_name") or s.get("away_qb", f"{away} QB1"))
+        qb_hm_nm = str(bloque_est_obj.get("qb_home_name") or s.get("home_qb", f"{home} QB1"))
+        qb_aw_tag = str(bloque_est_obj.get("qb_away_tag") or "TITULAR OK")
+        qb_hm_tag = str(bloque_est_obj.get("qb_home_tag") or "TITULAR OK")
+        if qb_aw_tag == "OK":
+            qb_aw_tag = "TITULAR OK"
+        if qb_hm_tag == "OK":
+            qb_hm_tag = "TITULAR OK"
+
+        fila_qb1_html = (
+            f'<div style="padding:4px 0; border-bottom:1px solid #21262d; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:4px;">'
+            f'<div><span style="color:#8b949e; font-weight:600;">QB1 {away}:</span> <b style="color:#f0f6fc;">{qb_aw_nm}</b> '
+            f'<span style="background:rgba(16,185,129,0.16); border:1px solid #10b981; color:#34d399; border-radius:4px; padding:1px 5px; font-size:10px; font-weight:700; white-space:nowrap;">[{qb_aw_tag}]</span></div>'
+            f'<div><span style="color:#8b949e; font-weight:600;">QB1 {home}:</span> <b style="color:#f0f6fc;">{qb_hm_nm}</b> '
+            f'<span style="background:rgba(16,185,129,0.16); border:1px solid #10b981; color:#34d399; border-radius:4px; padding:1px 5px; font-size:10px; font-weight:700; white-space:nowrap;">[{qb_hm_tag}]</span></div>'
             f'</div>'
+        )
+
+        pills_aw = bloque_est_obj.get("bajas_away_pills") or []
+        pills_hm = bloque_est_obj.get("bajas_home_pills") or []
+        bajas_badges_html_list: List[str] = []
+        for eq_b, lista_p in ((away, pills_aw[:3]), (home, pills_hm[:3])):
+            for item_b in lista_p:
+                badge_tipo = str(item_b.get("badge", "OUT")).upper()
+                rol_b = str(item_b.get("slot", ""))
+                jug_b = str(item_b.get("player", ""))
+                if badge_tipo == "OUT":
+                    pill_style = "background:rgba(248,81,73,0.16); border:1px solid rgba(248,81,73,0.55); color:#ff7b72;"
+                else:
+                    pill_style = "background:rgba(210,153,34,0.18); border:1px solid rgba(210,153,34,0.55); color:#e3b341;"
+                bajas_badges_html_list.append(
+                    f'<span style="display:inline-block; white-space:nowrap; {pill_style} border-radius:5px; padding:1px 6px; font-size:10.5px; font-weight:700; margin:2px 3px 2px 0;">'
+                    f'{eq_b} {jug_b} ({rol_b} · {badge_tipo})</span>'
+                )
+
+        if bajas_badges_html_list:
+            fila_bajas_html = (
+                f'<div style="padding:5px 0; border-bottom:1px solid #21262d;">'
+                f'<span style="color:#8b949e; font-weight:700; font-size:11px; margin-right:4px;">BAJAS CLAVE:</span>'
+                f'{"".join(bajas_badges_html_list)}'
+                f'</div>'
+            )
+        else:
+            fila_bajas_html = (
+                f'<div style="padding:4px 0; color:#8b949e; font-size:11px;">'
+                f'<b>BAJAS CLAVE:</b> Sin bajas titulares críticas en la rotación de 8 puestos.'
+                f'</div>'
+            )
+
+        # Fila Movimientos: Mostrar ACTIVADOS o TRASPASOS únicamente si hay novedades reales en la rotación principal
+        act_reales = bloque_est_obj.get("activados_reales") or []
+        tr_reales = bloque_est_obj.get("traspasos_reales") or []
+        partes_mov_html: List[str] = []
+        if act_reales:
+            partes_mov_html.append(
+                f'<span style="color:#3fb950; font-weight:700;">🟢 ACTIVADOS:</span> {" | ".join(act_reales)}'
+            )
+        if tr_reales:
+            partes_mov_html.append(
+                f'<span style="color:#79c0ff; font-weight:700;">🔄 TRASPASOS:</span> {" | ".join(tr_reales)}'
+            )
+        fila_movimientos_html = (
+            f'<div style="padding:4px 0 2px 0; font-size:11px; color:#e6edf3;">'
+            f'{" · ".join(partes_mov_html)}'
+            f'</div>'
+            if partes_mov_html
+            else ""
+        )
+
+        bloque_2_plantilla_html = (
+            f'<div style="background:#0d1117; border:1px solid #30363d; border-left:3px solid #58a6ff; '
+            f'border-radius:7px; padding:7px 10px; margin-bottom:9px; font-family:\'Inter\',\'Segoe UI\',Arial,sans-serif; '
+            f'font-size:11.5px; color:#e6edf3; line-height:1.45;">'
+            f'{fila_qb1_html}'
+            f'{fila_bajas_html}'
+            f'{fila_movimientos_html}'
+            f'</div>'
+        )
+
+        # BLOQUE 3 (Proyección vs Mercado — Tabla compacta de 2 columnas)
+        bloque_3_proy_mkt_html = (
+            f'<table style="width:100%; border-collapse:collapse; background:#0d1117; border:1px solid #21262d; '
+            f'border-radius:7px; margin-bottom:9px; font-family:\'Inter\',\'Segoe UI\',Arial,sans-serif; font-size:12px;">'
+            f'<tr>'
+            f'<td style="width:50%; padding:7px 10px; border-right:1px solid #21262d; vertical-align:top;">'
+            f'<div style="font-size:10px; color:#8b949e; text-transform:uppercase; font-weight:700;">📊 Proyección Modelo (5,000 Sims)</div>'
+            f'<div style="color:#10b981; font-weight:800; font-size:13.5px; margin-top:2px;">{away} {s["away_pts"]:.1f} — {s["home_pts"]:.1f} {home}</div>'
+            f'<div style="color:#c9d1d9; font-size:11px; margin-top:2px;">Spread Mod: <b>{home} {s["spread_proyectado"]:+.1f}</b> · Total Mod: <b>{s["total_ou"]:.1f}</b></div>'
+            f'</td>'
+            f'<td style="width:50%; padding:7px 10px; vertical-align:top;">'
+            f'<div style="font-size:10px; color:#8b949e; text-transform:uppercase; font-weight:700;">🏦 Líneas del Casino</div>'
+            f'<div style="color:#f0f6fc; font-weight:800; font-size:13px; margin-top:2px;">Spread {home} {s["spread_mercado_home"]:+.1f} · O/U {s["total_mercado"]:.1f}</div>'
+            f'<div style="color:#58a6ff; font-size:11px; margin-top:2px;">ML Favorito: <b>{s["ml_fav_abbr"]} ({s["ml_fav_model_pct"]:.1f}%)</b></div>'
+            f'</td>'
+            f'</tr>'
+            f'</table>'
         )
 
         tarjetas_partidos_html += (
             f'<div style="background-color:#161b22; border:1px solid #30363d; border-radius:10px; '
-            f'padding:14px 15px; margin-bottom:14px;">'
+            f'padding:14px 15px; margin-bottom:14px; font-family:\'Inter\',\'Segoe UI\',Arial,sans-serif;">'
             f'<div style="display:flex; justify-content:space-between; align-items:center; '
-            f'border-bottom:1px solid #30363d; padding-bottom:8px; margin-bottom:8px; flex-wrap:wrap; gap:6px;">'
-            f'<div style="font-family:monospace; font-size:15px; font-weight:800; color:#f0f6fc;">'
-            f'{logo_away_26}{away} <span style="color:#8b949e; font-weight:400;">@</span> {logo_home_26}{home}'
+            f'border-bottom:1px solid #30363d; padding-bottom:8px; margin-bottom:9px; flex-wrap:wrap; gap:6px;">'
+            f'<div style="font-size:15px; font-weight:800; color:#f0f6fc;">'
+            f'{logo_away_26}{away} <span style="color:#8b949e; font-weight:500;">@</span> {logo_home_26}{home} '
+            f'<span style="font-size:11.5px; color:#8b949e; font-weight:500; margin-left:4px;">({away_full} en {home_full})</span>'
             f'</div>'
+            f'<div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">'
             f'<span style="background:#0d1117; border:1px solid #30363d; color:#58a6ff; '
-            f'padding:2px 8px; border-radius:4px; font-family:monospace; font-size:11px; font-weight:700;">'
+            f'padding:2px 8px; border-radius:999px; font-size:11px; font-weight:700; white-space:nowrap;">'
             f'🕒 {hora_cst}'
             f'</span>'
+            f'<span style="background:#0d1117; border:1px solid #30363d; color:#c9d1d9; '
+            f'padding:2px 8px; border-radius:999px; font-size:11px; font-weight:600; white-space:nowrap;">'
+            f'{clima_pill_txt}'
+            f'</span>'
             f'</div>'
-            f'<div style="font-family:monospace; font-size:11.5px; color:#8b949e; margin-bottom:6px;">'
-            f'{away_full} en {home_full} · {s.get("resumen_clima", s.get("tipo_estadio", "Outdoor"))}'
             f'</div>'
-            f'{bloque_estado_html}'
-            f'<div style="background:#0d1117; border:1px solid #21262d; border-radius:6px; '
-            f'padding:7px 10px; margin-bottom:9px; font-family:monospace; font-size:12px; color:#e6edf3;">'
-            f'📊 <b>Marcador Proyectado:</b> <span style="color:#10b981; font-weight:800;">{away} {s["away_pts"]:.1f} - {s["home_pts"]:.1f} {home}</span> '
-            f'(Total Mod: {s["total_ou"]:.1f})<br>'
-            f'🏦 <b>Línea de Mercado:</b> Spread {home} {s["spread_mercado_home"]:+.1f} | Total O/U {s["total_mercado"]:.1f} '
-            f'| ML Fav: {s["ml_fav_abbr"]} ({s["ml_fav_model_pct"]:.1f}%)'
-            f'</div>'
+            f'{bloque_2_plantilla_html}'
+            f'{bloque_3_proy_mkt_html}'
             f'{badge_spread_html}'
             f'{badge_total_html}'
-            f'<div style="background:#0d1117; border:1px solid #21262d; border-radius:6px; padding:8px 10px;">'
-            f'<div style="font-family:monospace; font-size:11px; font-weight:800; color:#58a6ff; '
-            f'text-transform:uppercase; margin-bottom:4px;">'
-            f'🎯 PLAYER PROPS (+EV > 0.0% · ORDENADOS POR MAYOR % CUBRE)'
+            f'<div style="background:#0d1117; border:1px solid #21262d; border-radius:7px; padding:8px 10px;">'
+            f'<div style="font-size:11px; font-weight:800; color:#58a6ff; '
+            f'text-transform:uppercase; margin-bottom:5px; letter-spacing:0.3px;">'
+            f'🎯 PLAYER PROPS (+EV > 0.0% · ROTACIÓN OFENSIVA CONFIRMADA)'
             f'</div>'
-            f'{props_lineas_html}'
+            f'{props_bloque_5_html}'
             f'</div>'
             f'</div>'
         )
@@ -1290,7 +1399,7 @@ def enviar_reporte_resend_nfl(semana: Optional[int] = None) -> Dict[str, Any]:
     ('Terminal_Sharp_NFL_Briefing.pdf') y despacho vía POST a 'https://api.resend.com/emails'.
     """
     sem, resultados, df_general, df_ranking, nfl_stats = ejecutar_pipeline_simulaciones_nfl(semana=semana)
-    df_props_raw = simular_player_props_jornada(resultados, incluir_anytime_td=False)
+    df_props_raw = simular_player_props_jornada(resultados, incluir_anytime_td=True)
     df_props_ranking = build_player_props_ranking_export_df(df_props_raw)
     top_3_props = obtener_top_3_player_props_jornada(df_props_raw)
     top_3 = generar_memorando_ejecutivo_top3(resultados, nfl_stats, semana=sem)
