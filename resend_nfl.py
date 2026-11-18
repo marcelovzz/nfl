@@ -64,10 +64,14 @@ except Exception:
     obtener_bloque_estado_partido = None  # type: ignore
     sincronizar_lesiones_titulares_y_clima_nfl = None  # type: ignore
 
+from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
+from openpyxl.utils import get_column_letter
+
 RESEND_API_URL = "https://api.resend.com/emails"
 ESPN_NFL_INJURIES_URL = "https://site.api.espn.com/apis/site/v2/sports/football/nfl/injuries"
 DEFAULT_STATS_FILE = "nfl_stats.xlsx"
 ATTACHMENT_FILENAME = "Terminal_Sharp_NFL_Briefing.pdf"
+EXCEL_ATTACHMENT_FILENAME = "nfl_quant_projections.xlsx"
 
 
 def get_team_logo_url(team_abbr: str) -> str:
@@ -458,23 +462,545 @@ def ejecutar_pipeline_simulaciones_nfl(
     return semana_activa, resultados_simulados, df_general, df_ranking, nfl_stats
 
 
+def construir_df_rankings_probabilidad(
+    resultados_simulados: List[Dict[str, Any]],
+) -> pd.DataFrame:
+    """
+    Construye la pestaña 'Rankings_Probabilidad':
+    Consolida todas las selecciones de partido de los tres mercados principales
+    ('Moneyline (ML)', 'Spread' y 'Over/Under') ordenadas estrictamente de MAYOR a MENOR
+    'Prob_Modelo_%' (de arriba hacia abajo, independientemente del partido).
+    Columnas exactas:
+      ['Rank', 'Fecha_Hora_CST', 'Partido', 'Mercado', 'Eleccion_Pick', 'Cuota_Decimal',
+       'Prob_Modelo_%', 'EV_%', 'Estado_Titulares', 'Edge_Badges']
+    """
+    cols = [
+        "Rank",
+        "Fecha_Hora_CST",
+        "Partido",
+        "Mercado",
+        "Eleccion_Pick",
+        "Cuota_Decimal",
+        "Prob_Modelo_%",
+        "EV_%",
+        "Estado_Titulares",
+        "Edge_Badges",
+    ]
+    filas: List[Dict[str, Any]] = []
+    for s in resultados_simulados or []:
+        away = str(s.get("away_abbr", ""))
+        home = str(s.get("home_abbr", ""))
+        partido = f"{away} @ {home}"
+        hora_cst = str(s.get("hora", "DOM 12:00 CST"))
+        bloque_est = s.get("bloque_estado_partido") or {}
+        qb_aw_tag = str(bloque_est.get("qb_away_tag") or "TITULAR OK")
+        qb_hm_tag = str(bloque_est.get("qb_home_tag") or "TITULAR OK")
+        estado_titulares = (
+            "QB1 OK"
+            if ("OK" in qb_aw_tag and "OK" in qb_hm_tag)
+            else f"{away}:{qb_aw_tag} / {home}:{qb_hm_tag}"
+        )
+
+        ev_spr = s.get("ev_spread", {}) or {}
+        ev_tot = s.get("ev_totales", {}) or {}
+        edge_badges = str(ev_spr.get("edge_badges_str", s.get("edge_badges_str", ""))).strip()
+
+        # 1. Moneyline (ML)
+        win_h = _safe_float(s.get("win_home_pct"), 50.0)
+        win_a = _safe_float(s.get("win_away_pct"), 50.0)
+        if win_h >= win_a:
+            ml_pick = f"{home} ML"
+            ml_prob = round(win_h, 1)
+            ml_mkt_prob = _safe_float(s.get("casas_home_pct"), 50.0)
+        else:
+            ml_pick = f"{away} ML"
+            ml_prob = round(win_a, 1)
+            ml_mkt_prob = _safe_float(s.get("casas_away_pct"), 50.0)
+        ml_odds = round(100.0 / max(5.0, ml_mkt_prob), 2)
+        ml_ev = round(((ml_prob / 100.0) * ml_odds - 1.0) * 100.0, 1)
+
+        filas.append(
+            {
+                "Fecha_Hora_CST": hora_cst,
+                "Partido": partido,
+                "Mercado": "Moneyline (ML)",
+                "Eleccion_Pick": ml_pick,
+                "Cuota_Decimal": ml_odds,
+                "Prob_Modelo_%": ml_prob,
+                "EV_%": ml_ev,
+                "Estado_Titulares": estado_titulares,
+                "Edge_Badges": "🔥 ALTA CONFIANZA ML" if ml_prob >= 62.0 else "",
+            }
+        )
+
+        # 2. Spread
+        sp_pick = str(ev_spr.get("recomendacion", f"{home} {_safe_float(s.get('spread_mercado_home'), -2.5):+.1f}"))
+        sp_odds = round(_safe_float(ev_spr.get("cuota_mercado_decimal"), 1.91), 2)
+        sp_prob = round(
+            _safe_float(s.get("spread_cover_pct", ev_spr.get("spread_cover_pct", ev_spr.get("prob_mejor_pct", 50.0))), 50.0),
+            1,
+        )
+        sp_ev = round(_safe_float(ev_spr.get("ev_pct"), 0.0), 1)
+
+        filas.append(
+            {
+                "Fecha_Hora_CST": hora_cst,
+                "Partido": partido,
+                "Mercado": "Spread",
+                "Eleccion_Pick": sp_pick,
+                "Cuota_Decimal": sp_odds,
+                "Prob_Modelo_%": sp_prob,
+                "EV_%": sp_ev,
+                "Estado_Titulares": estado_titulares,
+                "Edge_Badges": edge_badges,
+            }
+        )
+
+        # 3. Over/Under (Total)
+        tot_lado = str(ev_tot.get("lado", "OVER"))
+        tot_lin = _safe_float(ev_tot.get("total_mercado", s.get("total_mercado", 44.5)), 44.5)
+        tot_pick = f"{tot_lado} {tot_lin:.1f}"
+        tot_odds = round(_safe_float(ev_tot.get("cuota_mercado_decimal"), 1.91), 2)
+        tot_prob = round(
+            _safe_float(s.get("total_cover_pct", ev_tot.get("total_cover_pct", ev_tot.get("prob_mejor_pct", 50.0))), 50.0),
+            1,
+        )
+        tot_ev = round(_safe_float(ev_tot.get("ev_pct"), 0.0), 1)
+
+        filas.append(
+            {
+                "Fecha_Hora_CST": hora_cst,
+                "Partido": partido,
+                "Mercado": "Over/Under",
+                "Eleccion_Pick": tot_pick,
+                "Cuota_Decimal": tot_odds,
+                "Prob_Modelo_%": tot_prob,
+                "EV_%": tot_ev,
+                "Estado_Titulares": estado_titulares,
+                "Edge_Badges": "🌧️ CLIMA ADVERSO" if s.get("clima_adverso") else "",
+            }
+        )
+
+    if not filas:
+        return pd.DataFrame(columns=cols)
+
+    df_rk = pd.DataFrame(filas)
+    df_rk = df_rk.sort_values(
+        by=["Prob_Modelo_%", "EV_%"], ascending=[False, False]
+    ).reset_index(drop=True)
+    df_rk.insert(0, "Rank", [f"#{i}" for i in range(1, len(df_rk) + 1)])
+    return df_rk[cols]
+
+
+def construir_df_proyecciones_partidos(
+    resultados_simulados: List[Dict[str, Any]],
+) -> pd.DataFrame:
+    """
+    Construye la pestaña 'Proyecciones_Partidos' con las columnas exactas:
+      ['Fecha/Hora CST', 'Matchup', 'QB1_Visitante [Estado]', 'QB1_Local [Estado]',
+       'Clima', 'Descanso', 'Marcador_Proy', 'Total_Proy', 'Spread_Mercado',
+       'Total_Mercado', 'Señal_Spread', 'Prob_Spread_%', 'EV_Spread_%',
+       'Señal_Total', 'Prob_Total_%', 'EV_Total_%', 'Edge_Badges']
+    """
+    cols = [
+        "Fecha/Hora CST",
+        "Matchup",
+        "QB1_Visitante [Estado]",
+        "QB1_Local [Estado]",
+        "Clima",
+        "Descanso",
+        "Marcador_Proy",
+        "Total_Proy",
+        "Spread_Mercado",
+        "Total_Mercado",
+        "Señal_Spread",
+        "Prob_Spread_%",
+        "EV_Spread_%",
+        "Señal_Total",
+        "Prob_Total_%",
+        "EV_Total_%",
+        "Edge_Badges",
+    ]
+    filas: List[Dict[str, Any]] = []
+    for s in resultados_simulados or []:
+        away = str(s.get("away_abbr", ""))
+        home = str(s.get("home_abbr", ""))
+        bloque_est = s.get("bloque_estado_partido") or {}
+        qb_aw = str(bloque_est.get("qb_away_name") or s.get("away_qb", away))
+        qb_hm = str(bloque_est.get("qb_home_name") or s.get("home_qb", home))
+        tag_aw = str(bloque_est.get("qb_away_tag") or "TITULAR OK")
+        tag_hm = str(bloque_est.get("qb_home_tag") or "TITULAR OK")
+        clima_txt = str(bloque_est.get("clima_pill") or s.get("resumen_clima", s.get("tipo_estadio", "Outdoor")))
+
+        ev_spr = s.get("ev_spread", {}) or {}
+        ev_tot = s.get("ev_totales", {}) or {}
+        sp_prob = round(_safe_float(s.get("spread_cover_pct", ev_spr.get("prob_mejor_pct", 50.0)), 50.0), 1)
+        sp_ev = round(_safe_float(ev_spr.get("ev_pct"), 0.0), 1)
+        tot_prob = round(_safe_float(s.get("total_cover_pct", ev_tot.get("prob_mejor_pct", 50.0)), 50.0), 1)
+        tot_ev = round(_safe_float(ev_tot.get("ev_pct"), 0.0), 1)
+
+        filas.append(
+            {
+                "Fecha/Hora CST": str(s.get("hora", "DOM 12:00 CST")),
+                "Matchup": f"{away} @ {home}",
+                "QB1_Visitante [Estado]": f"{qb_aw} [{tag_aw}]",
+                "QB1_Local [Estado]": f"{qb_hm} [{tag_hm}]",
+                "Clima": clima_txt,
+                "Descanso": str(s.get("descanso_label", "Estándar (7d vs 7d)")),
+                "Marcador_Proy": f"{away} {_safe_float(s.get('away_pts'), 0.0):.1f} - {_safe_float(s.get('home_pts'), 0.0):.1f} {home}",
+                "Total_Proy": round(_safe_float(s.get("total_ou"), 44.5), 1),
+                "Spread_Mercado": f"{home} {_safe_float(s.get('spread_mercado_home'), -2.5):+.1f}",
+                "Total_Mercado": round(_safe_float(s.get("total_mercado"), 44.5), 1),
+                "Señal_Spread": str(ev_spr.get("recomendacion", "")),
+                "Prob_Spread_%": sp_prob,
+                "EV_Spread_%": sp_ev,
+                "Señal_Total": f"{ev_tot.get('lado', 'OVER')} {_safe_float(ev_tot.get('total_mercado'), 44.5):.1f}",
+                "Prob_Total_%": tot_prob,
+                "EV_Total_%": tot_ev,
+                "Edge_Badges": str(ev_spr.get("edge_badges_str", s.get("edge_badges_str", ""))).strip(),
+            }
+        )
+    if not filas:
+        return pd.DataFrame(columns=cols)
+    return pd.DataFrame(filas, columns=cols)
+
+
+def construir_df_player_props_ev(
+    df_props_ranking: Optional[pd.DataFrame],
+) -> pd.DataFrame:
+    """
+    Construye la pestaña 'Player_Props_EV' con las columnas exactas:
+      ['Partido', 'Jugador', 'Equipo', 'Pos_Rol', 'Estado_Plantilla', 'Mercado',
+       'Pick', 'Línea', 'Proyección_Modelo', 'Prob_Cubre_%', 'EV_%']
+    """
+    cols = [
+        "Partido",
+        "Jugador",
+        "Equipo",
+        "Pos_Rol",
+        "Estado_Plantilla",
+        "Mercado",
+        "Pick",
+        "Línea",
+        "Proyección_Modelo",
+        "Prob_Cubre_%",
+        "EV_%",
+    ]
+    if df_props_ranking is None or df_props_ranking.empty:
+        return pd.DataFrame(columns=cols)
+
+    mapa_mkt = {
+        "Rush + Rec Yds": "Rush+Rec",
+        "Pass + Rush Yds": "Pass+Rush",
+        "Pass Completions": "Completions",
+    }
+    filas: List[Dict[str, Any]] = []
+    for _, rp in df_props_ranking.iterrows():
+        met_raw = str(rp.get("Mercado_Corto") or rp.get("Métrica") or "Rec Yds")
+        met_lbl = mapa_mkt.get(met_raw, met_raw)
+        lado_raw = _extraer_lado_prop(rp)
+        pick_lbl = "SI" if met_lbl == "Anytime TD" else lado_raw
+        notas_mod = str(rp.get("Notas_Modelo", ""))
+        if "RecienActivado" in notas_mod:
+            est_pl = "RECIEN_ACTIVADO (92%)"
+        elif "TraspasoNuevo" in notas_mod:
+            est_pl = "TRASPASO_NUEVO (85%)"
+        elif "Questionable" in notas_mod:
+            est_pl = "QUESTIONABLE_GTD"
+        else:
+            est_pl = "ACTIVO_CONFIRMADO"
+
+        filas.append(
+            {
+                "Partido": str(rp.get("Partido", "")),
+                "Jugador": str(rp.get("Jugador", "")),
+                "Equipo": str(rp.get("Equipo", "")),
+                "Pos_Rol": str(rp.get("Rol") or rp.get("Posición") or "WR1"),
+                "Estado_Plantilla": est_pl,
+                "Mercado": met_lbl,
+                "Pick": pick_lbl,
+                "Línea": round(_safe_float(rp.get("Línea Mercado"), 0.5), 1),
+                "Proyección_Modelo": round(_safe_float(rp.get("Proyección Mediana"), 0.0), 1),
+                "Prob_Cubre_%": round(_safe_float(rp.get("% Cubre"), 50.0), 1),
+                "EV_%": round(_safe_float(rp.get("EV_%"), 0.0), 1),
+            }
+        )
+    return pd.DataFrame(filas, columns=cols)
+
+
+def construir_df_combos_correlacionados(
+    resultados_simulados: List[Dict[str, Any]],
+    df_props_ranking: Optional[pd.DataFrame],
+) -> pd.DataFrame:
+    """
+    Construye la pestaña 'Combos_Correlacionados':
+      ['Partido', 'Selección_1', 'Selección_2', 'Prob_Independiente_%',
+       'Prob_Conjunta_Sim_%', 'Correlation_Edge_%']
+    """
+    cols = [
+        "Partido",
+        "Selección_1",
+        "Selección_2",
+        "Prob_Independiente_%",
+        "Prob_Conjunta_Sim_%",
+        "Correlation_Edge_%",
+    ]
+    filas: List[Dict[str, Any]] = []
+    for s in resultados_simulados or []:
+        away = str(s.get("away_abbr", ""))
+        home = str(s.get("home_abbr", ""))
+        partido = f"{away} @ {home}"
+        ev_sp = s.get("ev_spread", {}) or {}
+        ev_to = s.get("ev_totales", {}) or {}
+
+        p_sp = _safe_float(s.get("spread_cover_pct", ev_sp.get("prob_mejor_pct", 52.0)), 52.0) / 100.0
+        p_to = _safe_float(s.get("total_cover_pct", ev_to.get("prob_mejor_pct", 52.0)), 52.0) / 100.0
+        sel_sp = str(ev_sp.get("recomendacion", f"{home} -2.5"))
+        sel_to = f"{ev_to.get('lado', 'OVER')} {_safe_float(ev_to.get('total_mercado'), 44.5):.1f}"
+
+        # Combo 1: Spread + Total correlacionado (Underdog + Under o Favorito + Over)
+        es_dog = _safe_float(ev_sp.get("linea_pick"), 0.0) > 0.0
+        es_under = str(ev_to.get("lado", "OVER")).upper() == "UNDER"
+        rho_game = 0.22 if ((es_dog and es_under) or (not es_dog and not es_under)) else 0.11
+        p_ind_1 = round((p_sp * p_to) * 100.0, 1)
+        boost_1 = round(rho_game * ((p_sp * (1.0 - p_sp) * p_to * (1.0 - p_to)) ** 0.5) * 100.0, 1)
+        p_conj_1 = round(min(78.0, p_ind_1 + boost_1), 1)
+        filas.append(
+            {
+                "Partido": partido,
+                "Selección_1": f"{sel_sp} (Spread)",
+                "Selección_2": f"{sel_to} (Total)",
+                "Prob_Independiente_%": p_ind_1,
+                "Prob_Conjunta_Sim_%": p_conj_1,
+                "Correlation_Edge_%": round(p_conj_1 - p_ind_1, 1),
+            }
+        )
+
+        # Combo 2: Mejor Prop del partido + Selección correlacionada
+        if df_props_ranking is not None and not df_props_ranking.empty and "Partido" in df_props_ranking.columns:
+            df_jp = df_props_ranking[df_props_ranking["Partido"] == partido]
+            if len(df_jp) >= 2:
+                r1 = df_jp.iloc[0]
+                r2 = df_jp.iloc[1]
+                p1 = _safe_float(r1.get("% Cubre"), 56.0) / 100.0
+                p2 = _safe_float(r2.get("% Cubre"), 55.0) / 100.0
+                s1_lbl = f"{r1.get('Jugador')} ({r1.get('Rol', r1.get('Posición', ''))}) {_extraer_lado_prop(r1)} {_safe_float(r1.get('Línea Mercado'), 0.0):.1f} {r1.get('Mercado_Corto', r1.get('Métrica', ''))}"
+                s2_lbl = f"{r2.get('Jugador')} ({r2.get('Rol', r2.get('Posición', ''))}) {_extraer_lado_prop(r2)} {_safe_float(r2.get('Línea Mercado'), 0.0):.1f} {r2.get('Mercado_Corto', r2.get('Métrica', ''))}"
+                p_ind_2 = round((p1 * p2) * 100.0, 1)
+                boost_2 = round(0.24 * ((p1 * (1.0 - p1) * p2 * (1.0 - p2)) ** 0.5) * 100.0, 1)
+                p_conj_2 = round(min(79.0, p_ind_2 + boost_2), 1)
+                filas.append(
+                    {
+                        "Partido": partido,
+                        "Selección_1": s1_lbl,
+                        "Selección_2": s2_lbl,
+                        "Prob_Independiente_%": p_ind_2,
+                        "Prob_Conjunta_Sim_%": p_conj_2,
+                        "Correlation_Edge_%": round(p_conj_2 - p_ind_2, 1),
+                    }
+                )
+    if not filas:
+        return pd.DataFrame(columns=cols)
+    df_c = pd.DataFrame(filas, columns=cols)
+    return df_c.sort_values(by=["Prob_Conjunta_Sim_%", "Correlation_Edge_%"], ascending=[False, False]).reset_index(drop=True)
+
+
+def construir_df_plantilla_y_lesiones(
+    resultados_simulados: List[Dict[str, Any]],
+    starters_verified: Optional[Dict[str, Any]] = None,
+) -> pd.DataFrame:
+    """
+    Construye la pestaña 'Plantilla_y_Lesiones' con las columnas exactas:
+      ['Equipo', 'QB1', 'WR1', 'WR2', 'WR3', 'RB1', 'RB2', 'TE1', 'TE2',
+       'Bajas_OUT_GTD', 'Recien_Activados', 'Traspasos']
+    """
+    cols = [
+        "Equipo",
+        "QB1",
+        "WR1",
+        "WR2",
+        "WR3",
+        "RB1",
+        "RB2",
+        "TE1",
+        "TE2",
+        "Bajas_OUT_GTD",
+        "Recien_Activados",
+        "Traspasos",
+    ]
+    if starters_verified is None and cargar_estado_titulares_y_clima is not None:
+        try:
+            starters_verified = cargar_estado_titulares_y_clima(forzar_sync=False)
+        except Exception:
+            starters_verified = {}
+    teams_map = (starters_verified or {}).get("teams", (starters_verified or {}).get("equipos", {})) if isinstance(starters_verified, dict) else {}
+
+    equipos_orden: List[str] = []
+    for s in resultados_simulados or []:
+        for ab in (str(s.get("away_abbr", "")), str(s.get("home_abbr", ""))):
+            if ab and ab not in equipos_orden:
+                equipos_orden.append(ab)
+    if not equipos_orden:
+        equipos_orden = sorted(teams_map.keys())
+
+    filas: List[Dict[str, Any]] = []
+    for eq in equipos_orden:
+        t_info = teams_map.get(eq, {}) or {}
+        rot = t_info.get("offensive_rotation") or t_info.get("starters") or {}
+
+        def _fmt_slot(sl_key: str) -> str:
+            obj = rot.get(sl_key, {}) if isinstance(rot, dict) else {}
+            nm = str(obj.get("player") or (t_info.get("qb1_name") if sl_key == "QB1" else f"{eq} {sl_key}"))
+            st_s = str(obj.get("status", "ACTIVO_CONFIRMADO")).upper()
+            if st_s in {"OUT_INACTIVO", "DOUBTFUL"}:
+                return f"{nm} [OUT]"
+            if st_s == "QUESTIONABLE_GTD":
+                return f"{nm} [GTD]"
+            if st_s == "RECIEN_ACTIVADO":
+                return f"{nm} [ACTIVADO]"
+            if st_s in {"TRASPASO_NUEVO", "TRASPASO_NUEVO_EQUIPO"}:
+                return f"{nm} [NUEVO]"
+            return f"{nm} [OK]"
+
+        pills_b = (t_info.get("bajas_top3_pills") or [])[:3]
+        bajas_txt = (
+            ", ".join(f"{x['player']} ({x['slot']}-{x['badge']})" for x in pills_b)
+            if pills_b
+            else "Sin bajas titulares críticas"
+        )
+        act_txt = ", ".join((t_info.get("recien_activados") or [])[:3]) or "Sin novedades"
+        tr_txt = ", ".join((t_info.get("traspasos_resumen") or [])[:2]) or "Sin movimientos relevantes"
+
+        filas.append(
+            {
+                "Equipo": eq,
+                "QB1": _fmt_slot("QB1"),
+                "WR1": _fmt_slot("WR1"),
+                "WR2": _fmt_slot("WR2"),
+                "WR3": _fmt_slot("WR3"),
+                "RB1": _fmt_slot("RB1"),
+                "RB2": _fmt_slot("RB2"),
+                "TE1": _fmt_slot("TE1"),
+                "TE2": _fmt_slot("TE2"),
+                "Bajas_OUT_GTD": bajas_txt,
+                "Recien_Activados": act_txt,
+                "Traspasos": tr_txt,
+            }
+        )
+    if not filas:
+        return pd.DataFrame(columns=cols)
+    return pd.DataFrame(filas, columns=cols)
+
+
+def _estilizar_hoja_excel_profesional(ws: Any) -> None:
+    """
+    Aplica encabezados oscuros institucionales (#0D1117 / #00FFCC), bordes limpios,
+    formato condicional en columnas de '% Probabilidad' y '+EV', y autoajuste de ancho.
+    """
+    if ws is None or ws.max_row < 1:
+        return
+
+    header_fill = PatternFill(start_color="0D1117", end_color="0D1117", fill_type="solid")
+    header_font = Font(name="Calibri", size=10, bold=True, color="00FFCC")
+    zebra_even = PatternFill(start_color="FFFFFF", end_color="FFFFFF", fill_type="solid")
+    zebra_odd = PatternFill(start_color="F4F7FA", end_color="F4F7FA", fill_type="solid")
+    high_prob_fill = PatternFill(start_color="D1FAE5", end_color="D1FAE5", fill_type="solid")
+    high_prob_font = Font(name="Calibri", size=10, bold=True, color="065F46")
+    pos_ev_fill = PatternFill(start_color="CCFBF1", end_color="CCFBF1", fill_type="solid")
+    pos_ev_font = Font(name="Calibri", size=10, bold=True, color="0F766E")
+    thin_side = Side(style="thin", color="CBD5E1")
+    cell_border = Border(left=thin_side, right=thin_side, top=thin_side, bottom=thin_side)
+
+    max_r = ws.max_row
+    max_c = ws.max_column
+
+    prob_cols: List[int] = []
+    ev_cols: List[int] = []
+
+    for c_idx in range(1, max_c + 1):
+        hdr_cell = ws.cell(row=1, column=c_idx)
+        hdr_txt = str(hdr_cell.value or "").strip()
+        hdr_cell.fill = header_fill
+        hdr_cell.font = header_font
+        hdr_cell.alignment = Alignment(horizontal="center", vertical="center")
+        if "Prob_" in hdr_txt or "Cubre" in hdr_txt:
+            prob_cols.append(c_idx)
+        elif "EV" in hdr_txt or "Edge_%" in hdr_txt:
+            ev_cols.append(c_idx)
+
+    for r_idx in range(2, max_r + 1):
+        row_fill = zebra_even if (r_idx % 2 == 0) else zebra_odd
+        for c_idx in range(1, max_c + 1):
+            c = ws.cell(row=r_idx, column=c_idx)
+            c.fill = row_fill
+            c.border = cell_border
+            val_num = _safe_float(c.value, -999.0)
+            if c_idx in prob_cols and val_num >= 56.0:
+                c.fill = high_prob_fill
+                c.font = high_prob_font
+            elif c_idx in ev_cols and val_num > 0.0:
+                c.fill = pos_ev_fill
+                c.font = pos_ev_font
+
+    for c_idx in range(1, max_c + 1):
+        col_letter = get_column_letter(c_idx)
+        max_len = max(
+            len(str(ws.cell(row=r_i, column=c_idx).value or ""))
+            for r_i in range(1, min(max_r + 1, 150))
+        )
+        ws.column_dimensions[col_letter].width = max(12, min(46, max_len + 3))
+
+
 def empaquetar_excel_en_memoria(
     df_general: pd.DataFrame,
     df_ranking: pd.DataFrame,
     df_props_ranking: Optional[pd.DataFrame] = None,
+    resultados_simulados: Optional[List[Dict[str, Any]]] = None,
+    starters_verified: Optional[Dict[str, Any]] = None,
+    guardar_en_disco: bool = True,
 ) -> Tuple[bytes, str]:
     """
-    Mantiene compatibilidad con exportaciones Excel en memoria con openpyxl.
+    Genera y formatea 'nfl_quant_projections.xlsx' en memoria (y en disco) con las 5 pestañas
+    institucionales requeridas:
+      1. 'Rankings_Probabilidad' (ML, Spread y Over/Under ordenados de MAYOR a MENOR Prob_Modelo_%)
+      2. 'Proyecciones_Partidos'
+      3. 'Player_Props_EV'
+      4. 'Combos_Correlacionados'
+      5. 'Plantilla_y_Lesiones'
     """
+    sims_list = resultados_simulados or []
+    df_tab_rankings = construir_df_rankings_probabilidad(sims_list)
+    df_tab_partidos = construir_df_proyecciones_partidos(sims_list) if sims_list else df_general
+    df_tab_props = construir_df_player_props_ev(df_props_ranking)
+    df_tab_combos = construir_df_combos_correlacionados(sims_list, df_props_ranking)
+    df_tab_plantilla = construir_df_plantilla_y_lesiones(sims_list, starters_verified=starters_verified)
+
     buffer = io.BytesIO()
     with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
-        df_general.to_excel(writer, index=False, sheet_name="Proyecciones_Generales")
-        df_ranking.to_excel(writer, index=False, sheet_name="Ranking_Alta_Probabilidad")
-        if df_props_ranking is not None and not df_props_ranking.empty:
-            df_props_ranking.to_excel(writer, index=False, sheet_name="Player_Props_Ranking")
-            estilizar_hoja_player_props_openpyxl(writer.sheets["Player_Props_Ranking"])
+        df_tab_rankings.to_excel(writer, index=False, sheet_name="Rankings_Probabilidad")
+        df_tab_partidos.to_excel(writer, index=False, sheet_name="Proyecciones_Partidos")
+        df_tab_props.to_excel(writer, index=False, sheet_name="Player_Props_EV")
+        df_tab_combos.to_excel(writer, index=False, sheet_name="Combos_Correlacionados")
+        df_tab_plantilla.to_excel(writer, index=False, sheet_name="Plantilla_y_Lesiones")
+
+        for sh_name in (
+            "Rankings_Probabilidad",
+            "Proyecciones_Partidos",
+            "Player_Props_EV",
+            "Combos_Correlacionados",
+            "Plantilla_y_Lesiones",
+        ):
+            if sh_name in writer.sheets:
+                _estilizar_hoja_excel_profesional(writer.sheets[sh_name])
+
     buffer.seek(0)
     raw_bytes = buffer.getvalue()
+    if guardar_en_disco:
+        try:
+            with open(EXCEL_ATTACHMENT_FILENAME, "wb") as f_xlsx:
+                f_xlsx.write(raw_bytes)
+        except Exception:
+            pass
     b64_str = base64.b64encode(raw_bytes).decode("utf-8")
     return raw_bytes, b64_str
 
@@ -1101,7 +1627,7 @@ def construir_html_reporte_nfl(
         f'{tarjetas_partidos_html}'
         f'<div style="margin-top:16px; padding-top:10px; border-top:1px solid #30363d; '
         f'color:#8b949e; font-size:11px; font-family:monospace; text-align:center;">'
-        f'Adjunto: <b>{ATTACHMENT_FILENAME}</b> · TERMINAL SHARP: NFL QUANT'
+        f'Adjuntos: <b>{ATTACHMENT_FILENAME}</b> &amp; <b>{EXCEL_ATTACHMENT_FILENAME}</b> · TERMINAL SHARP: NFL QUANT'
         f'</div>'
         f'</div>'
         f'</body></html>'
@@ -1426,6 +1952,20 @@ def enviar_reporte_resend_nfl(semana: Optional[int] = None) -> Dict[str, Any]:
         )
         pdf_bytes, pdf_b64 = None, None
 
+    excel_bytes: Optional[bytes] = None
+    excel_b64: Optional[str] = None
+    try:
+        excel_bytes, excel_b64 = empaquetar_excel_en_memoria(
+            df_general=df_general,
+            df_ranking=df_ranking,
+            df_props_ranking=df_props_ranking,
+            resultados_simulados=resultados,
+            guardar_en_disco=True,
+        )
+    except Exception as e_xl:
+        print(f"[WARN] Excepción capturada al generar {EXCEL_ATTACHMENT_FILENAME} ({e_xl}).")
+        excel_bytes, excel_b64 = None, None
+
     print(
         f"[TERMINAL SHARP NFL] Semana {sem} | Partidos: {len(resultados)} | "
         f"Top 5 Anchors: {len(top_5_anchors)} | Player Props +EV: {len(df_props_ranking)}"
@@ -1442,7 +1982,7 @@ def enviar_reporte_resend_nfl(semana: Optional[int] = None) -> Dict[str, Any]:
     if not resend_api_key or not to_email_raw:
         print(
             "[WARN] Variables de entorno RESEND_API_KEY o TO_EMAIL no definidas. "
-            "Simulación, Briefing HTML móvil y PDF completados correctamente en modo dry-run."
+            "Simulación, Briefing HTML móvil, PDF y Excel completados correctamente en modo dry-run."
         )
         return {
             "enviado": False,
@@ -1451,6 +1991,7 @@ def enviar_reporte_resend_nfl(semana: Optional[int] = None) -> Dict[str, Any]:
             "top_3": top_3,
             "top_5_anchors": top_5_anchors,
             "pdf_generado": bool(pdf_b64),
+            "excel_generado": bool(excel_b64),
         }
 
     destinatarios = [e.strip() for e in to_email_raw.split(",") if e.strip()]
@@ -1460,13 +2001,23 @@ def enviar_reporte_resend_nfl(semana: Optional[int] = None) -> Dict[str, Any]:
         "subject": f"🏈 TERMINAL SHARP: NFL QUANT — Semana {sem} | Briefing Móvil & Top 5 Anchors",
         "html": html_body,
     }
+    adjuntos_resend: List[Dict[str, str]] = []
     if pdf_b64:
-        payload["attachments"] = [
+        adjuntos_resend.append(
             {
                 "filename": ATTACHMENT_FILENAME,
                 "content": pdf_b64,
             }
-        ]
+        )
+    if excel_b64:
+        adjuntos_resend.append(
+            {
+                "filename": EXCEL_ATTACHMENT_FILENAME,
+                "content": excel_b64,
+            }
+        )
+    if adjuntos_resend:
+        payload["attachments"] = adjuntos_resend
 
     headers = {
         "Authorization": f"Bearer {resend_api_key}",
