@@ -1,5 +1,5 @@
 {
-  "timestamp_cst": "2026-11-21 22:18:38 CST",
+  "timestamp_cst": "2026-11-22 00:23:50 CST",
   "semana": 12,
   "weather_by_matchup": {
     "GB @ LA": {
@@ -51,46 +51,46 @@
       "home_abbr": "BUF",
       "stadium": "Highmark Stadium",
       "roof": "OUTDOOR",
-      "temp_c": 19.5,
-      "temp_f": 67.1,
-      "wind_kmh": 22.1,
-      "wind_mph": 13.7,
-      "precip_prob": 1.0,
+      "temp_c": 15.0,
+      "temp_f": 59.0,
+      "wind_kmh": 11.0,
+      "wind_mph": 6.8,
+      "precip_prob": 10.0,
       "clima_adverso": false,
       "ajuste_total_pts": 0.0,
       "pass_rate_multiplier": 1.0,
       "pass_yds_multiplier": 1.0,
-      "resumen_clima": "Abierto · 67°F (20°C) · Viento 14 mph (22 km/h) · Lluvia 1%"
+      "resumen_clima": "Abierto · 59°F (15°C) · Viento 7 mph (11 km/h) · Lluvia 10%"
     },
     "DEN @ PIT": {
       "home_abbr": "PIT",
       "stadium": "Acrisure Stadium",
       "roof": "OUTDOOR",
-      "temp_c": 20.0,
-      "temp_f": 68.0,
-      "wind_kmh": 9.8,
-      "wind_mph": 6.1,
-      "precip_prob": 1.0,
+      "temp_c": 15.0,
+      "temp_f": 59.0,
+      "wind_kmh": 11.0,
+      "wind_mph": 6.8,
+      "precip_prob": 10.0,
       "clima_adverso": false,
       "ajuste_total_pts": 0.0,
       "pass_rate_multiplier": 1.0,
       "pass_yds_multiplier": 1.0,
-      "resumen_clima": "Abierto · 68°F (20°C) · Viento 6 mph (10 km/h) · Lluvia 1%"
+      "resumen_clima": "Abierto · 59°F (15°C) · Viento 7 mph (11 km/h) · Lluvia 10%"
     },
     "NO @ CIN": {
       "home_abbr": "CIN",
       "stadium": "Paycor Stadium",
       "roof": "OUTDOOR",
-      "temp_c": 20.1,
-      "temp_f": 68.2,
-      "wind_kmh": 8.4,
-      "wind_mph": 5.2,
-      "precip_prob": 1.0,
+      "temp_c": 15.0,
+      "temp_f": 59.0,
+      "wind_kmh": 11.0,
+      "wind_mph": 6.8,
+      "precip_prob": 10.0,
       "clima_adverso": false,
       "ajuste_total_pts": 0.0,
       "pass_rate_multiplier": 1.0,
       "pass_yds_multiplier": 1.0,
-      "resumen_clima": "Abierto · 68°F (20°C) · Viento 5 mph (8 km/h) · Lluvia 1%"
+      "resumen_clima": "Abierto · 59°F (15°C) · Viento 7 mph (11 km/h) · Lluvia 10%"
     },
     "NYG @ IND": {
       "home_abbr": "IND",
@@ -111,16 +111,16 @@
       "home_abbr": "MIA",
       "stadium": "Hard Rock Stadium",
       "roof": "OUTDOOR",
-      "temp_c": 26.0,
-      "temp_f": 78.8,
-      "wind_kmh": 9.7,
-      "wind_mph": 6.0,
-      "precip_prob": 1.0,
+      "temp_c": 15.0,
+      "temp_f": 59.0,
+      "wind_kmh": 11.0,
+      "wind_mph": 6.8,
+      "precip_prob": 10.0,
       "clima_adverso": false,
       "ajuste_total_pts": 0.0,
       "pass_rate_multiplier": 1.0,
       "pass_yds_multiplier": 1.0,
-      "resumen_clima": "Abierto · 79°F (26°C) · Viento 6 mph (10 km/h) · Lluvia 1%"
+      "resumen_clima": "Abierto · 59°F (15°C) · Viento 7 mph (11 km/h) · Lluvia 10%"
     },
     "ATL @ MIN": {
       "home_abbr": "MIN",
@@ -141,16 +141,16 @@
       "home_abbr": "JAX",
       "stadium": "EverBank Stadium",
       "roof": "OUTDOOR",
-      "temp_c": 19.5,
-      "temp_f": 67.1,
-      "wind_kmh": 13.8,
-      "wind_mph": 8.6,
-      "precip_prob": 1.0,
+      "temp_c": 15.0,
+      "temp_f": 59.0,
+      "wind_kmh": 11.0,
+      "wind_mph": 6.8,
+      "precip_prob": 10.0,
       "clima_adverso": false,
       "ajuste_total_pts": 0.0,
       "pass_rate_multiplier": 1.0,
       "pass_yds_multiplier": 1.0,
-      "resumen_clima": "Abierto · 67°F (20°C) · Viento 9 mph (14 km/h) · Lluvia 1%"
+      "resumen_clima": "Abierto · 59°F (15°C) · Viento 7 mph (11 km/h) · Lluvia 10%"
     },
     "BAL @ HOU": {
       "home_abbr": "HOU",
@@ -201,55 +201,55 @@
       "home_abbr": "SF",
       "stadium": "Levi's Stadium",
       "roof": "OUTDOOR",
-      "temp_c": 11.4,
-      "temp_f": 52.5,
-      "wind_kmh": 6.3,
-      "wind_mph": 3.9,
-      "precip_prob": 2.0,
+      "temp_c": 15.0,
+      "temp_f": 59.0,
+      "wind_kmh": 11.0,
+      "wind_mph": 6.8,
+      "precip_prob": 10.0,
       "clima_adverso": false,
       "ajuste_total_pts": 0.0,
       "pass_rate_multiplier": 1.0,
       "pass_yds_multiplier": 1.0,
-      "resumen_clima": "Abierto · 52°F (11°C) · Viento 4 mph (6 km/h) · Lluvia 2%"
+      "resumen_clima": "Abierto · 59°F (15°C) · Viento 7 mph (11 km/h) · Lluvia 10%"
     },
     "LV @ CLE": {
       "home_abbr": "CLE",
       "stadium": "Huntington Bank Field",
       "roof": "OUTDOOR",
-      "temp_c": 20.2,
-      "temp_f": 68.4,
-      "wind_kmh": 19.6,
-      "wind_mph": 12.2,
-      "precip_prob": 0.0,
+      "temp_c": 15.0,
+      "temp_f": 59.0,
+      "wind_kmh": 11.0,
+      "wind_mph": 6.8,
+      "precip_prob": 10.0,
       "clima_adverso": false,
       "ajuste_total_pts": 0.0,
       "pass_rate_multiplier": 1.0,
       "pass_yds_multiplier": 1.0,
-      "resumen_clima": "Abierto · 68°F (20°C) · Viento 12 mph (20 km/h) · Lluvia 0%"
+      "resumen_clima": "Abierto · 59°F (15°C) · Viento 7 mph (11 km/h) · Lluvia 10%"
     },
     "CAR @ TB": {
       "home_abbr": "TB",
       "stadium": "Raymond James Stadium",
       "roof": "OUTDOOR",
-      "temp_c": 22.0,
-      "temp_f": 71.6,
-      "wind_kmh": 15.8,
-      "wind_mph": 9.8,
-      "precip_prob": 0.0,
+      "temp_c": 15.0,
+      "temp_f": 59.0,
+      "wind_kmh": 11.0,
+      "wind_mph": 6.8,
+      "precip_prob": 10.0,
       "clima_adverso": false,
       "ajuste_total_pts": 0.0,
       "pass_rate_multiplier": 1.0,
       "pass_yds_multiplier": 1.0,
-      "resumen_clima": "Abierto · 72°F (22°C) · Viento 10 mph (16 km/h) · Lluvia 0%"
+      "resumen_clima": "Abierto · 59°F (15°C) · Viento 7 mph (11 km/h) · Lluvia 10%"
     }
   },
   "roster_moves": {
-    "timestamp_cst": "2026-11-21 22:18:38 CST",
+    "timestamp_cst": "2026-11-22 00:23:50 CST",
     "new_team_adaptation_factor": 0.85,
     "total_moves": 3,
     "moves": [
       {
-        "Timestamp_CST": "2026-11-21 22:18:38 CST",
+        "Timestamp_CST": "2026-11-22 00:23:50 CST",
         "Player": "D. Jones",
         "Pos": "QB",
         "Equipo_Prev": "IND",
@@ -265,7 +265,7 @@
         "player_key": "D_JONES"
       },
       {
-        "Timestamp_CST": "2026-11-21 22:18:38 CST",
+        "Timestamp_CST": "2026-11-22 00:23:50 CST",
         "Player": "J. Downs",
         "Pos": "WR",
         "Equipo_Prev": "IND",
@@ -281,7 +281,7 @@
         "player_key": "J_DOWNS"
       },
       {
-        "Timestamp_CST": "2026-11-21 22:18:38 CST",
+        "Timestamp_CST": "2026-11-22 00:23:50 CST",
         "Player": "K. Cousins",
         "Pos": "QB",
         "Equipo_Prev": "LV",
@@ -300,7 +300,7 @@
     "by_prev_team": {
       "IND": [
         {
-          "Timestamp_CST": "2026-11-21 22:18:38 CST",
+          "Timestamp_CST": "2026-11-22 00:23:50 CST",
           "Player": "D. Jones",
           "Pos": "QB",
           "Equipo_Prev": "IND",
@@ -316,7 +316,7 @@
           "player_key": "D_JONES"
         },
         {
-          "Timestamp_CST": "2026-11-21 22:18:38 CST",
+          "Timestamp_CST": "2026-11-22 00:23:50 CST",
           "Player": "J. Downs",
           "Pos": "WR",
           "Equipo_Prev": "IND",
@@ -334,7 +334,7 @@
       ],
       "LV": [
         {
-          "Timestamp_CST": "2026-11-21 22:18:38 CST",
+          "Timestamp_CST": "2026-11-22 00:23:50 CST",
           "Player": "K. Cousins",
           "Pos": "QB",
           "Equipo_Prev": "LV",
@@ -354,7 +354,7 @@
     "by_current_team": {
       "KC": [
         {
-          "Timestamp_CST": "2026-11-21 22:18:38 CST",
+          "Timestamp_CST": "2026-11-22 00:23:50 CST",
           "Player": "J. Downs",
           "Pos": "WR",
           "Equipo_Prev": "IND",
@@ -372,7 +372,7 @@
       ],
       "MIN": [
         {
-          "Timestamp_CST": "2026-11-21 22:18:38 CST",
+          "Timestamp_CST": "2026-11-22 00:23:50 CST",
           "Player": "K. Cousins",
           "Pos": "QB",
           "Equipo_Prev": "LV",
@@ -462,7 +462,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873092",
           "canonical_key": "ARI_C_BECK",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "ARI",
@@ -474,7 +474,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873092",
           "canonical_key": "ARI_J_GAINES",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "ARI",
@@ -486,7 +486,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873092",
           "canonical_key": "ARI_Z_CARTER",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "ARI",
@@ -498,7 +498,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873092",
           "canonical_key": "ARI_J_CONNER",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "ARI",
@@ -510,12 +510,12 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873092",
           "canonical_key": "ARI_G_MINSHEW",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         }
       ],
       "summary": {
         "team": "ARI",
-        "timestamp_cst": "2026-11-21 22:18:38 CST",
+        "timestamp_cst": "2026-11-22 00:23:50 CST",
         "qb1_name": "Carson Beck",
         "qb1_base": "G. Minshew",
         "qb1_status": "OUT_INACTIVO",
@@ -971,7 +971,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873084",
           "canonical_key": "ATL_D_DEABLO",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "ATL",
@@ -983,7 +983,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873084",
           "canonical_key": "ATL_Z_BRANCH",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "ATL",
@@ -995,7 +995,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873084",
           "canonical_key": "ATL_B_ROBINSON",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "ATL",
@@ -1007,7 +1007,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873084",
           "canonical_key": "ATL_S_EBUKAM",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "ATL",
@@ -1019,12 +1019,12 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873084",
           "canonical_key": "ATL_A_THOMPSON",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         }
       ],
       "summary": {
         "team": "ATL",
-        "timestamp_cst": "2026-11-21 22:18:38 CST",
+        "timestamp_cst": "2026-11-22 00:23:50 CST",
         "qb1_name": "Michael Penix Jr.",
         "qb1_base": "M. Penix Jr.",
         "qb1_status": "ACTIVO_CONFIRMADO",
@@ -1480,7 +1480,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873085",
           "canonical_key": "BAL_J_HAWKINS",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "BAL",
@@ -1492,7 +1492,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873085",
           "canonical_key": "BAL_N_MADUBUIKE",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "BAL",
@@ -1504,7 +1504,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873085",
           "canonical_key": "BAL_M_HUMPHREY",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "BAL",
@@ -1516,7 +1516,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873085",
           "canonical_key": "BAL_L_JACKSON",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "BAL",
@@ -1528,12 +1528,12 @@
           "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873085",
           "canonical_key": "BAL_A_ISAAC",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         }
       ],
       "summary": {
         "team": "BAL",
-        "timestamp_cst": "2026-11-21 22:18:38 CST",
+        "timestamp_cst": "2026-11-22 00:23:50 CST",
         "qb1_name": "Jacoby Brissett",
         "qb1_base": "J. Fagnano",
         "qb1_status": "ACTIVO_CONFIRMADO",
@@ -1989,7 +1989,7 @@
           "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873082",
           "canonical_key": "BUF_E_OLIVER",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "BUF",
@@ -2001,7 +2001,7 @@
           "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873082",
           "canonical_key": "BUF_D_HAMLIN",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "BUF",
@@ -2013,7 +2013,7 @@
           "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873082",
           "canonical_key": "BUF_J_HAWES",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "BUF",
@@ -2025,7 +2025,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873082",
           "canonical_key": "BUF_D_WILLIAMS",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "BUF",
@@ -2037,12 +2037,12 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873082",
           "canonical_key": "BUF_C_BENFORD",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         }
       ],
       "summary": {
         "team": "BUF",
-        "timestamp_cst": "2026-11-21 22:18:38 CST",
+        "timestamp_cst": "2026-11-22 00:23:50 CST",
         "qb1_name": "Josh Allen",
         "qb1_base": "J. Allen",
         "qb1_status": "ACTIVO_CONFIRMADO",
@@ -2498,7 +2498,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873094",
           "canonical_key": "CAR_B_CHRISTENSEN",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "CAR",
@@ -2510,7 +2510,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873094",
           "canonical_key": "CAR_I_SIMMONS",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "CAR",
@@ -2522,7 +2522,7 @@
           "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873094",
           "canonical_key": "CAR_M_JACKSON",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "CAR",
@@ -2534,7 +2534,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873094",
           "canonical_key": "CAR_J_BROOKS",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "CAR",
@@ -2546,12 +2546,12 @@
           "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873094",
           "canonical_key": "CAR_T_TREMBLE",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         }
       ],
       "summary": {
         "team": "CAR",
-        "timestamp_cst": "2026-11-21 22:18:38 CST",
+        "timestamp_cst": "2026-11-22 00:23:50 CST",
         "qb1_name": "Bryce Young",
         "qb1_base": "B. Young",
         "qb1_status": "ACTIVO_CONFIRMADO",
@@ -3007,7 +3007,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873081",
           "canonical_key": "CHI_K_GORDON",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "CHI",
@@ -3019,7 +3019,7 @@
           "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873081",
           "canonical_key": "CHI_Z_THOMAS",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "CHI",
@@ -3031,7 +3031,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873081",
           "canonical_key": "CHI_Z_SCOTT",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "CHI",
@@ -3043,7 +3043,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873081",
           "canonical_key": "CHI_K_STREET",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "CHI",
@@ -3055,12 +3055,12 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873081",
           "canonical_key": "CHI_B_JONES",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         }
       ],
       "summary": {
         "team": "CHI",
-        "timestamp_cst": "2026-11-21 22:18:38 CST",
+        "timestamp_cst": "2026-11-22 00:23:50 CST",
         "qb1_name": "Caleb Williams",
         "qb1_base": "C. Williams",
         "qb1_status": "ACTIVO_CONFIRMADO",
@@ -3505,7 +3505,7 @@
           "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873087",
           "canonical_key": "CIN_K_DUGGER",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "CIN",
@@ -3517,7 +3517,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873087",
           "canonical_key": "CIN_D_RISNER",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "CIN",
@@ -3529,7 +3529,7 @@
           "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873087",
           "canonical_key": "CIN_D_HILL",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "CIN",
@@ -3541,7 +3541,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873087",
           "canonical_key": "CIN_A_IOSIVAS",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "CIN",
@@ -3553,12 +3553,12 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873087",
           "canonical_key": "CIN_O_BURKS",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         }
       ],
       "summary": {
         "team": "CIN",
-        "timestamp_cst": "2026-11-21 22:18:38 CST",
+        "timestamp_cst": "2026-11-22 00:23:50 CST",
         "qb1_name": "Joe Burrow",
         "qb1_base": "J. Burrow",
         "qb1_status": "ACTIVO_CONFIRMADO",
@@ -4014,7 +4014,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873086",
           "canonical_key": "CLE_R_HICKMAN",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "CLE",
@@ -4026,7 +4026,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873086",
           "canonical_key": "CLE_M_BURTON",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "CLE",
@@ -4038,7 +4038,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873086",
           "canonical_key": "CLE_K_DAVIS",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "CLE",
@@ -4050,7 +4050,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873086",
           "canonical_key": "CLE_T_JENKINS",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "CLE",
@@ -4062,12 +4062,12 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873086",
           "canonical_key": "CLE_R_SANDERS",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         }
       ],
       "summary": {
         "team": "CLE",
-        "timestamp_cst": "2026-11-21 22:18:38 CST",
+        "timestamp_cst": "2026-11-22 00:23:50 CST",
         "qb1_name": "Deshaun Watson",
         "qb1_base": "S. Sanders",
         "qb1_status": "ACTIVO_CONFIRMADO",
@@ -4512,7 +4512,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873080",
           "canonical_key": "DAL_J_THOMPSON",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "DAL",
@@ -4524,7 +4524,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873080",
           "canonical_key": "DAL_D_BLAND",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "DAL",
@@ -4536,7 +4536,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873080",
           "canonical_key": "DAL_P_LOCKE",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "DAL",
@@ -4548,7 +4548,7 @@
           "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873080",
           "canonical_key": "DAL_L_SCHOONMAKER",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "DAL",
@@ -4560,12 +4560,12 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873080",
           "canonical_key": "DAL_J_MINGO",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         }
       ],
       "summary": {
         "team": "DAL",
-        "timestamp_cst": "2026-11-21 22:18:38 CST",
+        "timestamp_cst": "2026-11-22 00:23:50 CST",
         "qb1_name": "Dak Prescott",
         "qb1_base": "D. Prescott",
         "qb1_status": "ACTIVO_CONFIRMADO",
@@ -4575,9 +4575,7 @@
         "wr1_te1_out_players": [],
         "ol_out_count": 0,
         "def_key_out_count": 0,
-        "recien_activados": [
-          "Jake Ferguson (TE1)"
-        ],
+        "recien_activados": [],
         "bajas_out_doubtful": [],
         "questionable_gtd": [],
         "bajas_top3_pills": [],
@@ -4656,8 +4654,8 @@
             "pos": "TE",
             "player": "Jake Ferguson",
             "backup": "Brevyn Spann-Ford",
-            "status": "RECIEN_ACTIVADO",
-            "raw_status": "Activated (Prev: OUT)",
+            "status": "ACTIVO_CONFIRMADO",
+            "raw_status": "Active",
             "canonical_key": "DAL_J_FERGUSON",
             "player_key": "J_FERGUSON",
             "full_clean": "JAKE FERGUSON"
@@ -4746,8 +4744,8 @@
             "pos": "TE",
             "player": "Jake Ferguson",
             "backup": "Brevyn Spann-Ford",
-            "status": "RECIEN_ACTIVADO",
-            "raw_status": "Activated (Prev: OUT)",
+            "status": "ACTIVO_CONFIRMADO",
+            "raw_status": "Active",
             "canonical_key": "DAL_J_FERGUSON",
             "player_key": "J_FERGUSON",
             "full_clean": "JAKE FERGUSON"
@@ -4911,10 +4909,10 @@
             "slot": "TE1",
             "position": "TE",
             "player_name": "Jake Ferguson",
-            "status": "RECIEN_ACTIVADO",
-            "raw_espn_status": "Activated (Prev: OUT)",
-            "detail": "Activated (Prev: OUT)",
-            "recien_activado": true
+            "status": "ACTIVO_CONFIRMADO",
+            "raw_espn_status": "Active",
+            "detail": "Active",
+            "recien_activado": false
           },
           {
             "slot": "TE2",
@@ -5012,7 +5010,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873083",
           "canonical_key": "DEN_C_LOHNER",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "DEN",
@@ -5024,7 +5022,7 @@
           "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873083",
           "canonical_key": "DEN_B_JONES",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "DEN",
@@ -5036,7 +5034,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873083",
           "canonical_key": "DEN_E_UWAZURIKE",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "DEN",
@@ -5048,7 +5046,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873083",
           "canonical_key": "DEN_R_HARVEY",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "DEN",
@@ -5060,12 +5058,12 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873083",
           "canonical_key": "DEN_T_BADIE",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         }
       ],
       "summary": {
         "team": "DEN",
-        "timestamp_cst": "2026-11-21 22:18:38 CST",
+        "timestamp_cst": "2026-11-22 00:23:50 CST",
         "qb1_name": "Bo Nix",
         "qb1_base": "B. Nix",
         "qb1_status": "ACTIVO_CONFIRMADO",
@@ -5109,7 +5107,7 @@
             "slot": "RB2",
             "pos": "RB",
             "player": "J.K. Dobbins",
-            "backup": "RJ Harvey",
+            "backup": "Cody Schrader",
             "status": "ACTIVO_CONFIRMADO",
             "raw_status": "Active",
             "canonical_key": "DEN_J_DOBBINS",
@@ -5199,7 +5197,7 @@
             "slot": "RB2",
             "pos": "RB",
             "player": "J.K. Dobbins",
-            "backup": "RJ Harvey",
+            "backup": "Cody Schrader",
             "status": "ACTIVO_CONFIRMADO",
             "raw_status": "Active",
             "canonical_key": "DEN_J_DOBBINS",
@@ -5298,7 +5296,7 @@
             "slot": "RG",
             "pos": "RG",
             "player": "Quinn Meinerz",
-            "backup": "Kage Casey",
+            "backup": "",
             "status": "ACTIVO_CONFIRMADO",
             "raw_status": "Active",
             "canonical_key": "DEN_Q_MEINERZ",
@@ -5510,7 +5508,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873081",
           "canonical_key": "DET_C_MAYS",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "DET",
@@ -5522,7 +5520,7 @@
           "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873081",
           "canonical_key": "DET_D_REED",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "DET",
@@ -5534,7 +5532,7 @@
           "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873081",
           "canonical_key": "DET_S_VAKI",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "DET",
@@ -5546,7 +5544,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873081",
           "canonical_key": "DET_A_HUTCHINSON",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "DET",
@@ -5558,12 +5556,12 @@
           "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873081",
           "canonical_key": "DET_T_LACY",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         }
       ],
       "summary": {
         "team": "DET",
-        "timestamp_cst": "2026-11-21 22:18:38 CST",
+        "timestamp_cst": "2026-11-22 00:23:50 CST",
         "qb1_name": "Jared Goff",
         "qb1_base": "J. Goff",
         "qb1_status": "ACTIVO_CONFIRMADO",
@@ -5816,7 +5814,7 @@
             "slot": "RG",
             "pos": "RG",
             "player": "Tate Ratledge",
-            "backup": "Miles Frazier",
+            "backup": "",
             "status": "ACTIVO_CONFIRMADO",
             "raw_status": "Active",
             "canonical_key": "DET_T_RATLEDGE",
@@ -6028,7 +6026,7 @@
           "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873079",
           "canonical_key": "GB_B_CISSE",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "GB",
@@ -6040,7 +6038,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873079",
           "canonical_key": "GB_Z_FRANKLIN",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "GB",
@@ -6052,7 +6050,7 @@
           "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873079",
           "canonical_key": "GB_S_MOORE",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "GB",
@@ -6064,7 +6062,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873079",
           "canonical_key": "GB_M_PARSONS",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "GB",
@@ -6076,12 +6074,12 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873079",
           "canonical_key": "GB_J_JACOBS",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         }
       ],
       "summary": {
         "team": "GB",
-        "timestamp_cst": "2026-11-21 22:18:38 CST",
+        "timestamp_cst": "2026-11-22 00:23:50 CST",
         "qb1_name": "Jordan Love",
         "qb1_base": "J. Love",
         "qb1_status": "ACTIVO_CONFIRMADO",
@@ -6537,7 +6535,7 @@
           "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873085",
           "canonical_key": "HOU_K_BOUTTE",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "HOU",
@@ -6549,7 +6547,7 @@
           "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873085",
           "canonical_key": "HOU_K_RUTLEDGE",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "HOU",
@@ -6561,7 +6559,7 @@
           "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873085",
           "canonical_key": "HOU_S_RANKINS",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "HOU",
@@ -6573,7 +6571,7 @@
           "status_code": "DOUBTFUL",
           "comment": "event_summary:401873085",
           "canonical_key": "HOU_C_BRASWELL",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "HOU",
@@ -6585,12 +6583,12 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873085",
           "canonical_key": "HOU_W_TELLER",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         }
       ],
       "summary": {
         "team": "HOU",
-        "timestamp_cst": "2026-11-21 22:18:38 CST",
+        "timestamp_cst": "2026-11-22 00:23:50 CST",
         "qb1_name": "C.J. Stroud",
         "qb1_base": "C.J. Stroud",
         "qb1_status": "ACTIVO_CONFIRMADO",
@@ -6600,9 +6598,7 @@
         "wr1_te1_out_players": [],
         "ol_out_count": 0,
         "def_key_out_count": 0,
-        "recien_activados": [
-          "Woody Marks (RB2)"
-        ],
+        "recien_activados": [],
         "bajas_out_doubtful": [],
         "questionable_gtd": [
           "Keylan Rutledge (LG - GTD)"
@@ -6648,8 +6644,8 @@
             "pos": "RB",
             "player": "Woody Marks",
             "backup": "Emari Demercado",
-            "status": "RECIEN_ACTIVADO",
-            "raw_status": "Activated (Prev: OUT)",
+            "status": "ACTIVO_CONFIRMADO",
+            "raw_status": "Active",
             "canonical_key": "HOU_W_MARKS",
             "player_key": "W_MARKS",
             "full_clean": "WOODY MARKS"
@@ -6738,8 +6734,8 @@
             "pos": "RB",
             "player": "Woody Marks",
             "backup": "Emari Demercado",
-            "status": "RECIEN_ACTIVADO",
-            "raw_status": "Activated (Prev: OUT)",
+            "status": "ACTIVO_CONFIRMADO",
+            "raw_status": "Active",
             "canonical_key": "HOU_W_MARKS",
             "player_key": "W_MARKS",
             "full_clean": "WOODY MARKS"
@@ -6911,10 +6907,10 @@
             "slot": "RB2",
             "position": "RB",
             "player_name": "Woody Marks",
-            "status": "RECIEN_ACTIVADO",
-            "raw_espn_status": "Activated (Prev: OUT)",
-            "detail": "Activated (Prev: OUT)",
-            "recien_activado": true
+            "status": "ACTIVO_CONFIRMADO",
+            "raw_espn_status": "Active",
+            "detail": "Active",
+            "recien_activado": false
           },
           {
             "slot": "WR1",
@@ -7048,7 +7044,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873088",
           "canonical_key": "IND_R_LEONARD",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "IND",
@@ -7060,7 +7056,7 @@
           "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873088",
           "canonical_key": "IND_S_MCGOWAN",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "IND",
@@ -7072,7 +7068,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873088",
           "canonical_key": "IND_S_GARDNER",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "IND",
@@ -7084,7 +7080,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873088",
           "canonical_key": "IND_B_RAIMANN",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "IND",
@@ -7096,12 +7092,12 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873088",
           "canonical_key": "IND_J_TILLERY",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         }
       ],
       "summary": {
         "team": "IND",
-        "timestamp_cst": "2026-11-21 22:18:38 CST",
+        "timestamp_cst": "2026-11-22 00:23:50 CST",
         "qb1_name": "Anthony Richardson Sr.",
         "qb1_base": "D. Jones",
         "qb1_status": "ACTIVO_CONFIRMADO",
@@ -7148,7 +7144,7 @@
         "traspasos_altas": [],
         "traspasos_bajas": [
           {
-            "Timestamp_CST": "2026-11-21 22:18:38 CST",
+            "Timestamp_CST": "2026-11-22 00:23:50 CST",
             "Player": "D. Jones",
             "Pos": "QB",
             "Equipo_Prev": "IND",
@@ -7164,7 +7160,7 @@
             "player_key": "D_JONES"
           },
           {
-            "Timestamp_CST": "2026-11-21 22:18:38 CST",
+            "Timestamp_CST": "2026-11-22 00:23:50 CST",
             "Player": "J. Downs",
             "Pos": "WR",
             "Equipo_Prev": "IND",
@@ -7612,7 +7608,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873090",
           "canonical_key": "JAX_D_STRIGGOW",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "JAX",
@@ -7624,7 +7620,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873090",
           "canonical_key": "JAX_B_GREEN",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "JAX",
@@ -7636,7 +7632,7 @@
           "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873090",
           "canonical_key": "JAX_M_DICKERSON",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "JAX",
@@ -7648,7 +7644,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873090",
           "canonical_key": "JAX_R_HAINSEY",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "JAX",
@@ -7660,12 +7656,12 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873090",
           "canonical_key": "JAX_E_MURRAY",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         }
       ],
       "summary": {
         "team": "JAX",
-        "timestamp_cst": "2026-11-21 22:18:38 CST",
+        "timestamp_cst": "2026-11-22 00:23:50 CST",
         "qb1_name": "Trevor Lawrence",
         "qb1_base": "T. Lawrence",
         "qb1_status": "ACTIVO_CONFIRMADO",
@@ -8110,7 +8106,7 @@
           "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873082",
           "canonical_key": "KC_O_LOTT",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "KC",
@@ -8122,7 +8118,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873082",
           "canonical_key": "KC_J_MOORE",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "KC",
@@ -8134,7 +8130,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873082",
           "canonical_key": "KC_T_SMITH",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "KC",
@@ -8146,7 +8142,7 @@
           "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873082",
           "canonical_key": "KC_P_WOODS",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "KC",
@@ -8158,12 +8154,12 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873082",
           "canonical_key": "KC_K_WALKER",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         }
       ],
       "summary": {
         "team": "KC",
-        "timestamp_cst": "2026-11-21 22:18:38 CST",
+        "timestamp_cst": "2026-11-22 00:23:50 CST",
         "qb1_name": "Patrick Mahomes",
         "qb1_base": "P. Mahomes",
         "qb1_status": "ACTIVO_CONFIRMADO",
@@ -8190,7 +8186,7 @@
         ],
         "traspasos_altas": [
           {
-            "Timestamp_CST": "2026-11-21 22:18:38 CST",
+            "Timestamp_CST": "2026-11-22 00:23:50 CST",
             "Player": "J. Downs",
             "Pos": "WR",
             "Equipo_Prev": "IND",
@@ -8638,7 +8634,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873079",
           "canonical_key": "LA_P_NACUA",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "LA",
@@ -8650,7 +8646,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873079",
           "canonical_key": "LA_S_AVILA",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "LA",
@@ -8662,7 +8658,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873079",
           "canonical_key": "LA_J_DEDICH",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "LA",
@@ -8674,7 +8670,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873079",
           "canonical_key": "LA_K_TURNER",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "LA",
@@ -8686,12 +8682,12 @@
           "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873079",
           "canonical_key": "LA_K_WILLIAMS",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         }
       ],
       "summary": {
         "team": "LA",
-        "timestamp_cst": "2026-11-21 22:18:38 CST",
+        "timestamp_cst": "2026-11-22 00:23:50 CST",
         "qb1_name": "Matthew Stafford",
         "qb1_base": "M. Stafford",
         "qb1_status": "ACTIVO_CONFIRMADO",
@@ -9147,7 +9143,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873093",
           "canonical_key": "LAC_R_SHELLEY",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "LAC",
@@ -9159,7 +9155,7 @@
           "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873093",
           "canonical_key": "LAC_T_PIPKINS",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "LAC",
@@ -9171,7 +9167,7 @@
           "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873093",
           "canonical_key": "LAC_I_WAXTER",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "LAC",
@@ -9183,7 +9179,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873093",
           "canonical_key": "LAC_K_WILLIAMSON",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "LAC",
@@ -9195,12 +9191,12 @@
           "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873093",
           "canonical_key": "LAC_T_STILL",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         }
       ],
       "summary": {
         "team": "LAC",
-        "timestamp_cst": "2026-11-21 22:18:38 CST",
+        "timestamp_cst": "2026-11-22 00:23:50 CST",
         "qb1_name": "Justin Herbert",
         "qb1_base": "J. Herbert",
         "qb1_status": "ACTIVO_CONFIRMADO",
@@ -9656,7 +9652,7 @@
           "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873086",
           "canonical_key": "LV_F_FATUKASI",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "LV",
@@ -9668,7 +9664,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873086",
           "canonical_key": "LV_T_HEMINGWAY",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "LV",
@@ -9680,7 +9676,7 @@
           "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873086",
           "canonical_key": "LV_B_BOWERS",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "LV",
@@ -9692,7 +9688,7 @@
           "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873086",
           "canonical_key": "LV_M_GAY",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "LV",
@@ -9704,12 +9700,12 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873086",
           "canonical_key": "LV_P_JOHNSON",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         }
       ],
       "summary": {
         "team": "LV",
-        "timestamp_cst": "2026-11-21 22:18:38 CST",
+        "timestamp_cst": "2026-11-22 00:23:50 CST",
         "qb1_name": "Fernando Mendoza",
         "qb1_base": "K. Cousins",
         "qb1_status": "ACTIVO_CONFIRMADO",
@@ -9746,7 +9742,7 @@
         "traspasos_altas": [],
         "traspasos_bajas": [
           {
-            "Timestamp_CST": "2026-11-21 22:18:38 CST",
+            "Timestamp_CST": "2026-11-22 00:23:50 CST",
             "Player": "K. Cousins",
             "Pos": "QB",
             "Equipo_Prev": "LV",
@@ -10014,7 +10010,7 @@
             "slot": "EDGE1",
             "pos": "LDE",
             "player": "Folorunso Fatukasi",
-            "backup": "Chris Williams",
+            "backup": "",
             "status": "QUESTIONABLE_GTD",
             "raw_status": "Questionable",
             "canonical_key": "LV_F_FATUKASI",
@@ -10193,7 +10189,7 @@
           "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873089",
           "canonical_key": "MIA_D_BAKER",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "MIA",
@@ -10205,7 +10201,7 @@
           "status_code": "DOUBTFUL",
           "comment": "event_summary:401873089",
           "canonical_key": "MIA_J_SIMPSON",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "MIA",
@@ -10217,7 +10213,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873089",
           "canonical_key": "MIA_B_PINION",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "MIA",
@@ -10229,7 +10225,7 @@
           "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873089",
           "canonical_key": "MIA_A_BREWER",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "MIA",
@@ -10241,12 +10237,12 @@
           "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873089",
           "canonical_key": "MIA_M_DIAL",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         }
       ],
       "summary": {
         "team": "MIA",
-        "timestamp_cst": "2026-11-21 22:18:38 CST",
+        "timestamp_cst": "2026-11-22 00:23:50 CST",
         "qb1_name": "Kyle McCord",
         "qb1_base": "M. Willis",
         "qb1_status": "ACTIVO_CONFIRMADO",
@@ -10702,7 +10698,7 @@
           "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873084",
           "canonical_key": "MIN_I_RODGERS",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "MIN",
@@ -10714,7 +10710,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873084",
           "canonical_key": "MIN_K_MURRAY",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "MIN",
@@ -10726,7 +10722,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873084",
           "canonical_key": "MIN_B_RICHTER",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "MIN",
@@ -10738,7 +10734,7 @@
           "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873084",
           "canonical_key": "MIN_J_WARD",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "MIN",
@@ -10750,12 +10746,12 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873084",
           "canonical_key": "MIN_J_ADDISON",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         }
       ],
       "summary": {
         "team": "MIN",
-        "timestamp_cst": "2026-11-21 22:18:38 CST",
+        "timestamp_cst": "2026-11-22 00:23:50 CST",
         "qb1_name": "Kirk Cousins",
         "qb1_base": "C. Wentz",
         "qb1_status": "TRASPASO_NUEVO",
@@ -10794,7 +10790,7 @@
         ],
         "traspasos_altas": [
           {
-            "Timestamp_CST": "2026-11-21 22:18:38 CST",
+            "Timestamp_CST": "2026-11-22 00:23:50 CST",
             "Player": "K. Cousins",
             "Pos": "QB",
             "Equipo_Prev": "LV",
@@ -11242,7 +11238,7 @@
           "status_code": "DOUBTFUL",
           "comment": "event_summary:401873093",
           "canonical_key": "NE_A_BROWN",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "NE",
@@ -11254,7 +11250,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873093",
           "canonical_key": "NE_D_MAYE",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "NE",
@@ -11266,7 +11262,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873093",
           "canonical_key": "NE_B_SCHOOLER",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "NE",
@@ -11278,7 +11274,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873093",
           "canonical_key": "NE_W_ROUSE",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "NE",
@@ -11290,12 +11286,12 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873093",
           "canonical_key": "NE_B_BROWN",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         }
       ],
       "summary": {
         "team": "NE",
-        "timestamp_cst": "2026-11-21 22:18:38 CST",
+        "timestamp_cst": "2026-11-22 00:23:50 CST",
         "qb1_name": "Tommy DeVito",
         "qb1_base": "D. Maye",
         "qb1_status": "ACTIVO_CONFIRMADO",
@@ -11753,7 +11749,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873087",
           "canonical_key": "NO_A_RICHARDS",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "NO",
@@ -11765,7 +11761,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873087",
           "canonical_key": "NO_E_MCCOY",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "NO",
@@ -11777,7 +11773,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873087",
           "canonical_key": "NO_T_FUAGA",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "NO",
@@ -11789,7 +11785,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873087",
           "canonical_key": "NO_M_EMERSON",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "NO",
@@ -11801,12 +11797,12 @@
           "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873087",
           "canonical_key": "NO_P_WERNER",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         }
       ],
       "summary": {
         "team": "NO",
-        "timestamp_cst": "2026-11-21 22:18:38 CST",
+        "timestamp_cst": "2026-11-22 00:23:50 CST",
         "qb1_name": "Tyler Shough",
         "qb1_base": "T. Shough",
         "qb1_status": "ACTIVO_CONFIRMADO",
@@ -12028,7 +12024,7 @@
             "slot": "LG",
             "pos": "LG",
             "player": "David Edwards",
-            "backup": "William Sherman",
+            "backup": "Dillon Radunz",
             "status": "ACTIVO_CONFIRMADO",
             "raw_status": "Active",
             "canonical_key": "NO_D_EDWARDS",
@@ -12262,7 +12258,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873088",
           "canonical_key": "NYG_T_TRACY",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "NYG",
@@ -12274,7 +12270,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873088",
           "canonical_key": "NYG_T_EDMUNDS",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "NYG",
@@ -12286,7 +12282,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873088",
           "canonical_key": "NYG_B_BERRIOS",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "NYG",
@@ -12298,7 +12294,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873088",
           "canonical_key": "NYG_C_GOLSTON",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "NYG",
@@ -12310,12 +12306,12 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873088",
           "canonical_key": "NYG_J_DART",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         }
       ],
       "summary": {
         "team": "NYG",
-        "timestamp_cst": "2026-11-21 22:18:38 CST",
+        "timestamp_cst": "2026-11-22 00:23:50 CST",
         "qb1_name": "J.J. McCarthy",
         "qb1_base": "J.J. McCarthy",
         "qb1_status": "ACTIVO_CONFIRMADO",
@@ -12760,7 +12756,7 @@
           "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873089",
           "canonical_key": "NYJ_D_PARHAM",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "NYJ",
@@ -12772,7 +12768,7 @@
           "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873089",
           "canonical_key": "NYJ_H_PHILLIPS",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "NYJ",
@@ -12784,7 +12780,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873089",
           "canonical_key": "NYJ_D_ONYEMATA",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "NYJ",
@@ -12796,7 +12792,7 @@
           "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873089",
           "canonical_key": "NYJ_T_WALLACE",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "NYJ",
@@ -12808,12 +12804,12 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873089",
           "canonical_key": "NYJ_I_WILLIAMS",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         }
       ],
       "summary": {
         "team": "NYJ",
-        "timestamp_cst": "2026-11-21 22:18:38 CST",
+        "timestamp_cst": "2026-11-22 00:23:50 CST",
         "qb1_name": "Geno Smith",
         "qb1_base": "G. Smith",
         "qb1_status": "ACTIVO_CONFIRMADO",
@@ -13269,7 +13265,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873080",
           "canonical_key": "PHI_Z_BAUN",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "PHI",
@@ -13281,7 +13277,7 @@
           "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873080",
           "canonical_key": "PHI_W_SHIPLEY",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "PHI",
@@ -13293,7 +13289,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873080",
           "canonical_key": "PHI_D_WICKS",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "PHI",
@@ -13305,7 +13301,7 @@
           "status_code": "DOUBTFUL",
           "comment": "event_summary:401873080",
           "canonical_key": "PHI_S_MONDON",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "PHI",
@@ -13317,12 +13313,12 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873080",
           "canonical_key": "PHI_J_HURTS",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         }
       ],
       "summary": {
         "team": "PHI",
-        "timestamp_cst": "2026-11-21 22:18:38 CST",
+        "timestamp_cst": "2026-11-22 00:23:50 CST",
         "qb1_name": "Joe Milton",
         "qb1_base": "J. Milton III",
         "qb1_status": "ACTIVO_CONFIRMADO",
@@ -13778,7 +13774,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873083",
           "canonical_key": "PIT_M_PITTMAN",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "PIT",
@@ -13790,7 +13786,7 @@
           "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873083",
           "canonical_key": "PIT_R_WILSON",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "PIT",
@@ -13802,7 +13798,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873083",
           "canonical_key": "PIT_N_HERBIG",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "PIT",
@@ -13814,7 +13810,7 @@
           "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873083",
           "canonical_key": "PIT_D_ELLIOTT",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "PIT",
@@ -13826,12 +13822,12 @@
           "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873083",
           "canonical_key": "PIT_P_QUEEN",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         }
       ],
       "summary": {
         "team": "PIT",
-        "timestamp_cst": "2026-11-21 22:18:38 CST",
+        "timestamp_cst": "2026-11-22 00:23:50 CST",
         "qb1_name": "Aaron Rodgers",
         "qb1_base": "A. Rodgers",
         "qb1_status": "ACTIVO_CONFIRMADO",
@@ -14287,7 +14283,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873091",
           "canonical_key": "SEA_L_WILLIAMS",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "SEA",
@@ -14299,7 +14295,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873091",
           "canonical_key": "SEA_Q_NELSON",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "SEA",
@@ -14311,7 +14307,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873091",
           "canonical_key": "SEA_C_CROSS",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "SEA",
@@ -14323,7 +14319,7 @@
           "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873091",
           "canonical_key": "SEA_G_HOLANI",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "SEA",
@@ -14335,12 +14331,12 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873091",
           "canonical_key": "SEA_S_DARNOLD",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         }
       ],
       "summary": {
         "team": "SEA",
-        "timestamp_cst": "2026-11-21 22:18:38 CST",
+        "timestamp_cst": "2026-11-22 00:23:50 CST",
         "qb1_name": "Drew Lock",
         "qb1_base": "D. Lock",
         "qb1_status": "ACTIVO_CONFIRMADO",
@@ -14814,7 +14810,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873091",
           "canonical_key": "SF_N_HOBBS",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "SF",
@@ -14826,7 +14822,7 @@
           "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873091",
           "canonical_key": "SF_D_GREENLAW",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "SF",
@@ -14838,7 +14834,7 @@
           "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873091",
           "canonical_key": "SF_J_JAMES",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "SF",
@@ -14850,7 +14846,7 @@
           "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873091",
           "canonical_key": "SF_M_JONES",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "SF",
@@ -14862,12 +14858,12 @@
           "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873091",
           "canonical_key": "SF_M_EVANS",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         }
       ],
       "summary": {
         "team": "SF",
-        "timestamp_cst": "2026-11-21 22:18:38 CST",
+        "timestamp_cst": "2026-11-22 00:23:50 CST",
         "qb1_name": "Brock Purdy",
         "qb1_base": "B. Purdy",
         "qb1_status": "ACTIVO_CONFIRMADO",
@@ -15334,7 +15330,7 @@
           "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873094",
           "canonical_key": "TB_B_MAYFIELD",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "TB",
@@ -15346,7 +15342,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873094",
           "canonical_key": "TB_J_HAYES",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "TB",
@@ -15358,7 +15354,7 @@
           "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873094",
           "canonical_key": "TB_Y_DIABY",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "TB",
@@ -15370,7 +15366,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873094",
           "canonical_key": "TB_A_WINFIELD",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "TB",
@@ -15382,12 +15378,12 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873094",
           "canonical_key": "TB_J_MCMILLAN",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         }
       ],
       "summary": {
         "team": "TB",
-        "timestamp_cst": "2026-11-21 22:18:38 CST",
+        "timestamp_cst": "2026-11-22 00:23:50 CST",
         "qb1_name": "Baker Mayfield",
         "qb1_base": "B. Mayfield",
         "qb1_status": "QUESTIONABLE_GTD",
@@ -15843,7 +15839,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873090",
           "canonical_key": "TEN_J_HARRELL",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "TEN",
@@ -15855,7 +15851,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873090",
           "canonical_key": "TEN_T_SPEARS",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "TEN",
@@ -15867,7 +15863,7 @@
           "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873090",
           "canonical_key": "TEN_C_TATE",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "TEN",
@@ -15879,7 +15875,7 @@
           "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873090",
           "canonical_key": "TEN_M_ROBINSON",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "TEN",
@@ -15891,12 +15887,12 @@
           "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873090",
           "canonical_key": "TEN_A_HILL",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         }
       ],
       "summary": {
         "team": "TEN",
-        "timestamp_cst": "2026-11-21 22:18:38 CST",
+        "timestamp_cst": "2026-11-22 00:23:50 CST",
         "qb1_name": "Cam Ward",
         "qb1_base": "C. Ward",
         "qb1_status": "ACTIVO_CONFIRMADO",
@@ -16352,7 +16348,7 @@
           "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873092",
           "canonical_key": "WAS_L_PATRICK",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "WAS",
@@ -16364,7 +16360,7 @@
           "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873092",
           "canonical_key": "WAS_A_ROBERTSON",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "WAS",
@@ -16376,7 +16372,7 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873092",
           "canonical_key": "WAS_J_MERRITT",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "WAS",
@@ -16388,7 +16384,7 @@
           "status_code": "QUESTIONABLE_GTD",
           "comment": "event_summary:401873092",
           "canonical_key": "WAS_R_WHITE",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         },
         {
           "team": "WAS",
@@ -16400,12 +16396,12 @@
           "status_code": "OUT_INACTIVO",
           "comment": "event_summary:401873092",
           "canonical_key": "WAS_L_TUNSIL",
-          "timestamp_cst": "2026-11-21 22:18:38 CST"
+          "timestamp_cst": "2026-11-22 00:23:50 CST"
         }
       ],
       "summary": {
         "team": "WAS",
-        "timestamp_cst": "2026-11-21 22:18:38 CST",
+        "timestamp_cst": "2026-11-22 00:23:50 CST",
         "qb1_name": "Jayden Daniels",
         "qb1_base": "J. Daniels",
         "qb1_status": "ACTIVO_CONFIRMADO",
