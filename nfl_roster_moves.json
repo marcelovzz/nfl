@@ -1,10 +1,26 @@
 {
-  "timestamp_cst": "2026-11-19 21:39:25 CST",
+  "timestamp_cst": "2026-11-21 22:18:38 CST",
   "new_team_adaptation_factor": 0.85,
-  "total_moves": 2,
+  "total_moves": 3,
   "moves": [
     {
-      "Timestamp_CST": "2026-11-19 21:39:25 CST",
+      "Timestamp_CST": "2026-11-21 22:18:38 CST",
+      "Player": "D. Jones",
+      "Pos": "QB",
+      "Equipo_Prev": "IND",
+      "Equipo_Actual": "FA",
+      "Tipo_Movimiento": "CORTE_FA",
+      "Factor_Adaptacion": 0.0,
+      "Role_Share_Base": 1.0,
+      "Baseline_Yds": 212.1,
+      "Catch_Rate": 0.65,
+      "Yds_Per_Unit": 7.3,
+      "TD_Rate": 0.215,
+      "Detalle_ESPN": "Fuera del roster activo de IND (Agente Libre / FA)",
+      "player_key": "D_JONES"
+    },
+    {
+      "Timestamp_CST": "2026-11-21 22:18:38 CST",
       "Player": "J. Downs",
       "Pos": "WR",
       "Equipo_Prev": "IND",
@@ -20,7 +36,7 @@
       "player_key": "J_DOWNS"
     },
     {
-      "Timestamp_CST": "2026-11-19 21:39:25 CST",
+      "Timestamp_CST": "2026-11-21 22:18:38 CST",
       "Player": "K. Cousins",
       "Pos": "QB",
       "Equipo_Prev": "LV",
@@ -39,7 +55,23 @@
   "by_prev_team": {
     "IND": [
       {
-        "Timestamp_CST": "2026-11-19 21:39:25 CST",
+        "Timestamp_CST": "2026-11-21 22:18:38 CST",
+        "Player": "D. Jones",
+        "Pos": "QB",
+        "Equipo_Prev": "IND",
+        "Equipo_Actual": "FA",
+        "Tipo_Movimiento": "CORTE_FA",
+        "Factor_Adaptacion": 0.0,
+        "Role_Share_Base": 1.0,
+        "Baseline_Yds": 212.1,
+        "Catch_Rate": 0.65,
+        "Yds_Per_Unit": 7.3,
+        "TD_Rate": 0.215,
+        "Detalle_ESPN": "Fuera del roster activo de IND (Agente Libre / FA)",
+        "player_key": "D_JONES"
+      },
+      {
+        "Timestamp_CST": "2026-11-21 22:18:38 CST",
         "Player": "J. Downs",
         "Pos": "WR",
         "Equipo_Prev": "IND",
@@ -57,7 +89,7 @@
     ],
     "LV": [
       {
-        "Timestamp_CST": "2026-11-19 21:39:25 CST",
+        "Timestamp_CST": "2026-11-21 22:18:38 CST",
         "Player": "K. Cousins",
         "Pos": "QB",
         "Equipo_Prev": "LV",
@@ -77,7 +109,7 @@
   "by_current_team": {
     "KC": [
       {
-        "Timestamp_CST": "2026-11-19 21:39:25 CST",
+        "Timestamp_CST": "2026-11-21 22:18:38 CST",
         "Player": "J. Downs",
         "Pos": "WR",
         "Equipo_Prev": "IND",
@@ -95,7 +127,7 @@
     ],
     "MIN": [
       {
-        "Timestamp_CST": "2026-11-19 21:39:25 CST",
+        "Timestamp_CST": "2026-11-21 22:18:38 CST",
         "Player": "K. Cousins",
         "Pos": "QB",
         "Equipo_Prev": "LV",
@@ -124,6 +156,7 @@
     "GB": [],
     "TEN": [],
     "IND": [
+      "Baja: D. Jones (QB -> FA)",
       "Baja: J. Downs (WR -> KC)"
     ],
     "KC": [
@@ -143,11 +176,11 @@
     "NYJ": [],
     "PHI": [],
     "ARI": [],
-    "PIT": [
-      "CORTE_FA: Waived WR Brandon Smith."
-    ],
+    "PIT": [],
     "LAC": [],
-    "SF": [],
+    "SF": [
+      "CORTE_FA: Waived WR Brandon Cooks. Activated DT CJ West off injured reserve."
+    ],
     "SEA": [],
     "TB": [],
     "WAS": [],
@@ -158,34 +191,16 @@
   },
   "recent_espn_transactions": [
     {
-      "team": "DEN",
-      "date": "2026-11-19T08:00Z",
-      "type": "FIRMA_ALTA",
-      "description": "Signed CB Riley Moss to a four-year contract extension."
+      "team": "SF",
+      "date": "2026-11-21T08:00Z",
+      "type": "CORTE_FA",
+      "description": "Waived WR Brandon Cooks. Activated DT CJ West off injured reserve."
     },
     {
       "team": "GB",
-      "date": "2026-11-19T08:00Z",
+      "date": "2026-11-20T08:00Z",
       "type": "CORTE_FA",
-      "description": "Waived RB Pierre Strong Jr."
-    },
-    {
-      "team": "NO",
-      "date": "2026-11-19T08:00Z",
-      "type": "CORTE_FA",
-      "description": "Released S Justin Reid."
-    },
-    {
-      "team": "PIT",
-      "date": "2026-11-19T08:00Z",
-      "type": "CORTE_FA",
-      "description": "Waived WR Brandon Smith."
-    },
-    {
-      "team": "PHI",
-      "date": "2026-11-18T08:00Z",
-      "type": "FIRMA_ALTA",
-      "description": "Claimed T Ajani Cornelius off waivers from Dallas."
+      "description": "Waived RB Pierre Strong."
     }
   ]
 }
