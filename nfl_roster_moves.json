@@ -1,10 +1,10 @@
 {
-  "timestamp_cst": "2026-11-22 16:02:38 CST",
+  "timestamp_cst": "2026-11-24 00:12:45 CST",
   "new_team_adaptation_factor": 0.85,
   "total_moves": 3,
   "moves": [
     {
-      "Timestamp_CST": "2026-11-22 16:02:38 CST",
+      "Timestamp_CST": "2026-11-24 00:12:45 CST",
       "Player": "D. Jones",
       "Pos": "QB",
       "Equipo_Prev": "IND",
@@ -20,7 +20,7 @@
       "player_key": "D_JONES"
     },
     {
-      "Timestamp_CST": "2026-11-22 16:02:38 CST",
+      "Timestamp_CST": "2026-11-24 00:12:45 CST",
       "Player": "J. Downs",
       "Pos": "WR",
       "Equipo_Prev": "IND",
@@ -36,7 +36,7 @@
       "player_key": "J_DOWNS"
     },
     {
-      "Timestamp_CST": "2026-11-22 16:02:38 CST",
+      "Timestamp_CST": "2026-11-24 00:12:45 CST",
       "Player": "K. Cousins",
       "Pos": "QB",
       "Equipo_Prev": "LV",
@@ -55,7 +55,7 @@
   "by_prev_team": {
     "IND": [
       {
-        "Timestamp_CST": "2026-11-22 16:02:38 CST",
+        "Timestamp_CST": "2026-11-24 00:12:45 CST",
         "Player": "D. Jones",
         "Pos": "QB",
         "Equipo_Prev": "IND",
@@ -71,7 +71,7 @@
         "player_key": "D_JONES"
       },
       {
-        "Timestamp_CST": "2026-11-22 16:02:38 CST",
+        "Timestamp_CST": "2026-11-24 00:12:45 CST",
         "Player": "J. Downs",
         "Pos": "WR",
         "Equipo_Prev": "IND",
@@ -89,7 +89,7 @@
     ],
     "LV": [
       {
-        "Timestamp_CST": "2026-11-22 16:02:38 CST",
+        "Timestamp_CST": "2026-11-24 00:12:45 CST",
         "Player": "K. Cousins",
         "Pos": "QB",
         "Equipo_Prev": "LV",
@@ -109,7 +109,7 @@
   "by_current_team": {
     "KC": [
       {
-        "Timestamp_CST": "2026-11-22 16:02:38 CST",
+        "Timestamp_CST": "2026-11-24 00:12:45 CST",
         "Player": "J. Downs",
         "Pos": "WR",
         "Equipo_Prev": "IND",
@@ -127,7 +127,7 @@
     ],
     "MIN": [
       {
-        "Timestamp_CST": "2026-11-22 16:02:38 CST",
+        "Timestamp_CST": "2026-11-24 00:12:45 CST",
         "Player": "K. Cousins",
         "Pos": "QB",
         "Equipo_Prev": "LV",
@@ -166,7 +166,9 @@
       "Baja: K. Cousins (QB -> MIN)"
     ],
     "LA": [],
-    "MIA": [],
+    "MIA": [
+      "CORTE_FA: Waived LB Shaka Heyward and DE Max Llewellyn."
+    ],
     "MIN": [
       "Alta: K. Cousins (QB, ex-LV · 85%)"
     ],
@@ -178,12 +180,12 @@
     "ARI": [],
     "PIT": [],
     "LAC": [],
-    "SF": [
-      "CORTE_FA: Waived WR Brandon Cooks. Activated DT CJ West off injured reserve."
-    ],
+    "SF": [],
     "SEA": [],
     "TB": [],
-    "WAS": [],
+    "WAS": [
+      "CORTE_FA: Reinstated RB Jacory Croskey-Merritt from injured reserve. Released CB ..."
+    ],
     "CAR": [],
     "JAX": [],
     "BAL": [],
@@ -191,16 +193,22 @@
   },
   "recent_espn_transactions": [
     {
-      "team": "SF",
-      "date": "2026-11-21T08:00Z",
+      "team": "MIA",
+      "date": "2026-11-23T08:00Z",
       "type": "CORTE_FA",
-      "description": "Waived WR Brandon Cooks. Activated DT CJ West off injured reserve."
+      "description": "Waived LB Shaka Heyward and DE Max Llewellyn."
     },
     {
-      "team": "GB",
-      "date": "2026-11-20T08:00Z",
+      "team": "SF",
+      "date": "2026-11-23T08:00Z",
       "type": "CORTE_FA",
-      "description": "Waived RB Pierre Strong."
+      "description": "Waived WR Brandon Aiyuk."
+    },
+    {
+      "team": "WAS",
+      "date": "2026-11-23T08:00Z",
+      "type": "CORTE_FA",
+      "description": "Reinstated RB Jacory Croskey-Merritt from injured reserve. Released CB Isaac Yiadom."
     }
   ]
 }
