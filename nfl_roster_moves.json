@@ -1,10 +1,26 @@
 {
-  "timestamp_cst": "2026-11-24 15:58:59 CST",
+  "timestamp_cst": "2026-11-26 11:44:33 CST",
   "new_team_adaptation_factor": 0.85,
-  "total_moves": 3,
+  "total_moves": 4,
   "moves": [
     {
-      "Timestamp_CST": "2026-11-24 15:58:59 CST",
+      "Timestamp_CST": "2026-11-26 11:44:33 CST",
+      "Player": "A. Rodgers",
+      "Pos": "QB",
+      "Equipo_Prev": "PIT",
+      "Equipo_Actual": "FA",
+      "Tipo_Movimiento": "CORTE_FA",
+      "Factor_Adaptacion": 0.0,
+      "Role_Share_Base": 1.0,
+      "Baseline_Yds": 206.3,
+      "Catch_Rate": 0.65,
+      "Yds_Per_Unit": 6.8,
+      "TD_Rate": 0.11,
+      "Detalle_ESPN": "Fuera del roster activo de PIT (Agente Libre / FA)",
+      "player_key": "A_RODGERS"
+    },
+    {
+      "Timestamp_CST": "2026-11-26 11:44:33 CST",
       "Player": "D. Jones",
       "Pos": "QB",
       "Equipo_Prev": "IND",
@@ -20,7 +36,7 @@
       "player_key": "D_JONES"
     },
     {
-      "Timestamp_CST": "2026-11-24 15:58:59 CST",
+      "Timestamp_CST": "2026-11-26 11:44:33 CST",
       "Player": "J. Downs",
       "Pos": "WR",
       "Equipo_Prev": "IND",
@@ -36,7 +52,7 @@
       "player_key": "J_DOWNS"
     },
     {
-      "Timestamp_CST": "2026-11-24 15:58:59 CST",
+      "Timestamp_CST": "2026-11-26 11:44:33 CST",
       "Player": "K. Cousins",
       "Pos": "QB",
       "Equipo_Prev": "LV",
@@ -53,9 +69,27 @@
     }
   ],
   "by_prev_team": {
+    "PIT": [
+      {
+        "Timestamp_CST": "2026-11-26 11:44:33 CST",
+        "Player": "A. Rodgers",
+        "Pos": "QB",
+        "Equipo_Prev": "PIT",
+        "Equipo_Actual": "FA",
+        "Tipo_Movimiento": "CORTE_FA",
+        "Factor_Adaptacion": 0.0,
+        "Role_Share_Base": 1.0,
+        "Baseline_Yds": 206.3,
+        "Catch_Rate": 0.65,
+        "Yds_Per_Unit": 6.8,
+        "TD_Rate": 0.11,
+        "Detalle_ESPN": "Fuera del roster activo de PIT (Agente Libre / FA)",
+        "player_key": "A_RODGERS"
+      }
+    ],
     "IND": [
       {
-        "Timestamp_CST": "2026-11-24 15:58:59 CST",
+        "Timestamp_CST": "2026-11-26 11:44:33 CST",
         "Player": "D. Jones",
         "Pos": "QB",
         "Equipo_Prev": "IND",
@@ -71,7 +105,7 @@
         "player_key": "D_JONES"
       },
       {
-        "Timestamp_CST": "2026-11-24 15:58:59 CST",
+        "Timestamp_CST": "2026-11-26 11:44:33 CST",
         "Player": "J. Downs",
         "Pos": "WR",
         "Equipo_Prev": "IND",
@@ -89,7 +123,7 @@
     ],
     "LV": [
       {
-        "Timestamp_CST": "2026-11-24 15:58:59 CST",
+        "Timestamp_CST": "2026-11-26 11:44:33 CST",
         "Player": "K. Cousins",
         "Pos": "QB",
         "Equipo_Prev": "LV",
@@ -109,7 +143,7 @@
   "by_current_team": {
     "KC": [
       {
-        "Timestamp_CST": "2026-11-24 15:58:59 CST",
+        "Timestamp_CST": "2026-11-26 11:44:33 CST",
         "Player": "J. Downs",
         "Pos": "WR",
         "Equipo_Prev": "IND",
@@ -127,7 +161,7 @@
     ],
     "MIN": [
       {
-        "Timestamp_CST": "2026-11-24 15:58:59 CST",
+        "Timestamp_CST": "2026-11-26 11:44:33 CST",
         "Player": "K. Cousins",
         "Pos": "QB",
         "Equipo_Prev": "LV",
@@ -147,7 +181,9 @@
   "summary_by_team": {
     "ATL": [],
     "BUF": [],
-    "CHI": [],
+    "CHI": [
+      "FIRMA_ALTA: Claimed DB Isaac Yiadom off waivers from Washington."
+    ],
     "CIN": [],
     "CLE": [],
     "DAL": [],
@@ -166,9 +202,7 @@
       "Baja: K. Cousins (QB -> MIN)"
     ],
     "LA": [],
-    "MIA": [
-      "CORTE_FA: Waived LB Shaka Heyward and DE Max Llewellyn."
-    ],
+    "MIA": [],
     "MIN": [
       "Alta: K. Cousins (QB, ex-LV · 85%)"
     ],
@@ -178,14 +212,17 @@
     "NYJ": [],
     "PHI": [],
     "ARI": [],
-    "PIT": [],
-    "LAC": [],
+    "PIT": [
+      "Baja: A. Rodgers (QB -> FA)",
+      "CORTE_FA: Released QB Aaron Rodgers."
+    ],
+    "LAC": [
+      "FIRMA_ALTA: Claimed DB Avery Smith off waivers from Seattle."
+    ],
     "SF": [],
     "SEA": [],
     "TB": [],
-    "WAS": [
-      "CORTE_FA: Reinstated RB Jacory Croskey-Merritt from injured reserve. Released CB ..."
-    ],
+    "WAS": [],
     "CAR": [],
     "JAX": [],
     "BAL": [],
@@ -193,22 +230,28 @@
   },
   "recent_espn_transactions": [
     {
-      "team": "MIA",
-      "date": "2026-11-23T08:00Z",
-      "type": "CORTE_FA",
-      "description": "Waived LB Shaka Heyward and DE Max Llewellyn."
+      "team": "ARI",
+      "date": "2026-11-25T08:00Z",
+      "type": "FIRMA_ALTA",
+      "description": "Claimed QB Kedon Slovis off waivers from Baltimore."
     },
     {
-      "team": "SF",
-      "date": "2026-11-23T08:00Z",
+      "team": "PIT",
+      "date": "2026-11-25T08:00Z",
       "type": "CORTE_FA",
-      "description": "Waived WR Brandon Aiyuk."
+      "description": "Released QB Aaron Rodgers."
     },
     {
-      "team": "WAS",
-      "date": "2026-11-23T08:00Z",
-      "type": "CORTE_FA",
-      "description": "Reinstated RB Jacory Croskey-Merritt from injured reserve. Released CB Isaac Yiadom."
+      "team": "LAC",
+      "date": "2026-11-25T08:00Z",
+      "type": "FIRMA_ALTA",
+      "description": "Claimed DB Avery Smith off waivers from Seattle."
+    },
+    {
+      "team": "CHI",
+      "date": "2026-11-24T08:00Z",
+      "type": "FIRMA_ALTA",
+      "description": "Claimed DB Isaac Yiadom off waivers from Washington."
     }
   ]
 }
